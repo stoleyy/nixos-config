@@ -7,5 +7,6 @@
     enable                = true;
     pinentry.package      = pkgs.pinentry-qt;
     enableFishIntegration = true;
+    enableSshSupport      = true;
   };
 }

@@ -3,7 +3,7 @@
 {
   networking.networkmanager = {
     enable = true;
-    dns    = "systemd-resolved";   # codex MEDIUM: explicit hand-off to resolved (was implicit/default)
+    dns    = "systemd-resolved";   # explicit hand-off to resolved
   };
   networking.useDHCP       = false;
   networking.dhcpcd.enable = false;
@@ -13,59 +13,40 @@
   networking.firewall.allowedTCPPorts = [ ];
   networking.firewall.allowedUDPPorts = [ ];
 
-  networking.nameservers = [
-    "9.9.9.9#dns.quad9.net"
-    "149.112.112.112#dns.quad9.net"
-  ];
-
+  # Quad9 via resolved. `domains = [ "~." ]` routes all queries to these servers
+  # so DHCP-supplied DNS can't override them. `fallbackDns` only kicks in when
+  # no link has DNS at all.
   services.resolved = {
     enable     = true;
     dnssec     = "true";
     dnsovertls = "true";
     llmnr      = "false";   # F15: disable LLMNR — credential-theft surface (T1557.001)
+    domains    = [ "~." ];
     fallbackDns = [
       "9.9.9.9#dns.quad9.net"
       "149.112.112.112#dns.quad9.net"
       "2620:fe::fe#dns.quad9.net"
       "2620:fe::9#dns.quad9.net"
     ];
-  };
-
-  # F01: hardened SSH — password auth disabled, root login prohibited, brute-force limited
-  services.openssh = {
-    enable = true;
-    settings = {
-      PasswordAuthentication        = false;
-      PermitRootLogin               = "no";
-      KbdInteractiveAuthentication  = false;
-    };
     extraConfig = ''
-      MaxAuthTries 3
-      LoginGraceTime 30
+      DNS=9.9.9.9#dns.quad9.net 149.112.112.112#dns.quad9.net 2620:fe::fe#dns.quad9.net 2620:fe::9#dns.quad9.net
     '';
-  };
-
-  services.fail2ban = {
-    enable   = true;
-    maxretry = 5;
-    bantime  = "1h";
   };
 
   services.printing = {
     enable          = true;
     drivers         = with pkgs; [ gutenprint gutenprintBin hplip ];
     browsing        = false;                        # F-22: cupsd Browsing directive off
-    listenAddresses = [ "localhost:631" ];          # F-22: explicit; bind only to loopback
+    listenAddresses = [ "localhost:631" ];          # F-22: bind only to loopback
   };
 
-  # F-22: explicitly disable the cups-browsed.service systemd unit.
-  # `services.printing.browsing = false` only controls cupsd's config; the
-  # cups-browsed daemon (Sept 2024 CVE-2024-47175 chain) is a separate unit.
+  # F-22: disable cups-browsed separately — `browsing = false` only controls cupsd;
+  # cups-browsed is a separate unit (CVE-2024-47175 chain).
   systemd.services.cups-browsed.enable = lib.mkForce false;
 
   services.avahi = {
     enable       = true;
     nssmdns4     = true;
-    openFirewall = true;
+    openFirewall = true;   # needed for KDE Connect mDNS discovery
   };
 }

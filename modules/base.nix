@@ -25,31 +25,27 @@
   programs.nix-ld.enable = true;
 
   programs.nh = {
-    enable       = true;
-    flake        = "/etc/nixos";
-    clean.enable = true;
+    enable          = true;
+    flake           = "/etc/nixos";
+    clean.enable    = true;
     clean.extraArgs = "--keep-since 7d --keep 5";
   };
 
   programs.direnv = {
-    enable         = true;
+    enable            = true;
     nix-direnv.enable = true;
   };
 
-  programs.fish.enable = true;
-
-  # F-25: required for home-manager services.easyeffects to persist its dconf settings.
-  # Without this, EasyEffects launches but won't remember preset/EQ state across reboots.
+  programs.fish.enable  = true;
   programs.dconf.enable = true;
 
   # F-21: replace deprecated glibc nscd with memory-safe Rust nsncd
   services.nscd = {
-    enable      = true;   # keep NSS cache for compat
-    enableNsncd = true;   # use nsncd implementation, not glibc nscd
+    enable      = true;
+    enableNsncd = true;
   };
 
-  time.timeZone = "America/New_York";
-
+  time.timeZone      = "America/New_York";
   i18n.defaultLocale = "en_US.UTF-8";
   i18n.extraLocaleSettings = {
     LC_ADDRESS        = "en_US.UTF-8";
@@ -84,51 +80,35 @@
     };
   };
 
-  # Logitech LIGHTSPEED Receiver detected on Windows — exposes solaar for battery,
-  # DPI, button remap. enableGraphical pulls in the Solaar Qt GUI.
+  # Logitech LIGHTSPEED Receiver — exposes solaar for battery, DPI, button remap.
   hardware.logitech.wireless = {
     enable          = true;
     enableGraphical = true;
   };
 
-  # TPM 2.0 present on Acer Predator. Enables tpm2-tools userspace + pkcs11 provider
-  # for future LUKS unlock, attestation, or fido2 via systemd-cryptenroll.
-  security.tpm2 = {
-    enable                 = true;
-    pkcs11.enable          = true;
-    tctiEnvironment.enable = true;
-  };
+  # Desktop services: Intel thermal management + firmware updates via LVFS.
+  services.thermald.enable = true;
+  services.fwupd.enable    = true;
+
+  # Compressed-RAM swap. Free responsiveness win; complements the on-disk swapfile.
+  zramSwap.enable = true;
+
+  # Wipe /tmp between boots.
+  boot.tmp.cleanOnBoot = true;
 
   users.users.stoleyy = {
     isNormalUser = true;
     description  = "stoleyy";
     shell        = pkgs.fish;
-    # Codex/F-29 note: "input" REMOVED from extraGroups.
-    # On Wayland + systemd-logind (this stack), per-seat ACLs grant active sessions
-    # /dev/input/event* access automatically — no group membership required.
-    # If a specific device later needs raw access (custom HID, input-remapper, etc.),
-    # add a targeted udev rule with TAG+="uaccess" instead of restoring group-wide access.
-    extraGroups  = [
-      "networkmanager"
-      "wheel"
-      "video"
-      "plugdev"
-      "gamemode"
-    ];
-    packages = with pkgs; [
-      kdePackages.kate
-    ];
+    # On Wayland + systemd-logind, per-seat ACLs grant active sessions
+    # /dev/input/event* access automatically — no "input" group needed.
+    extraGroups  = [ "networkmanager" "wheel" "video" "plugdev" "gamemode" ];
+    packages     = with pkgs; [ kdePackages.kate ];
   };
 
-  environment.shells = with pkgs; [ fish bash ];
-
+  environment.shells          = with pkgs; [ fish bash ];
   nixpkgs.config.allowUnfree = true;
-
-  environment.systemPackages = with pkgs; [
-    git
-    vim
-    wget
-  ];
+  environment.systemPackages  = with pkgs; [ git vim wget ];
 
   services.journald.extraConfig = ''
     SystemMaxUse=500M
@@ -138,6 +118,5 @@
   '';
 
   systemd.coredump.enable = false;
-
-  system.stateVersion = "25.11";
+  system.stateVersion     = "25.11";
 }

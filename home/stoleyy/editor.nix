@@ -11,13 +11,15 @@
         vscodevim.vim
       ];
       userSettings = {
-        "editor.formatOnSave"      = true;
-        "editor.fontFamily"        = "'JetBrainsMono Nerd Font', monospace";
-        "editor.fontSize"          = 13;
-        "telemetry.telemetryLevel" = "off";
-        "update.mode"              = "none";
-        "nix.enableLanguageServer" = true;
-        "nix.serverPath"           = "nixd";
+        "editor.formatOnSave"         = true;
+        "editor.fontFamily"           = "'JetBrainsMono Nerd Font', monospace";
+        "editor.fontSize"             = 13;
+        "telemetry.telemetryLevel"    = "off";
+        "update.mode"                 = "none";
+        "extensions.autoUpdate"       = false;
+        "extensions.autoCheckUpdates" = false;
+        "nix.enableLanguageServer"    = true;
+        "nix.serverPath"              = "nixd";
       };
     };
   };
