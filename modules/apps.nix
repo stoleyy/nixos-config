@@ -4,10 +4,10 @@
   environment.systemPackages = with pkgs; [
     (brave.override {
       commandLineArgs = [
-        # Wayland / Ozone — render correctly on KDE Plasma 6 Wayland
+        # Wayland / Ozone — render correctly on KDE Plasma 6 Wayland.
+        # `UseOzonePlatform` is a no-op on current Chromium; only the hint is needed.
         "--disable-features=WaylandWpColorManagerV1"
         "--ozone-platform-hint=auto"
-        "--enable-features=UseOzonePlatform"
       ];
     })
 

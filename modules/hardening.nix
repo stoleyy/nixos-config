@@ -32,33 +32,29 @@
     "fs.protected_fifos"     = 2;
     "fs.protected_regular"   = 2;
 
-    # extra hardening — prevent unprivileged userfaultfd (used in some kernel exploits)
+    # prevent unprivileged userfaultfd (used in some kernel exploits)
     "vm.unprivileged_userfaultfd" = 0;
 
-    # codex MEDIUM (base.nix:110): systemd.coredump.enable=false only stops systemd
-    # from collecting dumps; the kernel will still write a `core` file in the process
-    # CWD by default, which can leak memory contents (creds, tokens, decrypted secrets).
-    # Pipe core dumps to /bin/false to discard them entirely at kernel level.
+    # Pipe core dumps to /bin/false — discards them at kernel level to prevent
+    # memory contents (creds, tokens) leaking via core files in the process CWD.
     "kernel.core_pattern" = "|/bin/false";
   };
 
-  # F-20 (cross-kernel runtime hardening — works on stock or hardened kernel):
-  # boot params applied even when boot.kernelPackages stays at default.
-  # Hardened kernel sets most of these as defaults; redundant settings are harmless.
+  # F-20: boot params that harden even the stock kernel.
   boot.kernelParams = [
-    "init_on_alloc=1"            # zero memory on alloc — defeats some uninit-memory exploits
-    "init_on_free=1"             # zero memory on free — defeats UAF info-leak primitives
-    "page_alloc.shuffle=1"       # randomize free list — defeats some heap-spray techniques
-    "randomize_kstack_offset=on" # per-syscall kernel-stack offset randomization
-    "vsyscall=none"              # disable legacy vsyscall ABI (reduces ROP gadget set)
-    "slab_nomerge"               # don't merge slabs by size — defeats some heap exploits
+    "init_on_alloc=1"
+    "init_on_free=1"
+    "page_alloc.shuffle=1"
+    "randomize_kstack_offset=on"
+    "vsyscall=none"
+    "slab_nomerge"
   ];
 
-  # F-23: enable AppArmor LSM framework. Profiles can be added incrementally;
-  # this only loads the kernel module + ships upstream profiles in complain mode.
+  # F-23: Profiles from `apparmor-profiles` load in their declared mode (typically
+  # enforce). Use `aa-complain <profile>` post-boot to switch one to complain mode.
   security.apparmor = {
     enable                   = true;
-    killUnconfinedConfinables = false;   # don't kill running processes that lose confinement at activation
+    killUnconfinedConfinables = false;
     packages                 = [ pkgs.apparmor-profiles ];
   };
 }

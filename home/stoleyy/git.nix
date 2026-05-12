@@ -2,11 +2,15 @@
 
 {
   programs.git = {
-    enable  = true;
-    ignores = [ ".direnv" "result" "result-*" ];
-    settings = {
-      user.name  = "stoleyy";
-      user.email = "snapscanned@proton.me";
+    enable    = true;
+    userName  = "stoleyy";
+    userEmail = "snapscanned@proton.me";
+    aliases = {
+      s    = "status -sb";
+      lg   = "log --oneline --graph --decorate --all";
+      last = "log -1 HEAD --stat";
+    };
+    extraConfig = {
       init.defaultBranch   = "main";
       pull.rebase          = true;
       push.autoSetupRemote = true;
@@ -14,11 +18,7 @@
       fetch.prune          = true;
       merge.conflictStyle  = "zdiff3";
       rerere.enabled       = true;
-      alias = {
-        s    = "status -sb";
-        lg   = "log --oneline --graph --decorate --all";
-        last = "log -1 HEAD --stat";
-      };
     };
+    ignores = [ ".direnv" "result" "result-*" ];
   };
 }

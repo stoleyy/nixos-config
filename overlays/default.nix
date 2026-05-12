@@ -10,7 +10,17 @@ let
     type == "regular"
     && name != "default.nix"
     && builtins.match ".*\\.nix" name != null;
-  overlayNames = builtins.filter (n: isOverlay n (dir.${n})) (builtins.attrNames dir);
-in {
-  nixpkgs.overlays = map (n: import (./. + "/${n}")) overlayNames;
-}
+  isStrayFile = name: type:
+    type == "regular"
+    && name != "default.nix"
+    && builtins.match ".*\\.nix" name == null;
+
+  names        = builtins.attrNames dir;
+  overlayNames = builtins.filter (n: isOverlay   n (dir.${n})) names;
+  strayNames   = builtins.filter (n: isStrayFile n (dir.${n})) names;
+in
+  if strayNames != [ ] then
+    throw "overlays/: refusing to load — non-.nix file(s) present: ${toString strayNames}"
+  else {
+    nixpkgs.overlays = map (n: import (./. + "/${n}")) overlayNames;
+  }
