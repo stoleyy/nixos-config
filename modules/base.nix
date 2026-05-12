@@ -86,9 +86,8 @@
     enableGraphical = true;
   };
 
-  # Desktop services: Intel thermal management + firmware updates via LVFS.
-  services.thermald.enable = true;
-  services.fwupd.enable    = true;
+  # Firmware updates via LVFS.
+  services.fwupd.enable = true;
 
   # Compressed-RAM swap. Free responsiveness win; complements the on-disk swapfile.
   zramSwap.enable = true;
