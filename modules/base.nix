@@ -161,12 +161,12 @@
   # 64 GB usually doesn't OOM, but Brave-with-200-tabs + Steam + a leaking
   # game can; this is the safety net. 20s pressure duration avoids transient
   # spikes triggering a kill.
-  services.systemd-oomd = {
+  systemd.oomd = {
     enable             = true;
     enableRootSlice    = true;
     enableUserSlices   = true;
     enableSystemSlice  = true;
-    extraConfig.DefaultMemoryPressureDurationSec = "20s";
+    settings.OOM.DefaultMemoryPressureDurationSec = "20s";
   };
 
   users.users.stoleyy = {
