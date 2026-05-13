@@ -76,8 +76,13 @@
 
   # Stop Linux throttling Proton games that trip split-lock atomics.
   # Merges with the NVIDIA DRM params declared in modules/nvidia.nix.
+  # transparent_hugepage=madvise: kernel default is "always" which
+  # background-promotes 2 MB pages and can cause latency spikes during
+  # heavy NVMe writes (Nix builds, shader compiles). madvise gives the
+  # same JVM/database benefits without surprise stalls.
   boot.kernelParams = [
     "split_lock_detect=off"
+    "transparent_hugepage=madvise"
   ];
 
   # === CPU (i7-13700K) ===
@@ -139,6 +144,11 @@
     enable          = true;
     enableGraphical = true;
   };
+
+  # Steam udev rules — required for Steam Controller / Steam Deck dock /
+  # DualSense Edge / VR HMDs to be recognised at all. DualShock works
+  # without these via the kernel hid-sony driver.
+  hardware.steam-hardware.enable = true;
 
   # Firmware updates via LVFS.
   services.fwupd.enable = true;
