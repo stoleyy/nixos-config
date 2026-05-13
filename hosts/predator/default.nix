@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
 {
   imports = [ ./hardware-configuration.nix ];
@@ -35,7 +35,7 @@
     # Boot with Hyprland as the default session instead of Plasma.
     # Select "hyprland" from the systemd-boot menu.
     hyprland.configuration = {
-      services.displayManager.defaultSession = "hyprland";
+      services.displayManager.defaultSession = lib.mkForce "hyprland";
     };
 
     # Verbose boot + tracing tools for diagnosing kernel/driver issues.
