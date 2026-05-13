@@ -69,14 +69,18 @@
   console.keyMap = "us";
 
   # === Kernel ===
-  # LTS 6.12: NVIDIA 580.x (production) is incompatible with Linux 7.0 —
-  # kernel 7.0 removed VMA_LOCK_OFFSET / changed __is_vma_write_locked(),
-  # causing a silent initrd panic before any console output. Confirmed on
-  # both zen 7.0.3-zen1 and mainline 7.0.5. No nixpkgs NVIDIA driver reliably
-  # handles kernel 7.x yet (590 fails on 6.19+; 595 also hits the VMA issue).
-  # Revisit once NVIDIA ships a driver that cleanly supports kernel 7.x.
+  # Plain pkgs.linuxPackages = Linux 6.12.87 on this nixpkgs commit, which is
+  # the same kernel gen 2 boots cleanly on. linuxPackages_lts was removed from
+  # this nixpkgs (only linuxPackages_6_<N> versioned packages exist).
+  #
+  # Why not a 7.x kernel: NVIDIA 580.x (production) is incompatible with
+  # Linux 7.0 — kernel 7.0 removed VMA_LOCK_OFFSET / changed __is_vma_write_locked()
+  # in mmap_lock.h. The NVIDIA module then silently panics in the initrd before
+  # any console is established. Confirmed on zen 7.0.3-zen1 and mainline 7.0.5.
+  # No nixpkgs NVIDIA driver reliably handles kernel 7.x yet (590 fails on 6.19+).
+  # Revisit when NVIDIA ships a driver that cleanly supports kernel 7.x.
   # Ref: NVIDIA/open-gpu-kernel-modules#1113
-  boot.kernelPackages = pkgs.linuxPackages_lts;
+  boot.kernelPackages = pkgs.linuxPackages;
 
   # chipsec.ko — userspace CLI added to environment.systemPackages below.
   # `sudo chipsec_util spi dump` / `sudo chipsec_main` for platform security
