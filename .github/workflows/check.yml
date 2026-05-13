@@ -2,17 +2,32 @@ name: check
 on:
   push:
   pull_request:
+
+# Tight default for GITHUB_TOKEN — this workflow only reads the tree to lint /
+# check / scan it. No issues, no comments, no pushes. Any future job needing
+# more scope can opt-in via its own `permissions:` block.
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
       # v5 runs on Node 24 — required ahead of the 2026-06 v4/Node20 deprecation.
       - uses: actions/checkout@v5
-      - uses: DeterminateSystems/nix-installer-action@main
+        with:
+          # Don't persist GITHUB_TOKEN into the runner's .git/config — nothing
+          # in this workflow pushes, and keeping it out limits exposure if a
+          # later step is ever compromised.
+          persist-credentials: false
+      # Tag-pinned (was `@main`, which is a moving branch and a supply-chain
+      # risk). Bump deliberately; consider moving to SHA pins for stricter
+      # provenance.
+      - uses: DeterminateSystems/nix-installer-action@v22
       # Non-blocking: DeterminateSystems put the cache behind FlakeHub auth
       # in 2026, so unauthenticated runs from forks/PRs fail this step. CI
       # still functions without cache — just ~2-3 min slower per run.
-      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@v13
         continue-on-error: true
 
       - name: flake check
