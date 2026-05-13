@@ -1,4 +1,4 @@
-{ pkgs, lib, config, ... }:
+{ pkgs, lib, ... }:
 
 {
   networking.networkmanager = {
@@ -16,26 +16,25 @@
   # interfaces. "false" would also work but skips all rp_filter checking.
   networking.firewall.checkReversePath = "loose";
 
-  # ProtonVPN via kernel WireGuard. Faster than the GUI (no iptables kill-switch
-  # conflicts with nftables) and auto-connects on boot.
+  # ProtonVPN via kernel WireGuard.
+  # Uncomment + populate once secrets/secrets.yaml has a real protonvpn_wg_key
+  # and the sops.secrets declaration in hosts/predator/default.nix is enabled.
+  # Before enabling, replace PLACEHOLDER values with values from your downloaded
+  # .conf file (account.protonvpn.com → Downloads → WireGuard configuration).
   #
-  # Before enabling, populate secrets/secrets.yaml with your WireGuard private
-  # key (see secrets/secrets.yaml for setup instructions), then replace the
-  # PLACEHOLDER values below with values from your downloaded .conf file:
-  #   account.protonvpn.com → Downloads → WireGuard configuration
-  networking.wg-quick.interfaces.vpn0 = {
-    address         = [ "10.2.0.2/32" ];   # [Interface] Address
-    dns             = [ "10.2.0.1" ];       # ProtonVPN DNS — enables NetShield
-    privateKeyFile  = config.sops.secrets.protonvpn_wg_key.path;
-    autostart       = false;                # set true once secrets are populated
-    peers = [
-      {
-        publicKey  = "PLACEHOLDER_SERVER_PUBKEY";   # [Peer] PublicKey
-        allowedIPs = [ "0.0.0.0/0" "::/0" ];
-        endpoint   = "PLACEHOLDER_SERVER_IP:51820"; # [Peer] Endpoint
-      }
-    ];
-  };
+  # networking.wg-quick.interfaces.vpn0 = {
+  #   address         = [ "10.2.0.2/32" ];
+  #   dns             = [ "10.2.0.1" ];
+  #   privateKeyFile  = config.sops.secrets.protonvpn_wg_key.path;
+  #   autostart       = false;
+  #   peers = [
+  #     {
+  #       publicKey  = "PLACEHOLDER_SERVER_PUBKEY";
+  #       allowedIPs = [ "0.0.0.0/0" "::/0" ];
+  #       endpoint   = "PLACEHOLDER_SERVER_IP:51820";
+  #     }
+  #   ];
+  # };
 
   # Quad9 via resolved. `domains = [ "~." ]` routes all queries to these servers
   # so DHCP-supplied DNS can't override them. `fallbackDns` only kicks in when

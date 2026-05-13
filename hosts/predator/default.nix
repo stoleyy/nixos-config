@@ -16,19 +16,24 @@
   networking.hostName = "predator";
 
   # sops-nix: decrypt secrets at activation using the host SSH Ed25519 key.
-  # Run `ssh-to-age < /etc/ssh/ssh_host_ed25519_key.pub` to get the age pubkey
-  # for .sops.yaml, then `sops secrets/secrets.yaml` to create/edit secrets.
+  # Setup steps (run once before declaring any sops.secrets):
+  #   1. nix-shell -p ssh-to-age --run "ssh-to-age < /etc/ssh/ssh_host_ed25519_key.pub"
+  #   2. paste the age pubkey into ../../.sops.yaml
+  #   3. nix-shell -p sops --run "sops ../../secrets/secrets.yaml"
+  #   4. add protonvpn_wg_key + uncomment the secrets.* block below
   sops = {
     defaultSopsFile = ../../secrets/secrets.yaml;
     defaultSopsFormat = "yaml";
     age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
     age.keyFile = "/var/lib/sops-nix/key.txt";
     age.generateKey = true;
+    validateSopsFiles = false;   # placeholder yaml is plaintext until step 3 above
 
-    secrets.protonvpn_wg_key = {
-      owner = "root";
-      mode  = "0400";
-    };
+    # Uncomment once secrets.yaml has been populated (step 4 above):
+    # secrets.protonvpn_wg_key = {
+    #   owner = "root";
+    #   mode  = "0400";
+    # };
   };
 
   specialisation = {
