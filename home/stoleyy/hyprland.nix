@@ -175,17 +175,13 @@
         background_color         = "rgb(1d2021)";
       };
 
-      render = {
-        explicit_sync = 2;
-      };
+      # Hyprland 0.46+ removed `render.explicit_sync` — it's automatic now,
+      # always on when the NVIDIA driver supports it. Removed.
+      # Hyprland 0.46+ refactored `gestures.workspace_swipe(_fingers)` away.
+      # Desktop has no touchpad anyway so the block is gone.
 
       debug = {
         disable_logs = true;
-      };
-
-      gestures = {
-        workspace_swipe         = true;
-        workspace_swipe_fingers = 3;
       };
 
       "$mod"         = "SUPER";
