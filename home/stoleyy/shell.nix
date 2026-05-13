@@ -28,5 +28,11 @@
     };
   };
 
+  # Local command index, fed by the pre-built database from
+  # nix-index-database (flake input, wired in lib/default.nix). `comma`
+  # gives a one-shot `, <cmd>` wrapper.
+  programs.nix-index.enable                = true;
+  programs.nix-index-database.comma.enable = true;
+
   programs.bash.enable = true;
 }
