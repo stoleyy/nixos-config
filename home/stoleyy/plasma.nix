@@ -18,7 +18,13 @@ in
     enable = true;
 
     workspace = {
-      lookAndFeel = "org.kde.breezedark.desktop";
+      # NOTE: lookAndFeel intentionally omitted. Applying a look-and-feel
+      # package (e.g. org.kde.breezedark.desktop) bundles its own default
+      # ColorScheme/iconTheme/cursorTheme and overrides the per-component
+      # settings declared below — which made every rebuild revert to
+      # BreezeDark and silently undo BladeeBlack. The components below are
+      # individually sufficient; Plasma falls back to BreezeDark internals
+      # for anything not specified, which is what we want.
       colorScheme = "BladeeBlack";
       cursor = {
         theme = "Bibata-Modern-Classic";
