@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ pkgs, ... }:
 
 {
   services.xserver.videoDrivers = [ "nvidia" ];
@@ -23,16 +23,6 @@
 
     powerManagement.enable      = true;
     powerManagement.finegrained = false;
-
-    # nvidia-persistenced keeps the GPU initialised across userspace sessions:
-    # eliminates ~1 s GPU re-init on app launches, smooths suspend/resume,
-    # and prevents rare GPU resets seen on the open kernel module.
-    nvidiaPersistenced = true;
-
-    # Production driver — best Wayland + Ada (RTX 4070) combination in 2025/26.
-    # `production` lags `stable` by a few weeks but has stronger Wayland/HDR
-    # validation. If a regression hits, fall back to `stable`.
-    package = config.boot.kernelPackages.nvidiaPackages.production;
   };
 
   environment.sessionVariables = {
@@ -62,9 +52,4 @@
     "nvidia_drm.modeset=1"
     "nvidia_drm.fbdev=1"
   ];
-
-  # Preserve VRAM across suspend — prevents corrupted display on resume on Ada.
-  boot.extraModprobeConfig = ''
-    options nvidia NVreg_PreserveVideoMemoryAllocations=1
-  '';
 }
