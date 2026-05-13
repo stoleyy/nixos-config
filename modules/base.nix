@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, config, ... }:
 
 {
   nix.settings = {
@@ -73,6 +73,10 @@
   # NVIDIA modules build cleanly against it; first build will need to compile
   # the modules (~5-10 min on a 13700K), subsequent builds are cached.
   boot.kernelPackages = pkgs.linuxPackages_zen;
+
+  # chipsec.ko — required for `chipsec_util spi dump` and `chipsec_main`
+  # platform security audits. Built against the running kernel.
+  boot.extraModulePackages = [ config.boot.kernelPackages.chipsec ];
 
   # Stop Linux throttling Proton games that trip split-lock atomics.
   # Merges with the NVIDIA DRM params declared in modules/nvidia.nix.
