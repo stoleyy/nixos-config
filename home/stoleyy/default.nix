@@ -9,6 +9,12 @@
     ./git.nix
     ./gpg.nix
     ./audio.nix
+    ./hyprland.nix
+    ./waybar.nix
+    ./rofi.nix
+    ./swaync.nix
+    ./wlogout.nix
+    ./gtk.nix
   ];
 
   home.username      = "stoleyy";
@@ -19,6 +25,7 @@
 
   home.packages = with pkgs; [
     keepassxc
+    proton-pass
     tor-browser
     protonvpn-gui
   ];

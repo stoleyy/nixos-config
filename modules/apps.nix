@@ -4,10 +4,19 @@
   environment.systemPackages = with pkgs; [
     (brave.override {
       commandLineArgs = [
-        # Wayland / Ozone — render correctly on KDE Plasma 6 Wayland.
-        # `UseOzonePlatform` is a no-op on current Chromium; only the hint is needed.
+        # Wayland / Ozone — render correctly on KDE Plasma 6 / Hyprland Wayland.
         "--disable-features=WaylandWpColorManagerV1"
         "--ozone-platform-hint=auto"
+        # VAAPI on NVIDIA — Chromium hard-blocklists VAAPI for NVIDIA GPUs by
+        # default. These flags bypass the blocklist; combined with
+        # nvidia-vaapi-driver (in modules/nvidia.nix extraPackages) and
+        # LIBVA_DRIVER_NAME=nvidia (sessionVariable), YouTube 4K decodes on
+        # NVDEC at single-digit CPU usage instead of 30-40%.
+        "--enable-features=AcceleratedVideoDecodeLinuxGL,VaapiVideoDecodeLinuxGL,VaapiOnNvidiaGPUs"
+        # Vulkan ANGLE renderer — better Wayland/NVIDIA performance than the
+        # default GL backend.
+        "--use-gl=angle"
+        "--use-angle=vulkan"
       ];
     })
 
@@ -54,7 +63,9 @@
 
   services.flatpak.enable = true;
 
-  # F17: prefer KDE-native portals on Plasma 6, fall back to GTK only when KDE has no backend
+  # F17: prefer KDE-native portals on Plasma 6, fall back to GTK only when KDE has no backend.
+  # modules/hyprland.nix extends extraPortals with xdg-desktop-portal-hyprland for the
+  # Hyprland session; the hyprland session config in this attrset is also extended there.
   xdg.portal = {
     enable           = true;
     xdgOpenUsePortal = true;

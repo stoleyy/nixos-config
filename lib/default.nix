@@ -28,6 +28,7 @@
         ../modules/gaming.nix
         ../modules/apps.nix
         ../modules/hardening.nix
+        ../modules/hyprland.nix
         inputs.nix-gaming.nixosModules.pipewireLowLatency
         inputs.home-manager.nixosModules.home-manager
         {

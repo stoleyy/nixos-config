@@ -15,12 +15,19 @@
     experimental-features = [ "nix-command" "flakes" ];
     max-jobs = "auto";
     cores    = 0;
+    # Perf tuning: dedup the /nix/store + keep build outputs for faster incremental rebuilds.
+    auto-optimise-store = true;
+    keep-outputs        = true;
+    keep-derivations    = true;
   };
 
   nix.optimise = {
     automatic = true;
     dates     = [ "03:45" ];
   };
+
+  # Nix builds run at idle CPU scheduling — `nh os switch` doesn't block gaming/work.
+  nix.daemonCPUSchedPolicy = "idle";
 
   programs.nix-ld.enable = true;
 
@@ -61,6 +68,41 @@
 
   console.keyMap = "us";
 
+  # === Kernel ===
+  # Zen kernel: desktop/gaming-tuned scheduler, aggressive preemption.
+  # NVIDIA modules build cleanly against it; first build will need to compile
+  # the modules (~5-10 min on a 13700K), subsequent builds are cached.
+  boot.kernelPackages = pkgs.linuxPackages_zen;
+
+  # Stop Linux throttling Proton games that trip split-lock atomics.
+  # Merges with the NVIDIA DRM params declared in modules/nvidia.nix.
+  boot.kernelParams = [
+    "split_lock_detect=off"
+  ];
+
+  # === CPU (i7-13700K) ===
+  # Raptor Lake degradation patches + perf microcode.
+  hardware.cpu.intel.updateMicrocode = true;
+  # P-cores locked at boost; lower wake-to-clock latency. Desktop = no power concern.
+  powerManagement.cpuFreqGovernor = "performance";
+
+  # === Memory (64 GB) ===
+  # /tmp in RAM — default 50% cap (~32 GB) on this box. Massive speedup for
+  # nix builds, archive extraction, compilations. Replaces cleanOnBoot (tmpfs
+  # is wiped on every boot inherently).
+  boot.tmp.useTmpfs = true;
+
+  boot.kernel.sysctl = {
+    "vm.swappiness"                   = 10;    # 64 GB — barely swap
+    "vm.vfs_cache_pressure"           = 50;    # Keep dentry/inode cache around longer
+    "net.core.default_qdisc"          = "fq";  # Pair with BBR
+    "net.ipv4.tcp_congestion_control" = "bbr";
+    "net.ipv4.tcp_fastopen"           = 3;     # TFO saves an RTT per TCP connection
+  };
+
+  # === Storage (NVMe) ===
+  services.fstrim.enable = true;
+
   # Pull in non-free firmware blobs required by detected hardware:
   #   - Intel Wi-Fi 6E AX211      (iwlwifi)
   #   - Intel Bluetooth           (intel-bluetooth)
@@ -91,9 +133,6 @@
 
   # Compressed-RAM swap. Free responsiveness win; complements the on-disk swapfile.
   zramSwap.enable = true;
-
-  # Wipe /tmp between boots.
-  boot.tmp.cleanOnBoot = true;
 
   users.users.stoleyy = {
     isNormalUser = true;
