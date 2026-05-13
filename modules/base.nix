@@ -69,13 +69,14 @@
   console.keyMap = "us";
 
   # === Kernel ===
-  # linuxPackages_latest: mainline latest, most up-to-date features.
-  # Switched from linuxPackages_zen: zen 7.0.3-zen1 (introduced by a nixpkgs
-  # update) silently panicked at early init on this Raptor Lake + VMD board —
-  # no console output even with nomodeset, indicating a kernel-level issue
-  # rather than an initrd or driver problem. Revisit zen when it leaves 7.0.3.
-  # Fallback if latest also fails: pkgs.linuxPackages_lts (LTS 6.12).
-  boot.kernelPackages = pkgs.linuxPackages_latest;
+  # LTS 6.12: NVIDIA 580.x (production) is incompatible with Linux 7.0 —
+  # kernel 7.0 removed VMA_LOCK_OFFSET / changed __is_vma_write_locked(),
+  # causing a silent initrd panic before any console output. Confirmed on
+  # both zen 7.0.3-zen1 and mainline 7.0.5. No nixpkgs NVIDIA driver reliably
+  # handles kernel 7.x yet (590 fails on 6.19+; 595 also hits the VMA issue).
+  # Revisit once NVIDIA ships a driver that cleanly supports kernel 7.x.
+  # Ref: NVIDIA/open-gpu-kernel-modules#1113
+  boot.kernelPackages = pkgs.linuxPackages_lts;
 
   # chipsec.ko — userspace CLI added to environment.systemPackages below.
   # `sudo chipsec_util spi dump` / `sudo chipsec_main` for platform security
