@@ -24,6 +24,11 @@
     powerManagement.enable      = true;
     powerManagement.finegrained = false;
 
+    # nvidia-persistenced keeps the GPU initialised across userspace sessions:
+    # eliminates ~1 s GPU re-init on app launches, smooths suspend/resume,
+    # and prevents rare GPU resets seen on the open kernel module.
+    nvidiaPersistenced = true;
+
     # Production driver — best Wayland + Ada (RTX 4070) combination in 2025/26.
     # `production` lags `stable` by a few weeks but has stronger Wayland/HDR
     # validation. If a regression hits, fall back to `stable`.
@@ -38,6 +43,19 @@
     # security regression that was a workaround for older NVIDIA driver paths.
     # 560+ open kernel modules + nvidia-vaapi-driver 0.0.13+ no longer require it.
     NIXOS_OZONE_WL            = "1";
+    # G-Sync / VRR negotiation. Previously only set inside Hyprland's session
+    # env (home/stoleyy/hyprland.nix) — under Plasma these were never present,
+    # so VRR didn't actually engage for many GL/Vulkan games. Promoting to a
+    # system session variable covers both sessions.
+    __GL_GSYNC_ALLOWED          = "1";
+    __GL_VRR_ALLOWED            = "1";
+    # Free FPS win on the 4070 — driver-side multi-threaded GL command stream.
+    __GL_THREADED_OPTIMIZATIONS = "1";
+    # Persistent shader cache across runs — kills first-launch shader stutter
+    # in big Vulkan/GL titles. Path defaults to ~/.nv when unset; pin it under
+    # XDG_CACHE_HOME so it follows the user's cache hygiene.
+    __GL_SHADER_DISK_CACHE      = "1";
+    __GL_SHADER_DISK_CACHE_PATH = "$HOME/.cache/nv-shader-cache";
   };
 
   boot.kernelParams = [

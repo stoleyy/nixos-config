@@ -76,8 +76,13 @@
 
   # Stop Linux throttling Proton games that trip split-lock atomics.
   # Merges with the NVIDIA DRM params declared in modules/nvidia.nix.
+  # transparent_hugepage=madvise: kernel default is "always" which
+  # background-promotes 2 MB pages and can cause latency spikes during
+  # heavy NVMe writes (Nix builds, shader compiles). madvise gives the
+  # same JVM/database benefits without surprise stalls.
   boot.kernelParams = [
     "split_lock_detect=off"
+    "transparent_hugepage=madvise"
   ];
 
   # === CPU (i7-13700K) ===
@@ -140,11 +145,29 @@
     enableGraphical = true;
   };
 
+  # Steam udev rules — required for Steam Controller / Steam Deck dock /
+  # DualSense Edge / VR HMDs to be recognised at all. DualShock works
+  # without these via the kernel hid-sony driver.
+  hardware.steam-hardware.enable = true;
+
   # Firmware updates via LVFS.
   services.fwupd.enable = true;
 
   # Compressed-RAM swap. Free responsiveness win; complements the on-disk swapfile.
   zramSwap.enable = true;
+
+  # systemd-oomd watches cgroup memory pressure (PSI) and kills the worst
+  # offender before the kernel OOM killer freezes the desktop for 10+ s.
+  # 64 GB usually doesn't OOM, but Brave-with-200-tabs + Steam + a leaking
+  # game can; this is the safety net. 20s pressure duration avoids transient
+  # spikes triggering a kill.
+  services.systemd-oomd = {
+    enable             = true;
+    enableRootSlice    = true;
+    enableUserSlices   = true;
+    enableSystemSlice  = true;
+    extraConfig.DefaultMemoryPressureDurationSec = "20s";
+  };
 
   users.users.stoleyy = {
     isNormalUser = true;
@@ -165,6 +188,13 @@
     MaxRetentionSec=1week
     Storage=persistent
     ForwardToSyslog=no
+  '';
+
+  # Pre-empt the rare "Too many open files" crash in Steam/Wine prefixes on
+  # big games + mod managers. Default ceiling is 1024 (soft) / 524288 (hard);
+  # bumping the soft limit to ~1M avoids hitting it.
+  systemd.extraConfig = ''
+    DefaultLimitNOFILE=1048576
   '';
 
   systemd.coredump.enable = false;
