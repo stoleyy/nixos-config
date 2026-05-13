@@ -10,31 +10,36 @@
 
   networking.firewall.enable          = true;
   networking.nftables.enable          = true;
-  networking.firewall.allowedTCPPorts = [ ];
-  networking.firewall.allowedUDPPorts = [ ];
+  networking.firewall.allowedTCPPorts = [
+    1514 # Wazuh agent → manager (events)
+    1515 # Wazuh agent enrollment
+  ];
+  networking.firewall.allowedUDPPorts = [
+    1514 # Wazuh agent → manager (events)
+  ];
   # "loose" lets the WireGuard tunnel set up by Proton VPN (via NetworkManager)
   # return traffic through while still validating non-VPN interfaces. "false"
   # would also work but skips all rp_filter checking.
   networking.firewall.checkReversePath = "loose";
 
-  # Quad9 via resolved. `domains = [ "~." ]` routes all queries to these servers
-  # so DHCP-supplied DNS can't override them. `fallbackDns` only kicks in when
-  # no link has DNS at all.
+  # DNS is provided by OPNsense (Unbound) via DHCP. resolved accepts the
+  # DHCP-supplied server and forwards queries there. Quad9 is kept as a
+  # fallback only for when no link has DNS at all.
+  # dnsovertls = "opportunistic" and dnssec = "allow-downgrade" because
+  # OPNsense Unbound speaks plain DNS (port 53) to LAN clients; strict
+  # "true" / "true" would refuse to use any non-DoT server and break
+  # resolution entirely when behind OPNsense.
   services.resolved = {
-    enable     = true;
-    dnssec     = "true";
-    dnsovertls = "true";
-    llmnr      = "false";   # F15: disable LLMNR — credential-theft surface (T1557.001)
-    domains    = [ "~." ];
+    enable      = true;
+    dnssec      = "allow-downgrade";
+    dnsovertls  = "opportunistic";
+    llmnr       = "false"; # disable LLMNR — credential-theft surface (T1557.001)
     fallbackDns = [
-      "9.9.9.9#dns.quad9.net"
-      "149.112.112.112#dns.quad9.net"
-      "2620:fe::fe#dns.quad9.net"
-      "2620:fe::9#dns.quad9.net"
+      "9.9.9.9"
+      "149.112.112.112"
+      "2620:fe::fe"
+      "2620:fe::9"
     ];
-    extraConfig = ''
-      DNS=9.9.9.9#dns.quad9.net 149.112.112.112#dns.quad9.net 2620:fe::fe#dns.quad9.net 2620:fe::9#dns.quad9.net
-    '';
   };
 
   services.printing = {
