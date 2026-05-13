@@ -33,6 +33,13 @@
       url = "github:nix-community/nix-index-database";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Declarative secrets management — encrypts with the host SSH Ed25519 key
+    # (auto-converted to age format). Ciphertext commits safely to git.
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =

@@ -1,13 +1,13 @@
-{ pkgs, ... }:
+{ pkgs, colors, ... }:
 
 let
   gruvboxTheme = builtins.toFile "gruvbox-hard.rasi" ''
     * {
-      bg0:    #1d2021ff;
-      bg1:    #3c3836ff;
-      fg0:    #ebdbb2ff;
-      fg1:    #d5c4a1ff;
-      accent: #98971aff;
+      bg0:    ${colors.bg0}ff;
+      bg1:    ${colors.bg1}ff;
+      fg0:    ${colors.fg0}ff;
+      fg1:    ${colors.fg1}ff;
+      accent: ${colors.green}ff;
 
       background-color: transparent;
       text-color:       @fg0;

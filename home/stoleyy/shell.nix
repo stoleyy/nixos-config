@@ -4,10 +4,13 @@
   programs.fish = {
     enable = true;
     shellAliases = {
-      ll   = "eza -la --git";
-      nb   = "nh os switch";
-      cat  = "bat";
-      grep = "rg";
+      ll         = "eza -la --git";
+      nb         = "nh os switch";
+      cat        = "bat";
+      grep       = "rg";
+      vpn-on     = "sudo systemctl start wg-quick-vpn0";
+      vpn-off    = "sudo systemctl stop wg-quick-vpn0";
+      vpn-status = "sudo wg show vpn0";
     };
     # F-24 (v2): aliases can't reliably hold (hostname) substitution in fish.
     # Define `rebuild` as a function so command substitution evaluates at runtime.
