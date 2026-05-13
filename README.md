@@ -2,7 +2,7 @@
 
 Personal NixOS flake.
 
-- **`predator`** — Acer Predator laptop, i7-13700K + RTX 4070, dual-boot with Windows on a Samsung 980 Pro 2TB.
+- **`predator`** — Acer Predator desktop, i7-13700K + RTX 4070, dual-boot with Windows on a Samsung 980 Pro 2TB.
 
 ## Layout
 
