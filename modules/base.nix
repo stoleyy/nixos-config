@@ -69,10 +69,13 @@
   console.keyMap = "us";
 
   # === Kernel ===
-  # Zen kernel: desktop/gaming-tuned scheduler, aggressive preemption.
-  # NVIDIA modules build cleanly against it; first build will need to compile
-  # the modules (~5-10 min on a 13700K), subsequent builds are cached.
-  boot.kernelPackages = pkgs.linuxPackages_zen;
+  # linuxPackages_latest: mainline latest, most up-to-date features.
+  # Switched from linuxPackages_zen: zen 7.0.3-zen1 (introduced by a nixpkgs
+  # update) silently panicked at early init on this Raptor Lake + VMD board —
+  # no console output even with nomodeset, indicating a kernel-level issue
+  # rather than an initrd or driver problem. Revisit zen when it leaves 7.0.3.
+  # Fallback if latest also fails: pkgs.linuxPackages_lts (LTS 6.12).
+  boot.kernelPackages = pkgs.linuxPackages_latest;
 
   # chipsec.ko — userspace CLI added to environment.systemPackages below.
   # `sudo chipsec_util spi dump` / `sudo chipsec_main` for platform security
