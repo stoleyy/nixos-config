@@ -45,10 +45,13 @@
 
     # Verbose boot + tracing tools for diagnosing kernel/driver issues.
     # Select "debug" from the systemd-boot menu.
+    # nomodeset disables KMS/DRM so Stage 1 errors print to the plain VGA console
+    # instead of being swallowed by the NVIDIA framebuffer.
     debug.configuration = {
       boot.kernelParams = [
         "loglevel=7"
         "debug"
+        "nomodeset"
       ];
       environment.systemPackages = with pkgs; [
         strace
