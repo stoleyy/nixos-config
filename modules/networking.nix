@@ -10,13 +10,8 @@
 
   networking.firewall.enable          = true;
   networking.nftables.enable          = true;
-  networking.firewall.allowedTCPPorts = [
-    1514 # Wazuh agent → manager (events)
-    1515 # Wazuh agent enrollment
-  ];
-  networking.firewall.allowedUDPPorts = [
-    1514 # Wazuh agent → manager (events)
-  ];
+  networking.firewall.allowedTCPPorts = [ ];
+  networking.firewall.allowedUDPPorts = [ ];
   # "loose" lets the WireGuard tunnel set up by Proton VPN (via NetworkManager)
   # return traffic through while still validating non-VPN interfaces. "false"
   # would also work but skips all rp_filter checking.
