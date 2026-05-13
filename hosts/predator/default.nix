@@ -34,6 +34,25 @@
     validateSopsFiles = false;   # placeholder yaml is plaintext until step 3 above
   };
 
+  # Wazuh HIDS agent — disabled until the Wazuh manager exists on the
+  # OPNsense side and sops-nix has been bootstrapped (see secrets/secrets.yaml).
+  # To enable:
+  #   1. Bootstrap sops-nix (see comments above).
+  #   2. Add `wazuh-agent-registration-password: <pw>` to secrets.yaml.
+  #   3. Uncomment the block below, set managerAddress to the manager's
+  #      LAN FQDN or IP, then `nixos-rebuild switch`.
+  #
+  # sops.secrets.wazuh-agent-registration-password = {
+  #   owner = "root";
+  #   mode  = "0400";
+  # };
+  #
+  # services.wazuh-agent = {
+  #   enable                   = true;
+  #   managerAddress           = "wazuh.lan";
+  #   registrationPasswordFile = config.sops.secrets.wazuh-agent-registration-password.path;
+  # };
+
   specialisation = {
     # Boot with Hyprland as the default session instead of Plasma.
     # Select "hyprland" from the systemd-boot menu.
