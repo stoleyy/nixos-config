@@ -26,11 +26,17 @@
       url = "github:Gerg-L/spicetify-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Pre-built nix-index database — `nix-locate` + `,` wrapper without the
+    # multi-minute local index build.
+    nix-index-database = {
+      url = "github:nix-community/nix-index-database";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
     {
-      self,
       nixpkgs,
       nixos-hardware,
       ...

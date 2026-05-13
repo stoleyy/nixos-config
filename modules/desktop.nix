@@ -14,6 +14,14 @@
 
   programs.kdeconnect.enable = true;
 
+  # KWallet auto-unlocks when its password matches the user login password.
+  # `enableKwallet` hooks pam_kwallet5 into the named service's PAM stack —
+  # it must be set on the services that *actually* authenticate (sddm for the
+  # graphical login, login for TTYs); setting it on a non-authenticating
+  # "kwallet" service alone is a no-op.
+  security.pam.services.sddm.enableKwallet  = true;
+  security.pam.services.login.enableKwallet = true;
+
   environment.systemPackages = with pkgs; [
     kdePackages.plasma-browser-integration
   ];

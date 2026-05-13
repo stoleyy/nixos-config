@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ pkgs, ... }:
 
 {
   nix.settings = {
@@ -103,6 +103,15 @@
   # === Storage (NVMe) ===
   services.fstrim.enable = true;
 
+  # Geolocation daemon — Plasma 6 NightLight `mode = "automatic"` (set in
+  # home/stoleyy/plasma.nix) silently no-ops without geoclue's systemd unit;
+  # KWin otherwise gets `geoclue.service not found` over DBus.
+  services.geoclue2.enable = true;
+
+  # Local command-not-found via nix-index-database (HM module added in
+  # lib/default.nix). Disables the deprecated nixpkgs CSV lookup.
+  programs.command-not-found.enable = false;
+
   # Pull in non-free firmware blobs required by detected hardware:
   #   - Intel Wi-Fi 6E AX211      (iwlwifi)
   #   - Intel Bluetooth           (intel-bluetooth)
@@ -117,6 +126,9 @@
       General = {
         Experimental    = true;
         FastConnectable = true;
+        # Required to pair PS4/PS5 (DualShock/DualSense) controllers and many
+        # BT keyboards on BlueZ.
+        ClassicBondedOnly = false;
       };
       Policy.AutoEnable = true;
     };

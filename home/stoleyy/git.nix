@@ -18,6 +18,10 @@
       fetch.prune          = true;
       merge.conflictStyle  = "zdiff3";
       rerere.enabled       = true;
+      # delta — pretty diff/blame/log pager. Package shipped from modules/apps.nix.
+      core.pager             = "delta";
+      interactive.diffFilter = "delta --color-only";
+      delta.features         = "side-by-side line-numbers";
     };
     ignores = [ ".direnv" "result" "result-*" ];
   };

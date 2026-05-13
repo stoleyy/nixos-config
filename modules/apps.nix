@@ -31,6 +31,11 @@
     htop
     unzip
     p7zip
+    # Git toolchain — lazygit TUI for staging/squashing, gh for repo ops,
+    # delta as the pretty pager (wired in home/stoleyy/git.nix).
+    lazygit
+    gh
+    delta
 
     # Nix tooling
     nixd

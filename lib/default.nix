@@ -36,7 +36,10 @@
           home-manager.extraSpecialArgs = {
             inherit inputs;
           };
-          home-manager.sharedModules = [ inputs.plasma-manager.homeModules.plasma-manager ];
+          home-manager.sharedModules = [
+            inputs.plasma-manager.homeModules.plasma-manager
+            inputs.nix-index-database.homeModules.nix-index
+          ];
           home-manager.users.stoleyy = import ../home/stoleyy;
         }
       ] ++ extraModules;

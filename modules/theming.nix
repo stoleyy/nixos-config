@@ -9,6 +9,8 @@
     kdePackages.qttools
     ghostty
     mpv
+    # Terminal audio visualizer — auto-attaches to the PipeWire default sink.
+    cava
   ];
 
   fonts.packages = with pkgs; [
