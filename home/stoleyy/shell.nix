@@ -4,7 +4,7 @@
   programs.fish = {
     enable = true;
     shellAliases = {
-      ll   = "ls -lah";
+      ll   = "eza -la --git";
       nb   = "nh os switch";
       cat  = "bat";
       grep = "rg";
@@ -18,6 +18,23 @@
   };
 
   programs.starship.enable = true;
+
+  # Modern CLI replacements. `z <dir>` (zoxide) frecency-jumps; Ctrl-R (fzf)
+  # fuzzy-searches history (atuin wins under fish but fzf adds file pickers);
+  # `eza` powers the retargeted `ll` alias above.
+  programs.zoxide = {
+    enable                = true;
+    enableFishIntegration = true;
+  };
+  programs.fzf = {
+    enable                = true;
+    enableFishIntegration = true;
+  };
+  programs.eza = {
+    enable                = true;
+    enableFishIntegration = true;
+    icons                 = "auto";
+  };
 
   programs.atuin = {
     enable                = true;
