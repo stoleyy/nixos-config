@@ -18,6 +18,7 @@
     ./plasma.nix
     ./spicetify.nix
     ./ghostty.nix
+    ./mpv.nix
   ];
 
   home.username = "stoleyy";

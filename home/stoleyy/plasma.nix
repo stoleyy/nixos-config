@@ -196,6 +196,15 @@ in
       "kwinrc"."Compositing"."LatencyPolicy" = "Low";
       "kwinrc"."Compositing"."AllowTearing" = true;
       "klipperrc"."General"."MaxClipItems" = 30;
+      # NOTE: per-output HDR + AdaptiveSync (G80SD HDR1000, 240 Hz VRR) is
+      # NOT settable through this configFile attrset — Plasma 6.3+ stores per-
+      # monitor display config in `~/.local/share/kscreen/configs/<edid>/`
+      # (kscreen JSON), not in kwinrc. To enable HDR + 10-bit + AdaptiveSync
+      # for the G80SD: open System Settings → Display Configuration → click
+      # the HDMI-A-1 monitor → toggle "High Dynamic Range" and set "Adaptive
+      # Sync" to "Always". KWin then writes the per-output JSON; the mpv +
+      # NVIDIA bits in this PR are the prerequisites that make HDR media +
+      # G-Sync actually work once you've toggled it.
     };
   };
 }
