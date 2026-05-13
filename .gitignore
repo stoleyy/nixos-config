@@ -1,0 +1,39 @@
+# ── Nix build artifacts ──────────────────────────────────────────────────────
+# `nix build` and `nixos-rebuild build` drop these as symlinks into the CWD.
+# Pattern matches anywhere in the tree (no leading slash).
+result
+result-*
+
+# `nix flake archive` and similar
+*.drv
+
+# Hash-derived intermediate roots
+.gcroots/
+
+# ── Tooling caches ───────────────────────────────────────────────────────────
+.direnv/
+.envrc.local
+.pre-commit-cache/
+
+# ── Editor / OS junk ─────────────────────────────────────────────────────────
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Secrets ──────────────────────────────────────────────────────────────────
+# Never commit these — agenix/sops-nix should be used for in-tree secrets.
+*.pem
+*.key
+secrets.local.nix
+*.age
+*.token
+
+# ── Per-host generated hardware-configuration.nix ────────────────────────────
+# Committed by default so the flake is portable, but uncomment to keep these
+# strictly host-local:
+# hosts/*/hardware-configuration.nix
