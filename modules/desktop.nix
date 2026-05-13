@@ -24,5 +24,13 @@
 
   environment.systemPackages = with pkgs; [
     kdePackages.plasma-browser-integration
+    # Plasma 6 CLI tools — by default these only live inside the Plasma
+    # session PATH (pulled in transitively by plasma6), not in the system
+    # PATH. Promoting them here so they're usable from external terminals
+    # / TTYs / scripts for runtime introspection and tweaks:
+    #   kreadconfig6 / kwriteconfig6  (kconfig)
+    #   kquitapp6 / kcmshell6         (kdbusaddons)
+    kdePackages.kconfig
+    kdePackages.kdbusaddons
   ];
 }
