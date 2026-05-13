@@ -20,7 +20,11 @@
   #   1. nix-shell -p ssh-to-age --run "ssh-to-age < /etc/ssh/ssh_host_ed25519_key.pub"
   #   2. paste the age pubkey into ../../.sops.yaml
   #   3. nix-shell -p sops --run "sops ../../secrets/secrets.yaml"
-  #   4. add protonvpn_wg_key + uncomment the secrets.* block below
+  #   4. declare each key under `secrets.<name> = { owner = ...; mode = ...; };`
+  #
+  # Proton VPN is intentionally NOT a sops secret here: we run the official
+  # `protonvpn-gui` client (modules/apps.nix) and it stores credentials in the
+  # SecretService keyring at sign-in time, so there is nothing for sops to do.
   sops = {
     defaultSopsFile = ../../secrets/secrets.yaml;
     defaultSopsFormat = "yaml";
@@ -28,12 +32,6 @@
     age.keyFile = "/var/lib/sops-nix/key.txt";
     age.generateKey = true;
     validateSopsFiles = false;   # placeholder yaml is plaintext until step 3 above
-
-    # Uncomment once secrets.yaml has been populated (step 4 above):
-    # secrets.protonvpn_wg_key = {
-    #   owner = "root";
-    #   mode  = "0400";
-    # };
   };
 
   specialisation = {

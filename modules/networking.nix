@@ -12,29 +12,10 @@
   networking.nftables.enable          = true;
   networking.firewall.allowedTCPPorts = [ ];
   networking.firewall.allowedUDPPorts = [ ];
-  # "loose" lets VPN return traffic through while still validating non-VPN
-  # interfaces. "false" would also work but skips all rp_filter checking.
+  # "loose" lets the WireGuard tunnel set up by Proton VPN (via NetworkManager)
+  # return traffic through while still validating non-VPN interfaces. "false"
+  # would also work but skips all rp_filter checking.
   networking.firewall.checkReversePath = "loose";
-
-  # ProtonVPN via kernel WireGuard.
-  # Uncomment + populate once secrets/secrets.yaml has a real protonvpn_wg_key
-  # and the sops.secrets declaration in hosts/predator/default.nix is enabled.
-  # Before enabling, replace PLACEHOLDER values with values from your downloaded
-  # .conf file (account.protonvpn.com → Downloads → WireGuard configuration).
-  #
-  # networking.wg-quick.interfaces.vpn0 = {
-  #   address         = [ "10.2.0.2/32" ];
-  #   dns             = [ "10.2.0.1" ];
-  #   privateKeyFile  = config.sops.secrets.protonvpn_wg_key.path;
-  #   autostart       = false;
-  #   peers = [
-  #     {
-  #       publicKey  = "PLACEHOLDER_SERVER_PUBKEY";
-  #       allowedIPs = [ "0.0.0.0/0" "::/0" ];
-  #       endpoint   = "PLACEHOLDER_SERVER_IP:51820";
-  #     }
-  #   ];
-  # };
 
   # Quad9 via resolved. `domains = [ "~." ]` routes all queries to these servers
   # so DHCP-supplied DNS can't override them. `fallbackDns` only kicks in when

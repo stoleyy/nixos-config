@@ -46,6 +46,18 @@
     vlc
     # F10: easyeffects removed — owned by home-manager services.easyeffects in home/stoleyy.nix
     libreoffice-fresh
+
+    # VPN
+    # Proton's official GTK client. Drives kernel WireGuard through
+    # NetworkManager (proton-vpn-network-manager is bundled), so the data
+    # path is the in-kernel `wireguard` module — same as wg-quick — with the
+    # UI on top. Account credentials are kept in the SecretService keyring
+    # (KWallet under Plasma; install gnome-keyring if you ever want this to
+    # work cleanly under the Hyprland session).
+    # Launcher: "Proton VPN" desktop entry, binary `protonvpn-app`.
+    # `stoleyy` is already in the `networkmanager` group (modules/base.nix),
+    # so polkit doesn't prompt for a password on connect.
+    protonvpn-gui
   ];
 
   # Brave debloat via enterprise policy (managed via /etc/brave/policies/managed/).
