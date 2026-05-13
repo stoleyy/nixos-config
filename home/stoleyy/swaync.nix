@@ -1,4 +1,4 @@
-{ ... }:
+{ colors, ... }:
 
 {
   xdg.configFile."swaync/config.json".text = builtins.toJSON {
@@ -57,7 +57,7 @@
     .control-center,
     .notification-row .notification-background {
       background:    rgba(29, 32, 33, 0.95);
-      color:         #ebdbb2;
+      color:         ${colors.fg0};
       border:        1px solid rgba(152, 151, 26, 0.4);
       border-radius: 12px;
     }
@@ -69,7 +69,7 @@
 
     .notification-row .notification-background .notification {
       background: transparent;
-      color:      #ebdbb2;
+      color:      ${colors.fg0};
     }
 
     .notification-row .notification-background .notification .notification-content {
@@ -77,7 +77,7 @@
     }
 
     .notification-row .notification-background.critical {
-      border-color: #cc241d;
+      border-color: ${colors.red};
     }
 
     .control-center {
@@ -88,12 +88,12 @@
     .widget-title > label {
       font-weight: bold;
       font-size:   14px;
-      color:       #d79921;
+      color:       ${colors.yellow};
     }
 
     .widget-title button {
       background:    rgba(60, 56, 54, 0.8);
-      color:         #ebdbb2;
+      color:         ${colors.fg0};
       border:        none;
       border-radius: 6px;
       padding:       4px 8px;
@@ -104,18 +104,18 @@
     }
 
     .widget-dnd > switch:checked {
-      background: #98971a;
+      background: ${colors.green};
     }
 
     .close-button {
       background:    rgba(204, 36, 29, 0.8);
-      color:         #ebdbb2;
+      color:         ${colors.fg0};
       border:        none;
       border-radius: 4px;
     }
 
     .close-button:hover {
-      background: #cc241d;
+      background: ${colors.red};
     }
   '';
 }

@@ -1,4 +1,4 @@
-{ ... }:
+{ colors, ... }:
 
 {
   programs.waybar = {
@@ -129,7 +129,7 @@
 
       window#waybar {
         background-color:    rgba(29, 32, 33, 0.9);
-        color:               #ebdbb2;
+        color:               ${colors.fg0};
         transition-property: background-color;
         transition-duration: 0.5s;
       }
@@ -137,7 +137,7 @@
       #workspaces button {
         padding:          0 5px;
         background-color: transparent;
-        color:            #a89984;
+        color:            ${colors.muted};
         border-bottom:    3px solid transparent;
       }
 
@@ -146,14 +146,14 @@
       }
 
       #workspaces button.active {
-        color:         #98971a;
-        border-bottom: 3px solid #98971a;
+        color:         ${colors.green};
+        border-bottom: 3px solid ${colors.green};
         font-weight:   bold;
       }
 
       #workspaces button.urgent {
-        background-color: #cc241d;
-        color:            #ebdbb2;
+        background-color: ${colors.red};
+        color:            ${colors.fg0};
       }
 
       #clock,
@@ -166,20 +166,20 @@
       #custom-notification {
         padding:          0 10px;
         margin:           2px 2px;
-        color:            #ebdbb2;
+        color:            ${colors.fg0};
         background-color: rgba(60, 56, 54, 0.8);
         border-radius:    6px;
       }
 
-      #clock      { color: #d79921; }
-      #cpu        { color: #b8bb26; }
-      #memory     { color: #83a598; }
-      #network    { color: #458588; }
-      #pulseaudio { color: #d3869b; }
-      #bluetooth  { color: #fe8019; }
+      #clock      { color: ${colors.yellow}; }
+      #cpu        { color: ${colors.bright.green}; }
+      #memory     { color: ${colors.bright.blue}; }
+      #network    { color: ${colors.blue}; }
+      #pulseaudio { color: ${colors.bright.purple}; }
+      #bluetooth  { color: ${colors.bright.orange}; }
 
       #window {
-        color:      #ebdbb2;
+        color:      ${colors.fg0};
         margin:     0 5px;
         font-style: italic;
       }
@@ -187,11 +187,11 @@
       tooltip {
         background: rgba(29, 32, 33, 0.9);
         border:     1px solid rgba(152, 151, 26, 0.5);
-        color:      #ebdbb2;
+        color:      ${colors.fg0};
       }
 
       tooltip label {
-        color: #ebdbb2;
+        color: ${colors.fg0};
       }
     '';
   };

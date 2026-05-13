@@ -1,0 +1,15 @@
+# sops-nix key configuration.
+#
+# To get the predator age pubkey from the host SSH key:
+#   nix-shell -p ssh-to-age --run "ssh-to-age < /etc/ssh/ssh_host_ed25519_key.pub"
+#
+# Then replace the placeholder below and re-encrypt any existing secrets:
+#   nix-shell -p sops --run "sops updatekeys secrets/secrets.yaml"
+keys:
+  - &predator age1REPLACE_WITH_OUTPUT_OF_SSH_TO_AGE
+
+creation_rules:
+  - path_regex: secrets/[^/]+\.(yaml|json)$
+    key_groups:
+      - age:
+          - *predator

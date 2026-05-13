@@ -33,6 +33,5 @@
     keepassxc
     proton-pass
     tor-browser
-    protonvpn-gui
   ];
 }

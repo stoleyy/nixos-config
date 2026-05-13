@@ -28,6 +28,7 @@
         ../modules/hyprland.nix
         ../modules/theming.nix
         inputs.nix-gaming.nixosModules.pipewireLowLatency
+        inputs.sops-nix.nixosModules.sops
         inputs.home-manager.nixosModules.home-manager
         {
           home-manager.useGlobalPkgs = true;
@@ -35,6 +36,7 @@
           home-manager.backupFileExtension = "backup";
           home-manager.extraSpecialArgs = {
             inherit inputs;
+            colors = import ../lib/colors.nix;
           };
           home-manager.sharedModules = [
             inputs.plasma-manager.homeModules.plasma-manager

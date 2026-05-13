@@ -1,14 +1,14 @@
-{ pkgs, ... }:
+{ pkgs, colors, ... }:
 
 let
   blackCss = ''
-    @define-color window_bg_color #000000;
-    @define-color view_bg_color #000000;
-    @define-color headerbar_bg_color #000000;
-    @define-color popover_bg_color #050505;
-    @define-color sidebar_bg_color #000000;
+    @define-color window_bg_color ${colors.black};
+    @define-color view_bg_color ${colors.black};
+    @define-color headerbar_bg_color ${colors.black};
+    @define-color popover_bg_color ${colors.black2};
+    @define-color sidebar_bg_color ${colors.black};
     window, .background, headerbar, .titlebar, .view, textview text {
-      background-color: #000000;
+      background-color: ${colors.black};
     }
   '';
 in
