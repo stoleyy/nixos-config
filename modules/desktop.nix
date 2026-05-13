@@ -8,6 +8,10 @@
     wayland.enable = true;
   };
 
+  # Plasma 6 Wayland is the default session; Hyprland stays available in the
+  # SDDM session dropdown for occasional use.
+  services.displayManager.defaultSession = "plasma";
+
   programs.kdeconnect.enable = true;
 
   environment.systemPackages = with pkgs; [
