@@ -9,7 +9,11 @@ jobs:
       # v5 runs on Node 24 — required ahead of the 2026-06 v4/Node20 deprecation.
       - uses: actions/checkout@v5
       - uses: DeterminateSystems/nix-installer-action@main
-      - uses: DeterminateSystems/magic-nix-cache-action@main
+      # magic-nix-cache-action was sunset in early 2026 and now hard-fails
+      # without a FlakeHub account. Run uncached — pipeline is short enough
+      # that a cold install + eval still finishes in a few minutes. Swap in
+      # cachix/cachix-action or nix-community/cache-nix-action later if the
+      # wall-clock starts to hurt.
 
       - name: flake check
         # Non-blocking until hosts/predator/hardware-configuration.nix is
