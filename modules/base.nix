@@ -146,6 +146,19 @@
   # Compressed-RAM swap. Free responsiveness win; complements the on-disk swapfile.
   zramSwap.enable = true;
 
+  # systemd-oomd watches cgroup memory pressure (PSI) and kills the worst
+  # offender before the kernel OOM killer freezes the desktop for 10+ s.
+  # 64 GB usually doesn't OOM, but Brave-with-200-tabs + Steam + a leaking
+  # game can; this is the safety net. 20s pressure duration avoids transient
+  # spikes triggering a kill.
+  services.systemd-oomd = {
+    enable             = true;
+    enableRootSlice    = true;
+    enableUserSlices   = true;
+    enableSystemSlice  = true;
+    extraConfig.DefaultMemoryPressureDurationSec = "20s";
+  };
+
   users.users.stoleyy = {
     isNormalUser = true;
     description  = "stoleyy";
