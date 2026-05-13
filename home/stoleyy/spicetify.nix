@@ -16,6 +16,8 @@ in
       shuffle
       fullAppDisplay
       keyboardShortcut
+      # Synced lyrics in a poppable miniplayer; spicetify-cli built-in.
+      popupLyrics
     ];
     enabledCustomApps = with spicePkgs.apps; [
       lyricsPlus
