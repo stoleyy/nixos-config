@@ -17,24 +17,39 @@
   # would also work but skips all rp_filter checking.
   networking.firewall.checkReversePath = "loose";
 
-  # DNS is provided by OPNsense (Unbound) via DHCP. resolved accepts the
-  # DHCP-supplied server and forwards queries there. Quad9 is kept as a
-  # fallback only for when no link has DNS at all.
-  # dnsovertls = "opportunistic" and dnssec = "allow-downgrade" because
-  # OPNsense Unbound speaks plain DNS (port 53) to LAN clients; strict
-  # "true" / "true" would refuse to use any non-DoT server and break
-  # resolution entirely when behind OPNsense.
+  # DNS goes to the OPNsense laptop running Unbound at 192.168.1.114.
+  # OPNsense and predator are peer hosts on the home-router LAN (the
+  # OPNsense laptop only has one ethernet port — it's not an inline
+  # gateway). predator reaches OPNsense via the OPNsense WAN interface,
+  # so OPNsense-side requirements are:
+  #   - keep 192.168.1.114 stable (DHCP reservation on the home router,
+  #     or set a static IP outside the router's DHCP pool)
+  #   - Unbound listens on WAN (Services → Unbound DNS → Network Interfaces)
+  #   - firewall rule allowing 192.168.1.0/24 → WAN address, TCP/UDP 53
+  # Until those are done, DNS falls back to Quad9 via fallbackDns.
+  #
+  # `domains = [ "~." ]` forces all queries to the declared DNS server;
+  # without it, DHCP-supplied DNS from the home router wins and OPNsense
+  # never sees the queries.
+  #
+  # dnssec = "allow-downgrade" + dnsovertls = "opportunistic" because
+  # OPNsense Unbound speaks plain DNS on the LAN side; strict "true"
+  # would refuse the server and break resolution entirely.
   services.resolved = {
     enable      = true;
     dnssec      = "allow-downgrade";
     dnsovertls  = "opportunistic";
     llmnr       = "false"; # disable LLMNR — credential-theft surface (T1557.001)
+    domains     = [ "~." ];
     fallbackDns = [
       "9.9.9.9"
       "149.112.112.112"
       "2620:fe::fe"
       "2620:fe::9"
     ];
+    extraConfig = ''
+      DNS=192.168.1.114
+    '';
   };
 
   services.printing = {
