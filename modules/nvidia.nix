@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 
 {
   services.xserver.videoDrivers = [ "nvidia" ];
@@ -23,6 +23,10 @@
 
     powerManagement.enable      = true;
     powerManagement.finegrained = false;
+
+    # Production driver — gen 2 (working) confirmed on 580.142; stable in current
+    # nixpkgs is an older version that fails to init kwin_wayland on this hardware.
+    package = config.boot.kernelPackages.nvidiaPackages.production;
   };
 
   environment.sessionVariables = {
