@@ -34,5 +34,6 @@
     proton-pass
     tor-browser
     protonvpn-gui
+    claude-code
   ];
 }
