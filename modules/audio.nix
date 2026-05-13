@@ -37,5 +37,18 @@
         "default.clock.max-quantum"   = 8192;
       };
     };
+
+    # Keep Bluetooth output devices connected through idle. Default
+    # session-suspend after ~5 s drops the link, which means the next play
+    # has a 1-2 s reconnection delay (and momentarily routes audio to the
+    # built-in speakers). Setting timeout to 0 disables the suspend.
+    wireplumber.extraConfig."51-bt-nosuspend" = {
+      "monitor.bluez.rules" = [
+        {
+          matches = [ { "node.name" = "~bluez_output.*"; } ];
+          actions.update-props = { "session.suspend-timeout-seconds" = 0; };
+        }
+      ];
+    };
   };
 }

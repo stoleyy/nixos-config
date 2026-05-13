@@ -187,7 +187,10 @@ in
     powerdevil.AC = {
       powerButtonAction = "showLogoutScreen";
       autoSuspend.action = "nothing";
-      turnOffDisplay.idleTimeout = 480;
+      # OLED protect: 5 min idle → DPMS off (was 8 min). The G80SD's hardware
+      # pixel-shift + scheduled panel refresh do the heavy lifting; this is
+      # belt-and-suspenders for static content (e.g. paused video, IDE idle).
+      turnOffDisplay.idleTimeout = 300;
     };
 
     configFile = {
