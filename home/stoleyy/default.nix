@@ -15,13 +15,18 @@
     ./swaync.nix
     ./wlogout.nix
     ./gtk.nix
+    ./plasma.nix
+    ./spicetify.nix
+    ./ghostty.nix
   ];
 
-  home.username      = "stoleyy";
+  home.username = "stoleyy";
   home.homeDirectory = "/home/stoleyy";
-  home.stateVersion  = "25.11";
+  home.stateVersion = "25.11";
 
   programs.home-manager.enable = true;
+
+  home.file.".local/share/color-schemes/BladeeBlack.colors".source = ./bladee-black.colors;
 
   home.packages = with pkgs; [
     keepassxc

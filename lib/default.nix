@@ -1,22 +1,19 @@
 # Helper factory for declaring NixOS hosts.
-#
-# Usage from flake.nix:
-#   nixosConfigurations.predator = (import ./lib { inherit inputs; }).mkHost {
-#     hostName = "predator";
-#     extraModules = [ ./modules/nvidia.nix ];
-#   };
 
 { inputs, ... }:
 
 {
   mkHost =
-    { hostName
-    , system       ? "x86_64-linux"
-    , extraModules ? [ ]
+    {
+      hostName,
+      system ? "x86_64-linux",
+      extraModules ? [ ],
     }:
     inputs.nixpkgs.lib.nixosSystem {
       inherit system;
-      specialArgs = { inherit inputs; };
+      specialArgs = {
+        inherit inputs;
+      };
       modules = [
         ../hosts/${hostName}
         ../overlays
@@ -29,14 +26,18 @@
         ../modules/apps.nix
         ../modules/hardening.nix
         ../modules/hyprland.nix
+        ../modules/theming.nix
         inputs.nix-gaming.nixosModules.pipewireLowLatency
         inputs.home-manager.nixosModules.home-manager
         {
-          home-manager.useGlobalPkgs       = true;
-          home-manager.useUserPackages     = true;
+          home-manager.useGlobalPkgs = true;
+          home-manager.useUserPackages = true;
           home-manager.backupFileExtension = "backup";
-          home-manager.extraSpecialArgs    = { inherit inputs; };
-          home-manager.users.stoleyy       = import ../home/stoleyy;
+          home-manager.extraSpecialArgs = {
+            inherit inputs;
+          };
+          home-manager.sharedModules = [ inputs.plasma-manager.homeModules.plasma-manager ];
+          home-manager.users.stoleyy = import ../home/stoleyy;
         }
       ] ++ extraModules;
     };

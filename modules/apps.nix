@@ -5,14 +5,16 @@
     (brave.override {
       commandLineArgs = [
         # Wayland / Ozone — render correctly on KDE Plasma 6 / Hyprland Wayland.
-        "--disable-features=WaylandWpColorManagerV1"
         "--ozone-platform-hint=auto"
         # VAAPI on NVIDIA — Chromium hard-blocklists VAAPI for NVIDIA GPUs by
         # default. These flags bypass the blocklist; combined with
         # nvidia-vaapi-driver (in modules/nvidia.nix extraPackages) and
         # LIBVA_DRIVER_NAME=nvidia (sessionVariable), YouTube 4K decodes on
         # NVDEC at single-digit CPU usage instead of 30-40%.
-        "--enable-features=AcceleratedVideoDecodeLinuxGL,VaapiVideoDecodeLinuxGL,VaapiOnNvidiaGPUs"
+        # WaylandWpColorManagerV1 + UseMultiPlaneFormatForHardwareVideo enable
+        # HDR pass-through on Plasma 6.4+. If page chrome washes out under HDR,
+        # remove those two features and re-add `--disable-features=WaylandWpColorManagerV1`.
+        "--enable-features=AcceleratedVideoDecodeLinuxGL,VaapiVideoDecodeLinuxGL,VaapiOnNvidiaGPUs,WaylandWpColorManagerV1,UseMultiPlaneFormatForHardwareVideo"
         # Vulkan ANGLE renderer — better Wayland/NVIDIA performance than the
         # default GL backend.
         "--use-gl=angle"
@@ -47,18 +49,18 @@
   # Sync is left enabled so Windows search engines, bookmarks, and passwords can
   # be brought over with Brave Sync (brave://sync).
   environment.etc."brave/policies/managed/debloat.json".text = builtins.toJSON {
-    BraveRewardsDisabled        = true;
-    BraveWalletDisabled         = true;
-    BraveAIChatEnabled          = false;
-    BraveNewsDisabled           = true;
-    BraveTalkDisabled           = true;
-    BraveVPNDisabled            = true;
-    TorDisabled                 = true;
-    BraveP3ADisabled            = true;
+    BraveRewardsDisabled = true;
+    BraveWalletDisabled = true;
+    BraveAIChatEnabled = false;
+    BraveNewsDisabled = true;
+    BraveTalkDisabled = true;
+    BraveVPNDisabled = true;
+    TorDisabled = true;
+    BraveP3ADisabled = true;
     DefaultBrowserSettingEnabled = false;
-    MetricsReportingEnabled     = false;
-    SearchSuggestEnabled        = false;
-    SyncDisabled                = false;     # keep on so Windows settings can import
+    MetricsReportingEnabled = false;
+    SearchSuggestEnabled = false;
+    SyncDisabled = false; # keep on so Windows settings can import
   };
 
   services.flatpak.enable = true;
@@ -67,9 +69,12 @@
   # modules/hyprland.nix extends extraPortals with xdg-desktop-portal-hyprland for the
   # Hyprland session; the hyprland session config in this attrset is also extended there.
   xdg.portal = {
-    enable           = true;
+    enable = true;
     xdgOpenUsePortal = true;
-    config.common.default = [ "kde" "gtk" ];
+    config.common.default = [
+      "kde"
+      "gtk"
+    ];
     extraPortals = with pkgs; [
       kdePackages.xdg-desktop-portal-kde
       xdg-desktop-portal-gtk

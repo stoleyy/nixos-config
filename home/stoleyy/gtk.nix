@@ -1,41 +1,44 @@
 { pkgs, ... }:
 
+let
+  blackCss = ''
+    @define-color window_bg_color #000000;
+    @define-color view_bg_color #000000;
+    @define-color headerbar_bg_color #000000;
+    @define-color popover_bg_color #050505;
+    @define-color sidebar_bg_color #000000;
+    window, .background, headerbar, .titlebar, .view, textview text {
+      background-color: #000000;
+    }
+  '';
+in
 {
   gtk = {
     enable = true;
     theme = {
-      name    = "Colloid-Green-Dark";
-      package = pkgs.colloid-gtk-theme.override {
-        themeVariants = [ "green" ];
-        colorVariants = [ "dark" ];
-        tweaks        = [ "gruvbox" "rimless" ];
-      };
+      name = "adw-gtk3-dark";
+      package = pkgs.adw-gtk3;
     };
     iconTheme = {
-      name    = "Papirus-Dark";
-      package = pkgs.papirus-icon-theme;
+      name = "Tela-circle-black-dark";
+      package = pkgs.tela-circle-icon-theme.override { colorVariants = [ "black" ]; };
     };
     cursorTheme = {
-      name    = "Bibata-Modern-Ice";
+      name = "Bibata-Modern-Classic";
       package = pkgs.bibata-cursors;
-      size    = 24;
+      size = 24;
     };
-    font = {
-      name = "Noto Sans";
-      size = 10;
-    };
-    gtk3.extraConfig.gtk-application-prefer-dark-theme = true;
-    gtk4.extraConfig.gtk-application-prefer-dark-theme = true;
+    gtk3.extraConfig.gtk-application-prefer-dark-theme = 1;
+    gtk3.extraCss = blackCss;
+    gtk4.extraConfig.gtk-application-prefer-dark-theme = 1;
+    gtk4.extraCss = blackCss;
   };
 
-  home.pointerCursor = {
-    gtk.enable = true;
-    x11.enable = true;
-    name       = "Bibata-Modern-Ice";
-    package    = pkgs.bibata-cursors;
-    size       = 24;
+  qt = {
+    enable = true;
+    platformTheme.name = "kde";
+    style.name = "breeze";
   };
 
-  # `programs.dconf.enable = true` is set system-wide in modules/base.nix.
   dconf.settings."org/gnome/desktop/interface".color-scheme = "prefer-dark";
 }
