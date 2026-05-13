@@ -33,5 +33,6 @@
     keepassxc
     proton-pass
     tor-browser
+    claude-code
   ];
 }
