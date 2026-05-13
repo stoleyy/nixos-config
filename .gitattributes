@@ -1,0 +1,6 @@
+# Force LF on Linux-only files regardless of host OS — Windows clients won't
+# rewrite them to CRLF, which would break bash on the live ISO and Nix's
+# string-equality on .nix files.
+*.nix    text eol=lf
+*.sh     text eol=lf
+*.ps1    text eol=crlf
