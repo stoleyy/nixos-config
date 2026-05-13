@@ -93,10 +93,10 @@
       ];
 
       monitor = [
-        # Samsung Odyssey OLED G80SD: 4K @ 240 Hz, 10-bit colour for OLED gradients.
-        # Run `hyprctl monitors all` after first login and swap DP-1 if your panel
-        # is on a different output (DP-2, HDMI-A-1, …).
-        "DP-1,3840x2160@240,auto,1,bitdepth,10"
+        # Samsung Odyssey OLED G80SD on HDMI-A-1: 4K @ 240 Hz, 10-bit colour.
+        # HDMI 2.1 with DSC is required to carry 4K@240@10bit; the RTX 4070 +
+        # G80SD support it. If the link can't sustain 10-bit, drop `,bitdepth,10`.
+        "HDMI-A-1,3840x2160@240,auto,1,bitdepth,10"
         # Wildcard fallback for any other connected output.
         ",preferred,auto,1"
       ];
