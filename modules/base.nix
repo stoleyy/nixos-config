@@ -193,9 +193,7 @@
   # Pre-empt the rare "Too many open files" crash in Steam/Wine prefixes on
   # big games + mod managers. Default ceiling is 1024 (soft) / 524288 (hard);
   # bumping the soft limit to ~1M avoids hitting it.
-  systemd.extraConfig = ''
-    DefaultLimitNOFILE=1048576
-  '';
+  systemd.settings.Manager.DefaultLimitNOFILE = "1048576";
 
   systemd.coredump.enable = false;
   system.stateVersion     = "25.11";
