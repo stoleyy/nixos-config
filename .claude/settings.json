@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(nix flake check:*)",
+      "Bash(nix flake metadata:*)",
+      "Bash(nix flake show:*)",
+      "Bash(nix flake lock:*)",
+      "Bash(nix eval .#nixosConfigurations.predator.config.system.build.toplevel.drvPath:*)",
+      "Bash(nix eval .#nixosConfigurations.predator.config.*:*)",
+      "Bash(nixos-rebuild build --flake .#predator:*)",
+      "Bash(nixos-rebuild dry-build --flake .#predator:*)",
+      "Bash(nixfmt --check **/*.nix:*)",
+      "Bash(statix check:*)",
+      "Bash(statix fix:*)",
+      "Bash(deadnix:*)",
+      "Bash(gitleaks detect:*)",
+      "Bash(shellcheck:*)",
+      "Bash(vulnix:*)",
+      "Bash(nvd diff:*)",
+      "Bash(nix-tree:*)",
+      "Bash(nix path-info:*)",
+      "Bash(nix develop:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          { "type": "command", "command": ".claude/hooks/session-start.sh" }
+        ]
+      }
+    ]
+  }
+}

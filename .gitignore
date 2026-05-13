@@ -1,4 +1,4 @@
-# ── Nix build artifacts ──────────────────────────────────────────────────────
+# ── Nix build artifacts ─────────────────────────────────────────────────────────
 # `nix build` and `nixos-rebuild build` drop these as symlinks into the CWD.
 # Pattern matches anywhere in the tree (no leading slash).
 result
@@ -10,12 +10,15 @@ result-*
 # Hash-derived intermediate roots
 .gcroots/
 
-# ── Tooling caches ───────────────────────────────────────────────────────────
+# ── Tooling caches ────────────────────────────────────────────────────────────────
 .direnv/
 .envrc.local
 .pre-commit-cache/
 
-# ── Editor / OS junk ─────────────────────────────────────────────────────────
+# ── Claude Code local overrides ─────────────────────────────────────────────────────
+.claude/settings.local.json
+
+# ── Editor / OS junk ──────────────────────────────────────────────────────────────
 *.swp
 *.swo
 *~
@@ -25,7 +28,7 @@ result-*
 Thumbs.db
 desktop.ini
 
-# ── Secrets ──────────────────────────────────────────────────────────────────
+# ── Secrets ─────────────────────────────────────────────────────────────────────────
 # Never commit these — agenix/sops-nix should be used for in-tree secrets.
 *.pem
 *.key
@@ -33,7 +36,7 @@ secrets.local.nix
 *.age
 *.token
 
-# ── Per-host generated hardware-configuration.nix ────────────────────────────
+# ── Per-host generated hardware-configuration.nix ────────────────────────────────
 # Committed by default so the flake is portable, but uncomment to keep these
 # strictly host-local:
 # hosts/*/hardware-configuration.nix
