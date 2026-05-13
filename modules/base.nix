@@ -161,12 +161,12 @@
   # 64 GB usually doesn't OOM, but Brave-with-200-tabs + Steam + a leaking
   # game can; this is the safety net. 20s pressure duration avoids transient
   # spikes triggering a kill.
-  services.systemd-oomd = {
+  systemd.oomd = {
     enable             = true;
     enableRootSlice    = true;
     enableUserSlices   = true;
     enableSystemSlice  = true;
-    extraConfig.DefaultMemoryPressureDurationSec = "20s";
+    settings.OOM.DefaultMemoryPressureDurationSec = "20s";
   };
 
   users.users.stoleyy = {
@@ -193,9 +193,7 @@
   # Pre-empt the rare "Too many open files" crash in Steam/Wine prefixes on
   # big games + mod managers. Default ceiling is 1024 (soft) / 524288 (hard);
   # bumping the soft limit to ~1M avoids hitting it.
-  systemd.extraConfig = ''
-    DefaultLimitNOFILE=1048576
-  '';
+  systemd.settings.Manager.DefaultLimitNOFILE = "1048576";
 
   systemd.coredump.enable = false;
   system.stateVersion     = "25.11";

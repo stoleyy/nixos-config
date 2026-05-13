@@ -2,6 +2,16 @@
 
 let
   qdbus = "${pkgs.kdePackages.qttools}/bin/qdbus";
+
+  # Inlining the qdbus + JS payload directly in `hotkeys.commands.*.command`
+  # makes plasma-manager emit a .desktop file whose Exec= contains the raw
+  # JS — quotes, parens, semicolons, `?:` — all reserved per the Desktop
+  # Entry spec, which desktop-file-validate rejects (build-time failure).
+  # Wrapping in writeShellScript collapses the whole payload to a single
+  # /nix/store path so the generated Exec= is reserved-char-free.
+  togglePanel = pkgs.writeShellScript "toggle-bottom-panel" ''
+    ${qdbus} org.kde.plasmashell /PlasmaShell evaluateScript 'var ps=panels();for(var i=0;i<ps.length;i++){if(ps[i].location=="bottom"){ps[i].hiding=(ps[i].hiding=="none")?"autohide":"none";}}'
+  '';
 in
 {
   programs.plasma = {
@@ -67,7 +77,7 @@ in
       };
       "toggle-panel" = {
         key = "Meta+Z";
-        command = ''${qdbus} org.kde.plasmashell /PlasmaShell evaluateScript 'var ps=panels();for(var i=0;i<ps.length;i++){if(ps[i].location=="bottom"){ps[i].hiding=(ps[i].hiding=="none")?"autohide":"none";}}' '';
+        command = "${togglePanel}";
       };
     };
 

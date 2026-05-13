@@ -9,7 +9,11 @@ jobs:
       # v5 runs on Node 24 — required ahead of the 2026-06 v4/Node20 deprecation.
       - uses: actions/checkout@v5
       - uses: DeterminateSystems/nix-installer-action@main
+      # Non-blocking: DeterminateSystems put the cache behind FlakeHub auth
+      # in 2026, so unauthenticated runs from forks/PRs fail this step. CI
+      # still functions without cache — just ~2-3 min slower per run.
       - uses: DeterminateSystems/magic-nix-cache-action@main
+        continue-on-error: true
 
       - name: flake check
         # Non-blocking until hosts/predator/hardware-configuration.nix is
