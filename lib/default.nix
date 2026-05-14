@@ -27,6 +27,8 @@
         ../modules/hardening.nix
         ../modules/hyprland.nix
         ../modules/theming.nix
+        ../modules/containers.nix
+        ../modules/wazuh-manager.nix
         inputs.nix-gaming.nixosModules.pipewireLowLatency
         inputs.sops-nix.nixosModules.sops
         inputs.home-manager.nixosModules.home-manager

@@ -10,8 +10,16 @@
 
   networking.firewall.enable          = true;
   networking.nftables.enable          = true;
-  networking.firewall.allowedTCPPorts = [ ];
-  networking.firewall.allowedUDPPorts = [ ];
+  # Wazuh manager listens on these ports (modules/wazuh-manager.nix):
+  #   1515/TCP   agent registration
+  #   55000/TCP  Wazuh manager API (dashboard talks to manager)
+  #   443/TCP    dashboard web UI
+  #   1514/UDP   agent log channel (events from registered agents)
+  # Only opens these on the LAN side — predator is on 192.168.1.0/24 and reachable
+  # only from there. From outside, agents must reach predator via the WireGuard
+  # tunnel terminated on OPNsense, which then NAT-masquerades onto LAN.
+  networking.firewall.allowedTCPPorts = [ 443 1515 55000 ];
+  networking.firewall.allowedUDPPorts = [ 1514 ];
   # "loose" lets the WireGuard tunnel set up by Proton VPN (via NetworkManager)
   # return traffic through while still validating non-VPN interfaces. "false"
   # would also work but skips all rp_filter checking.
