@@ -17,23 +17,38 @@
   # would also work but skips all rp_filter checking.
   networking.firewall.checkReversePath = "loose";
 
-  # Quad9 via resolved. `domains = [ "~." ]` routes all queries to these servers
-  # so DHCP-supplied DNS can't override them. `fallbackDns` only kicks in when
-  # no link has DNS at all.
+  # DNS goes to the OPNsense laptop running Unbound at 192.168.1.114.
+  # OPNsense and predator are peer hosts on the home-router LAN (the
+  # OPNsense laptop only has one ethernet port — it's not an inline
+  # gateway). As of 2026-05-14 the OPNsense single NIC (ue0) is assigned
+  # to the LAN role at 192.168.1.114/24; predator reaches it as a normal
+  # LAN peer. OPNsense-side requirements:
+  #   - 192.168.1.114 stable (static IP outside the home router's DHCP pool)
+  #   - Unbound listens on LAN (Services → Unbound DNS → Network Interfaces)
+  #   - default OPNsense LAN firewall is "allow all from LAN" so no extra rule needed
+  # Until OPNsense is reachable, DNS falls back to Quad9 via fallbackDns.
+  #
+  # `domains = [ "~." ]` forces all queries to the declared DNS server;
+  # without it, DHCP-supplied DNS from the home router wins and OPNsense
+  # never sees the queries.
+  #
+  # dnssec = "allow-downgrade" + dnsovertls = "opportunistic" because
+  # OPNsense Unbound speaks plain DNS on the LAN side; strict "true"
+  # would refuse the server and break resolution entirely.
   services.resolved = {
-    enable     = true;
-    dnssec     = "true";
-    dnsovertls = "true";
-    llmnr      = "false";   # F15: disable LLMNR — credential-theft surface (T1557.001)
-    domains    = [ "~." ];
+    enable      = true;
+    dnssec      = "allow-downgrade";
+    dnsovertls  = "opportunistic";
+    llmnr       = "false"; # disable LLMNR — credential-theft surface (T1557.001)
+    domains     = [ "~." ];
     fallbackDns = [
-      "9.9.9.9#dns.quad9.net"
-      "149.112.112.112#dns.quad9.net"
-      "2620:fe::fe#dns.quad9.net"
-      "2620:fe::9#dns.quad9.net"
+      "9.9.9.9"
+      "149.112.112.112"
+      "2620:fe::fe"
+      "2620:fe::9"
     ];
     extraConfig = ''
-      DNS=9.9.9.9#dns.quad9.net 149.112.112.112#dns.quad9.net 2620:fe::fe#dns.quad9.net 2620:fe::9#dns.quad9.net
+      DNS=192.168.1.114
     '';
   };
 
