@@ -20,13 +20,13 @@
   # DNS goes to the OPNsense laptop running Unbound at 192.168.1.114.
   # OPNsense and predator are peer hosts on the home-router LAN (the
   # OPNsense laptop only has one ethernet port — it's not an inline
-  # gateway). predator reaches OPNsense via the OPNsense WAN interface,
-  # so OPNsense-side requirements are:
-  #   - keep 192.168.1.114 stable (DHCP reservation on the home router,
-  #     or set a static IP outside the router's DHCP pool)
-  #   - Unbound listens on WAN (Services → Unbound DNS → Network Interfaces)
-  #   - firewall rule allowing 192.168.1.0/24 → WAN address, TCP/UDP 53
-  # Until those are done, DNS falls back to Quad9 via fallbackDns.
+  # gateway). As of 2026-05-14 the OPNsense single NIC (ue0) is assigned
+  # to the LAN role at 192.168.1.114/24; predator reaches it as a normal
+  # LAN peer. OPNsense-side requirements:
+  #   - 192.168.1.114 stable (static IP outside the home router's DHCP pool)
+  #   - Unbound listens on LAN (Services → Unbound DNS → Network Interfaces)
+  #   - default OPNsense LAN firewall is "allow all from LAN" so no extra rule needed
+  # Until OPNsense is reachable, DNS falls back to Quad9 via fallbackDns.
   #
   # `domains = [ "~." ]` forces all queries to the declared DNS server;
   # without it, DHCP-supplied DNS from the home router wins and OPNsense
