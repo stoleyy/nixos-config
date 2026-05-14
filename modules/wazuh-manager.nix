@@ -45,6 +45,7 @@ in
     "d ${indexerDir} 0750 root root - -"
     "d ${dashDir}    0750 root root - -"
     "d ${certsDir}   0750 root root - -"
+    "d ${stateDir}/agent-predator 0750 root root - -"
   ];
 
   # --- 2. Podman network for inter-container service discovery by hostname.
@@ -59,6 +60,7 @@ in
       "podman-wazuh-manager.service"
       "podman-wazuh-indexer.service"
       "podman-wazuh-dashboard.service"
+      "podman-wazuh-agent-predator.service"
     ];
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
@@ -132,6 +134,33 @@ in
         "${certsDir}/wazuh.manager-key.pem:/etc/ssl/filebeat.key:ro"
       ];
       extraOptions = [ "--network=wazuh" ];
+    };
+
+    # Predator's own Wazuh agent. Containerized for symmetry with the rest of
+    # the stack — talks to wazuh-manager over the internal podman network so
+    # there's no firewall traversal. Bind-mounts /var/log, /etc, /proc, /sys
+    # read-only so the agent can read host audit/syslog state.
+    wazuh-agent-predator = {
+      image = "wazuh/wazuh-agent:${version}";
+      hostname = "predator";
+      dependsOn = [ "wazuh-manager" ];
+      environment = {
+        "WAZUH_MANAGER" = "wazuh-manager";
+        "WAZUH_REGISTRATION_SERVER" = "wazuh-manager";
+        "WAZUH_AGENT_GROUP" = "predator-workstations";
+        "WAZUH_AGENT_NAME" = "predator";
+      };
+      volumes = [
+        "/var/log:/host/var/log:ro"
+        "/etc:/host/etc:ro"
+        "/proc:/host/proc:ro"
+        "/sys:/host/sys:ro"
+        "/var/lib/wazuh-stack/agent-predator:/var/ossec/queue/agents"
+      ];
+      extraOptions = [
+        "--network=wazuh"
+        "--pid=host" # see host processes — auditd context
+      ];
     };
 
     wazuh-dashboard = {

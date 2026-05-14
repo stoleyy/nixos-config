@@ -29,6 +29,8 @@
         ../modules/theming.nix
         ../modules/containers.nix
         ../modules/wazuh-manager.nix
+        ../modules/auditd.nix
+        ../modules/update-routines.nix
         inputs.nix-gaming.nixosModules.pipewireLowLatency
         inputs.sops-nix.nixosModules.sops
         inputs.home-manager.nixosModules.home-manager
@@ -46,6 +48,7 @@
           ];
           home-manager.users.stoleyy = import ../home/stoleyy;
         }
-      ] ++ extraModules;
+      ]
+      ++ extraModules;
     };
 }
