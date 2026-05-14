@@ -55,8 +55,13 @@
       "2620:fe::fe"
       "2620:fe::9"
     ];
+    # List OPNsense first so it gets all queries when reachable (Wazuh
+    # visibility). Quad9 is second: when ProtonVPN routes 0.0.0.0/0 through
+    # the WG tunnel, OPNsense (LAN-only) becomes unreachable and resolved
+    # falls through to Quad9 after the first timeout rather than stalling
+    # through a long FallbackDns retry chain.
     extraConfig = ''
-      DNS=192.168.1.114
+      DNS=192.168.1.114 9.9.9.9 149.112.112.112
     '';
   };
 

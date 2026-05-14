@@ -20,9 +20,14 @@
     "net.ipv4.conf.all.secure_redirects"     = 0;
     "net.ipv4.conf.default.secure_redirects" = 0;
 
-    # F-18: reverse path filtering — drop source-spoofed packets
-    "net.ipv4.conf.all.rp_filter"     = 1;
-    "net.ipv4.conf.default.rp_filter" = 1;
+    # F-18: reverse path filtering — drop source-spoofed packets.
+    # Value 2 (loose) validates that the source IP has any valid route, but
+    # does not require the return path to be the same interface. This is
+    # necessary for WireGuard (ProtonVPN): the VPN routes 0.0.0.0/0 through
+    # the tunnel, creating asymmetric routing that strict (=1) rp_filter would
+    # silently drop. Loose still rejects unroutable source IPs.
+    "net.ipv4.conf.all.rp_filter"     = 2;
+    "net.ipv4.conf.default.rp_filter" = 2;
 
     # F-18: refuse IP source-routed packets — classic IP-spoof / MITM vector.
     "net.ipv4.conf.all.accept_source_route"     = 0;
