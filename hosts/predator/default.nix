@@ -27,16 +27,20 @@
   #   3. nix-shell -p sops --run "sops ../../secrets/secrets.yaml"
   #   4. declare each key under `secrets.<name> = { owner = ...; mode = ...; };`
   #
-  # ProtonVPN — kernel WireGuard via modules/protonvpn.nix. Server is NL#448
-  # (Amsterdam, Wg-nl1, NAT-PMP on so port-forwarding works for downstream
-  # services that need it). Tunnel comes up at boot via systemd; kill switch
-  # is active by default. See docs/protonvpn-wg-setup.md for setup steps.
+  # ProtonVPN — kernel WireGuard via modules/protonvpn.nix. Server is US-OH#24
+  # (Columbus, OH; predator-dedicated config so it doesn't collide with the
+  # Jellyfin indexer-pool's WG sessions, since Proton caps concurrent WG to
+  # 10 per account). NAT-PMP on, NetShield on (server-side blocklist; doesn't
+  # conflict with OISD on OPNsense — they layer additively when WG is up).
+  # Tunnel comes up at boot via systemd; kill switch active by default.
+  # See docs/protonvpn-wg-setup.md.
+  #
   # Private key lives at /var/lib/protonvpn/privkey (root:root, mode 0400);
   # not in sops yet — Tier 2.1 in the optimization roadmap.
   modules.protonvpn = {
     enable = true;
-    serverPublicKey = "yDABIIjKHTfyA+J+cuHetkq2G6u+9yiRh3OsEEPS01M=";
-    serverEndpoint = "103.69.224.6:51820";
+    serverPublicKey = "Rtsl6k9WA9t04Vt+EDUD3TlSr9+YL6YcTFwiSB1qBwA=";
+    serverEndpoint = "146.70.84.2:51820";
     # clientAddress defaults to 10.2.0.2/32 (matches Proton's issued tunnel IP)
     # killSwitch defaults to true
   };
