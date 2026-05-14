@@ -4,14 +4,19 @@
   imports = [ ./hardware-configuration.nix ];
 
   boot.loader.systemd-boot = {
-    enable             = true;
+    enable = true;
     configurationLimit = 20;
-    editor             = false;
+    editor = false;
   };
   boot.loader.efi.canTouchEfiVariables = true;
 
   # 8 GB swapfile — install script places root on Samsung 980 Pro
-  swapDevices = [ { device = "/swapfile"; size = 8192; } ];
+  swapDevices = [
+    {
+      device = "/swapfile";
+      size = 8192;
+    }
+  ];
 
   networking.hostName = "predator";
 
@@ -22,17 +27,38 @@
   #   3. nix-shell -p sops --run "sops ../../secrets/secrets.yaml"
   #   4. declare each key under `secrets.<name> = { owner = ...; mode = ...; };`
   #
-  # Proton VPN is intentionally NOT a sops secret here: we run the official
-  # `protonvpn-gui` client (modules/apps.nix) and it stores credentials in the
-  # SecretService keyring at sign-in time, so there is nothing for sops to do.
+  # ProtonVPN — kernel WireGuard via modules/protonvpn.nix. Server is NL#448
+  # (Amsterdam, Wg-nl1, NAT-PMP on so port-forwarding works for downstream
+  # services that need it). Tunnel comes up at boot via systemd; kill switch
+  # is active by default. See docs/protonvpn-wg-setup.md for setup steps.
+  # Private key lives at /var/lib/protonvpn/privkey (root:root, mode 0400);
+  # not in sops yet — Tier 2.1 in the optimization roadmap.
+  modules.protonvpn = {
+    enable = true;
+    serverPublicKey = "yDABIIjKHTfyA+J+cuHetkq2G6u+9yiRh3OsEEPS01M=";
+    serverEndpoint = "103.69.224.6:51820";
+    # clientAddress defaults to 10.2.0.2/32 (matches Proton's issued tunnel IP)
+    # killSwitch defaults to true
+  };
+
+  # sops-nix: decrypt secrets at activation using the host SSH Ed25519 key.
+  # Currently unused (placeholder yaml). When you populate it (see comment
+  # above sops block below), the natural first migration is moving the
+  # ProtonVPN private key into sops — modules.protonvpn.privateKeyFile then
+  # points at config.sops.secrets.protonvpn_wg_key.path.
   sops = {
     defaultSopsFile = ../../secrets/secrets.yaml;
     defaultSopsFormat = "yaml";
     age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
     age.keyFile = "/var/lib/sops-nix/key.txt";
     age.generateKey = true;
-    validateSopsFiles = false;   # placeholder yaml is plaintext until step 3 above
+    validateSopsFiles = false; # placeholder yaml is plaintext until step 3 above
   };
+
+  # Old prose note (kept for context, now stale): the previous setup used
+  # protonvpn-gui (modules/apps.nix) with credentials in SecretService.
+  # We've migrated to wg-quick above; the GUI stays installed as a fallback
+  # for ad-hoc server picking, but the main tunnel is kernel-managed.
 
   specialisation = {
     # Boot with Hyprland as the default session instead of Plasma.
