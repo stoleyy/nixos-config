@@ -49,14 +49,14 @@
   '';
 
   wayland.windowManager.hyprland = {
-    enable          = true;
+    enable = true;
     xwayland.enable = true;
     # systemd.enable = false: exec-once is the single source of truth for service
     # startup. Avoids hyprland-session.target race conditions on NVIDIA.
-    systemd.enable  = false;
+    systemd.enable = false;
     # Use the system hyprland from programs.hyprland.enable (avoids two copies).
-    package         = null;
-    portalPackage   = null;
+    package = null;
+    portalPackage = null;
 
     settings = {
       env = [
@@ -102,32 +102,32 @@
       ];
 
       general = {
-        gaps_in     = 5;
-        gaps_out    = 10;
+        gaps_in = 5;
+        gaps_out = 10;
         border_size = 2;
-        "col.active_border"   = "rgb(98971a) rgb(458588) 45deg";
+        "col.active_border" = "rgb(98971a) rgb(458588) 45deg";
         "col.inactive_border" = "rgb(3c3836)";
-        layout           = "dwindle";
+        layout = "dwindle";
         resize_on_border = true;
         # Fullscreen tearing path — paired with an `immediate` window rule for
         # steam_app_.* below. Big input-latency win on the G80SD.
-        allow_tearing    = true;
+        allow_tearing = true;
       };
 
       decoration = {
         rounding = 10;
         blur = {
-          enabled           = true;
-          size              = 6;
-          passes            = 3;
+          enabled = true;
+          size = 6;
+          passes = 3;
           new_optimizations = true;
-          vibrancy          = 0.15;
+          vibrancy = 0.15;
         };
         shadow = {
-          enabled      = true;
-          range        = 8;
+          enabled = true;
+          range = 8;
           render_power = 3;
-          color        = "rgba(1d202199)";
+          color = "rgba(1d202199)";
         };
       };
 
@@ -148,9 +148,9 @@
       };
 
       input = {
-        kb_layout     = "us";
-        follow_mouse  = 1;
-        sensitivity   = 0;
+        kb_layout = "us";
+        follow_mouse = 1;
+        sensitivity = 0;
         accel_profile = "flat";
       };
 
@@ -159,20 +159,20 @@
       };
 
       dwindle = {
-        pseudotile     = true;
+        pseudotile = true;
         preserve_split = true;
       };
 
       misc = {
-        force_default_wallpaper  = 0;
-        disable_hyprland_logo    = true;
+        force_default_wallpaper = 0;
+        disable_hyprland_logo = true;
         disable_splash_rendering = true;
-        mouse_move_enables_dpms  = true;
-        key_press_enables_dpms   = true;
+        mouse_move_enables_dpms = true;
+        key_press_enables_dpms = true;
         # Adaptive Sync / VRR — pairs with __GL_VRR_ALLOWED=1 in env.
-        vrr                      = 1;
+        vrr = 1;
         # Match swww's clear colour so there's no black flash at startup.
-        background_color         = "rgb(1d2021)";
+        background_color = "rgb(1d2021)";
       };
 
       # Hyprland 0.46+ removed `render.explicit_sync` — it's automatic now,
@@ -184,10 +184,10 @@
         disable_logs = true;
       };
 
-      "$mod"         = "SUPER";
-      "$terminal"    = "kitty";
-      "$browser"     = "brave";
-      "$launcher"    = "rofi -show drun";
+      "$mod" = "SUPER";
+      "$terminal" = "kitty";
+      "$browser" = "brave";
+      "$launcher" = "rofi -show drun";
       "$filemanager" = "dolphin";
 
       bind = [
@@ -287,40 +287,40 @@
     settings = {
       general = {
         disable_loading_bar = true;
-        grace               = 5;
-        hide_cursor         = true;
+        grace = 5;
+        hide_cursor = true;
       };
       background = [
         {
-          path        = "screenshot";
+          path = "screenshot";
           blur_passes = 3;
-          blur_size   = 8;
-          brightness  = 0.5;
+          blur_size = 8;
+          brightness = 0.5;
         }
       ];
       input-field = [
         {
-          size              = "250, 50";
-          position          = "0, -80";
-          halign            = "center";
-          valign            = "center";
+          size = "250, 50";
+          position = "0, -80";
+          halign = "center";
+          valign = "center";
           outline_thickness = 3;
-          outer_color       = "rgb(98971a)";
-          inner_color       = "rgb(1d2021)";
-          font_color        = "rgb(ebdbb2)";
-          fade_on_empty     = false;
-          placeholder_text  = "<i>Password...</i>";
-          shadow_passes     = 2;
+          outer_color = "rgb(98971a)";
+          inner_color = "rgb(1d2021)";
+          font_color = "rgb(ebdbb2)";
+          fade_on_empty = false;
+          placeholder_text = "<i>Password...</i>";
+          shadow_passes = 2;
         }
       ];
       label = [
         {
-          position  = "0, 80";
-          halign    = "center";
-          valign    = "center";
-          color     = "rgb(ebdbb2)";
+          position = "0, 80";
+          halign = "center";
+          valign = "center";
+          color = "rgb(ebdbb2)";
           font_size = 50;
-          text      = ''cmd[update:1000] echo "$(date +"%H:%M")"'';
+          text = ''cmd[update:1000] echo "$(date +"%H:%M")"'';
         }
       ];
     };

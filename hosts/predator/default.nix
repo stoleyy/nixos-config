@@ -3,12 +3,14 @@
 {
   imports = [ ./hardware-configuration.nix ];
 
-  boot.loader.systemd-boot = {
-    enable = true;
-    configurationLimit = 20;
-    editor = false;
+  boot.loader = {
+    systemd-boot = {
+      enable = true;
+      configurationLimit = 20;
+      editor = false;
+    };
+    efi.canTouchEfiVariables = true;
   };
-  boot.loader.efi.canTouchEfiVariables = true;
 
   # 8 GB swapfile — install script places root on Samsung 980 Pro
   swapDevices = [
@@ -53,9 +55,11 @@
   sops = {
     defaultSopsFile = ../../secrets/secrets.yaml;
     defaultSopsFormat = "yaml";
-    age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
-    age.keyFile = "/var/lib/sops-nix/key.txt";
-    age.generateKey = true;
+    age = {
+      sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
+      keyFile = "/var/lib/sops-nix/key.txt";
+      generateKey = true;
+    };
     validateSopsFiles = false; # placeholder yaml is plaintext until step 3 above
   };
 

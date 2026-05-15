@@ -5,14 +5,17 @@
     enable = true;
     settings = {
       mainBar = {
-        layer    = "top";
+        layer = "top";
         position = "top";
-        height   = 30;
-        spacing  = 4;
+        height = 30;
+        spacing = 4;
 
-        modules-left   = [ "hyprland/workspaces" "hyprland/window" ];
+        modules-left = [
+          "hyprland/workspaces"
+          "hyprland/window"
+        ];
         modules-center = [ "clock" ];
-        modules-right  = [
+        modules-right = [
           "cpu"
           "memory"
           "pulseaudio"
@@ -23,17 +26,17 @@
         ];
 
         "hyprland/workspaces" = {
-          format       = "{icon}";
-          on-click     = "activate";
+          format = "{icon}";
+          on-click = "activate";
           format-icons = {
-            "1"     = "1";
-            "2"     = "2";
-            "3"     = "3";
-            "4"     = "4";
-            "5"     = "5";
-            active  = "";
+            "1" = "1";
+            "2" = "2";
+            "3" = "3";
+            "4" = "4";
+            "5" = "5";
+            active = "";
             default = "";
-            urgent  = "";
+            urgent = "";
           };
           persistent-workspaces = {
             "*" = 5;
@@ -41,75 +44,79 @@
         };
 
         "hyprland/window" = {
-          max-length       = 40;
+          max-length = 40;
           separate-outputs = true;
         };
 
         clock = {
           tooltip-format = "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>";
-          format         = " {:%H:%M}";
-          format-alt     = " {:%a %b %d %Y}";
+          format = " {:%H:%M}";
+          format-alt = " {:%a %b %d %Y}";
         };
 
         cpu = {
-          format   = " {usage}%";
-          tooltip  = false;
+          format = " {usage}%";
+          tooltip = false;
           interval = 2;
         };
 
         memory = {
-          format   = " {}%";
+          format = " {}%";
           interval = 5;
         };
 
         pulseaudio = {
-          format       = "{icon} {volume}%";
+          format = "{icon} {volume}%";
           format-muted = " muted";
           format-icons = {
-            default = [ "" "" "" ];
+            default = [
+              ""
+              ""
+              ""
+            ];
           };
-          on-click    = "pavucontrol";
+          on-click = "pavucontrol";
           scroll-step = 1;
         };
 
         bluetooth = {
-          format                              = " {status}";
-          format-connected                    = " {device_alias}";
-          tooltip-format                      = "{controller_alias}\t{controller_address}";
-          tooltip-format-connected            = "{controller_alias}\n\n{device_enumerate}";
-          tooltip-format-enumerate-connected  = "{device_alias}";
-          on-click                            = "blueman-manager";
+          format = " {status}";
+          format-connected = " {device_alias}";
+          tooltip-format = "{controller_alias}\t{controller_address}";
+          tooltip-format-connected = "{controller_alias}\n\n{device_enumerate}";
+          tooltip-format-enumerate-connected = "{device_alias}";
+          on-click = "blueman-manager";
         };
 
         network = {
-          format-wifi             = " {essid} ({signalStrength}%)";
-          format-ethernet         = " {ipaddr}/{cidr}";
-          format-disconnected     = " Disconnected";
-          tooltip-format-wifi     = "{essid}\n{ipaddr}/{cidr}\n {bandwidthUpBytes}   {bandwidthDownBytes}";
+          format-wifi = " {essid} ({signalStrength}%)";
+          format-ethernet = " {ipaddr}/{cidr}";
+          format-disconnected = " Disconnected";
+          tooltip-format-wifi = "{essid}\n{ipaddr}/{cidr}\n {bandwidthUpBytes}   {bandwidthDownBytes}";
           tooltip-format-ethernet = "{ifname}\n{ipaddr}/{cidr}";
-          on-click                = "nm-connection-editor";
-          interval                = 5;
+          on-click = "nm-connection-editor";
+          interval = 5;
         };
 
         "custom/notification" = {
-          tooltip      = false;
-          format       = "{icon}";
+          tooltip = false;
+          format = "{icon}";
           format-icons = {
-            notification               = "<span foreground='red'><sup></sup></span>";
-            none                       = "";
-            dnd-notification           = "<span foreground='red'><sup></sup></span>";
-            dnd-none                   = "";
-            inhibited-notification     = "<span foreground='red'><sup></sup></span>";
-            inhibited-none             = "";
+            notification = "<span foreground='red'><sup></sup></span>";
+            none = "";
+            dnd-notification = "<span foreground='red'><sup></sup></span>";
+            dnd-none = "";
+            inhibited-notification = "<span foreground='red'><sup></sup></span>";
+            inhibited-none = "";
             dnd-inhibited-notification = "<span foreground='red'><sup></sup></span>";
-            dnd-inhibited-none         = "";
+            dnd-inhibited-none = "";
           };
-          return-type    = "json";
-          exec-if        = "which swaync-client";
-          exec           = "swaync-client -swb";
-          on-click       = "swaync-client -t -sw";
+          return-type = "json";
+          exec-if = "which swaync-client";
+          exec = "swaync-client -swb";
+          on-click = "swaync-client -t -sw";
           on-click-right = "swaync-client -d -sw";
-          escape         = true;
+          escape = true;
         };
 
         tray = {

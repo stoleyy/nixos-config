@@ -3,7 +3,7 @@
 
 {
   programs.hyprland = {
-    enable          = true;
+    enable = true;
     xwayland.enable = true;
   };
 
@@ -13,7 +13,10 @@
   # Hyprland XDG portal merges with the KDE + GTK portals already declared in
   # modules/apps.nix (NixOS merges list-valued options across modules).
   xdg.portal = {
-    extraPortals            = with pkgs; [ xdg-desktop-portal-hyprland ];
-    config.hyprland.default = [ "hyprland" "gtk" ];
+    extraPortals = with pkgs; [ xdg-desktop-portal-hyprland ];
+    config.hyprland.default = [
+      "hyprland"
+      "gtk"
+    ];
   };
 }
