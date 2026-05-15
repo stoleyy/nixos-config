@@ -41,7 +41,6 @@ _:
   };
   systemd.services."flake-lock-update" = {
     description = "Update flake.lock and stage on a branch";
-    path = with builtins; [ ];
     serviceConfig = {
       Type = "oneshot";
       WorkingDirectory = "/etc/nixos";
