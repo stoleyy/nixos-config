@@ -20,10 +20,6 @@
     "net.ipv4.conf.all.secure_redirects" = 0;
     "net.ipv4.conf.default.secure_redirects" = 0;
 
-    # F-18: reverse path filtering — drop source-spoofed packets
-    "net.ipv4.conf.all.rp_filter" = 1;
-    "net.ipv4.conf.default.rp_filter" = 1;
-
     # F-18: refuse IP source-routed packets — classic IP-spoof / MITM vector.
     "net.ipv4.conf.all.accept_source_route" = 0;
     "net.ipv4.conf.default.accept_source_route" = 0;

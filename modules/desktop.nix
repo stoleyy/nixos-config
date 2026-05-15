@@ -6,12 +6,24 @@
     desktopManager.plasma6.enable = true;
     displayManager.sddm = {
       enable = true;
-      wayland.enable = true;
+      # SDDM greeter runs on Xorg, NOT Wayland. The Wayland greeter is
+      # kwin_wayland-backed and crashes ~1s after start on this NVIDIA stack
+      # (RTX 4070, open module) — confirmed in journalctl: "Greeter
+      # started successfully" immediately followed by "Greeter stopped",
+      # dropping the box to a text `predator login:`. The Xorg greeter is
+      # the stable path on NVIDIA. Pairs with the X11 Plasma session below.
+      wayland.enable = false;
     };
 
-    # Plasma 6 Wayland is the default session; Hyprland stays available in the
-    # SDDM session dropdown for occasional use.
-    displayManager.defaultSession = "plasma";
+    # Plasma 6 X11 session is the default. The Plasma *Wayland* session is
+    # kwin_wayland-backed and crashes the same way the SDDM Wayland greeter
+    # did on this RTX 4070 + open-module stack: the Xorg greeter now shows
+    # the login screen, but a Wayland session bounced straight back to it
+    # (login → ~1s flash → SDDM). Full X11 (Xorg greeter + X11 Plasma) is
+    # the stable NVIDIA path here. The Wayland session is still installed
+    # and selectable from the SDDM session dropdown to retest after a
+    # driver bump. Hyprland stays available via its specialisation entry.
+    displayManager.defaultSession = "plasmax11";
   };
 
   programs.kdeconnect.enable = true;
