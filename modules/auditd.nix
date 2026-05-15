@@ -30,8 +30,9 @@ _:
       "-a always,exit -F arch=b64 -S execve -F euid=0 -F auid>=1000 -F auid!=-1 -k privileged-exec"
 
       # Sensitive command auditing — only the binaries that matter for
-      # incident response on this kind of box.
-      "-w /usr/bin/sudo -p x -k sudo-exec"
+      # incident response on this kind of box. NixOS has no /usr/bin; the
+      # real sudo is the setuid wrapper under /run/wrappers/bin (watching a
+      # non-existent path makes `auditctl -R` exit 1 and fails the unit).
       "-w /run/wrappers/bin/sudo -p x -k sudo-exec"
       "-w /etc/ssh/sshd_config -p wa -k sshd-config"
 
