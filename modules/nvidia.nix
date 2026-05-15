@@ -58,13 +58,4 @@
     __GL_SHADER_DISK_CACHE_PATH = "$HOME/.cache/nv-shader-cache";
   };
 
-  boot.kernelParams = [
-    "nvidia_drm.modeset=1"
-    "nvidia_drm.fbdev=1"
-  ];
-
-  # Preserve VRAM across suspend — prevents corrupted display on resume on Ada.
-  boot.extraModprobeConfig = ''
-    options nvidia NVreg_PreserveVideoMemoryAllocations=1
-  '';
 }
