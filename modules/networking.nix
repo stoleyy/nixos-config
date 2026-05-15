@@ -42,7 +42,15 @@
   #   - 192.168.1.114 stable (static IP outside the home router's DHCP pool)
   #   - Unbound listens on LAN (Services → Unbound DNS → Network Interfaces)
   #   - default OPNsense LAN firewall is "allow all from LAN" so no extra rule needed
-  # Until OPNsense is reachable, DNS falls back to Quad9 via fallbackDns.
+  #
+  # OPNsense is listed first in DNS= so it gets all queries when reachable
+  # (Wazuh visibility) — systemd-resolved sticks to the first reachable
+  # server. Quad9 follows in the *same* DNS= list (not only fallbackDns):
+  # when ProtonVPN routes 0.0.0.0/0 through the WG tunnel, OPNsense
+  # (LAN-only) becomes unreachable and resolved fails over to Quad9 within
+  # the DNS= rotation after the first timeout, instead of stalling for
+  # seconds on the sole server before reaching FallbackDns (the classic
+  # "internet looks broken the moment the VPN connects" symptom).
   #
   # `domains = [ "~." ]` forces all queries to the declared DNS server;
   # without it, DHCP-supplied DNS from the home router wins and OPNsense
@@ -65,7 +73,7 @@
         "2620:fe::9"
       ];
       extraConfig = ''
-        DNS=192.168.1.114
+        DNS=192.168.1.114 9.9.9.9 149.112.112.112
       '';
     };
 
