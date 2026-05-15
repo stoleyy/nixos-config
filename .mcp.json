@@ -1,9 +1,9 @@
 {
   "mcpServers": {
     "nixos": {
-      "command": "uvx",
-      "args": ["mcp-nixos"],
-      "description": "Live access to search.nixos.org so Claude validates option paths against the actual nixpkgs release instead of pattern-matching from training data. Requires `uvx` (install via `pipx install uv` or `nix run nixpkgs#uv`)."
+      "command": "nix",
+      "args": ["run", "nixpkgs#mcp-nixos", "--"],
+      "description": "Live access to search.nixos.org so Claude validates option paths against the actual nixpkgs release instead of pattern-matching from training data. Routed through `nix run` so the only runtime requirement is Nix itself (web sessions install it via .claude/hooks/bootstrap-nix.sh; the user's host is NixOS)."
     }
   }
 }
