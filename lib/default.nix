@@ -29,6 +29,7 @@
         ../modules/theming.nix
         ../modules/containers.nix
         ../modules/wazuh-manager.nix
+        ../modules/wazuh-agent.nix
         ../modules/protonvpn.nix
         ../modules/auditd.nix
         ../modules/update-routines.nix
