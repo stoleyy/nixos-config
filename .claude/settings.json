@@ -20,6 +20,7 @@
       "Bash(nix-tree:*)",
       "Bash(nix path-info:*)",
       "Bash(nix develop:*)",
+      "Bash(nix run:*)",
       "Bash(nix log:*)",
       "Bash(systemctl status:*)",
       "Bash(systemctl --failed:*)",
@@ -36,6 +37,7 @@
       {
         "matcher": "*",
         "hooks": [
+          { "type": "command", "command": ".claude/hooks/bootstrap-nix.sh" },
           { "type": "command", "command": ".claude/hooks/session-start.sh" }
         ]
       }

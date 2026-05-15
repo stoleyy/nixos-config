@@ -60,6 +60,14 @@ snapshots that go stale within one fix.
 live `search.nixos.org` for the active release instead of hallucinated from
 training data.
 
+`.claude/hooks/bootstrap-nix.sh` installs Nix on session start in Claude
+Code on the Web containers so the `nix develop` harness (nixfmt, statix,
+deadnix, …) is runnable from chat. First session in a fresh container
+pays ~30-90 s; subsequent sessions are near-instant. Devshell pre-warm is
+off by default — set `NIX_BOOTSTRAP_PREWARM=1` to realize the closure
+during bootstrap (+60-180 s, but the first `nix develop -c <tool>` is
+then instant).
+
 **When something fails, identify the class before proposing a fix:**
 
 | Class | Signal | First read |

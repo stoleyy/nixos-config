@@ -29,4 +29,9 @@ echo "- Active flake on this system is /etc/nixos (this clone is a workspace)."
 echo "- Rebuild:  cd /etc/nixos && sudo git pull origin main && sudo nixos-rebuild switch --flake .#predator"
 echo "- Validate: nix develop -c nix flake check"
 echo "- Plasma is the default SDDM session; Hyprland is selectable as fallback."
+if command -v nix >/dev/null 2>&1; then
+  echo "- Harness available this session: $(nix --version)"
+else
+  echo "- Harness NOT available — bootstrap-nix.sh exited without putting nix on PATH (see hook log above)."
+fi
 echo "==========================================="
