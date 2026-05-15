@@ -23,7 +23,14 @@ result-*
 *.swo
 *~
 .idea/
-.vscode/
+# `.vscode/` is shared workspace config (settings, tasks, extensions) — see
+# `.vscode/.gitignore` for the per-user state that stays local.
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/*.code-snippets
 .DS_Store
 Thumbs.db
 desktop.ini

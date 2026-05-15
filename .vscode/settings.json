@@ -1,0 +1,40 @@
+{
+  "nix.enableLanguageServer": true,
+  "nix.serverPath": "nixd",
+  "nix.serverSettings": {
+    "nixd": {
+      "formatting": { "command": ["nixfmt"] },
+      "options": {
+        "nixos": {
+          "expr": "(builtins.getFlake (toString ./.)).nixosConfigurations.predator.options"
+        },
+        "home-manager": {
+          "expr": "(builtins.getFlake (toString ./.)).nixosConfigurations.predator.options.home-manager.users.type.getSubOptions []"
+        },
+        "flake-parts": {
+          "expr": "(builtins.getFlake (toString ./.)).debug.options"
+        }
+      }
+    }
+  },
+  "[nix]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "jnoortheen.nix-ide",
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true
+  },
+  "files.associations": {
+    "*.nix": "nix"
+  },
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+  "direnv.restart.automatic": true,
+  "terminal.integrated.scrollback": 20000,
+  "terminal.integrated.enablePersistentSessions": true,
+  "search.exclude": {
+    "result": true,
+    "result-*": true,
+    ".direnv/": true
+  }
+}
