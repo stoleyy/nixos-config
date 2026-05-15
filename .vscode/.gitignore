@@ -1,0 +1,8 @@
+# Personal VSCode state — local to each clone.
+*
+!.gitignore
+!settings.json
+!tasks.json
+!extensions.json
+!launch.json
+!*.code-snippets

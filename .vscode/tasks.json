@@ -1,0 +1,142 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "1. flake check (no-build)",
+      "detail": "Step 1: eval-time validation. Fast, no closure realization.",
+      "type": "shell",
+      "command": "nix flake check --no-build",
+      "group": { "kind": "build", "isDefault": true },
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "focus": true,
+        "echo": true,
+        "clear": false,
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "2. dry-build",
+      "detail": "Step 2: full eval + report what would be built/fetched. No activation.",
+      "type": "shell",
+      "command": "nixos-rebuild dry-build --flake .#predator",
+      "group": "build",
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "focus": true,
+        "clear": false,
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "3. test (sudo, activates non-bootably)",
+      "detail": "Step 3: activate the new config but do NOT change the boot default. Reboot recovers the previous generation.",
+      "type": "shell",
+      "command": "sudo nixos-rebuild test --flake .#predator",
+      "group": "build",
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "focus": true,
+        "clear": false,
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "4a. verify: systemctl --failed",
+      "detail": "Step 4a: list failed units after step 3. Must be empty before switching.",
+      "type": "shell",
+      "command": "systemctl --failed",
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "focus": true,
+        "clear": false,
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "4b. verify: journalctl errors (this boot)",
+      "detail": "Step 4b: errors logged this boot.",
+      "type": "shell",
+      "command": "journalctl -p err -b 0 --no-pager",
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "focus": true,
+        "clear": false,
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "5. switch (sudo, ONLY after 4 is clean)",
+      "detail": "Step 5: make the new config the default boot. Run only after verification passes.",
+      "type": "shell",
+      "command": "sudo nixos-rebuild switch --flake .#predator",
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "focus": true,
+        "clear": false,
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "lint: statix",
+      "type": "shell",
+      "command": "statix check .",
+      "group": "test",
+      "presentation": { "panel": "dedicated", "reveal": "always" },
+      "problemMatcher": []
+    },
+    {
+      "label": "lint: deadnix",
+      "type": "shell",
+      "command": "deadnix .",
+      "group": "test",
+      "presentation": { "panel": "dedicated", "reveal": "always" },
+      "problemMatcher": []
+    },
+    {
+      "label": "fmt: nixfmt --check",
+      "type": "shell",
+      "command": "find . -name '*.nix' -not -path './result*' -not -path './.git/*' -print0 | xargs -0 nixfmt --check",
+      "group": "test",
+      "presentation": { "panel": "dedicated", "reveal": "always" },
+      "problemMatcher": []
+    },
+    {
+      "label": "scan: gitleaks",
+      "type": "shell",
+      "command": "gitleaks detect --no-banner --no-git",
+      "group": "test",
+      "presentation": { "panel": "dedicated", "reveal": "always" },
+      "problemMatcher": []
+    },
+    {
+      "label": "scan: vulnix (live closure)",
+      "detail": "CVE scan against /run/current-system.",
+      "type": "shell",
+      "command": "vulnix -S",
+      "group": "test",
+      "presentation": { "panel": "dedicated", "reveal": "always" },
+      "problemMatcher": []
+    },
+    {
+      "label": "diag: nvd diff booted→current",
+      "detail": "What changed between the booted system and the live one.",
+      "type": "shell",
+      "command": "nvd diff /run/booted-system /run/current-system",
+      "presentation": { "panel": "dedicated", "reveal": "always" },
+      "problemMatcher": []
+    }
+  ]
+}

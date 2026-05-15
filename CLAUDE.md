@@ -49,18 +49,54 @@ sudo nixos-rebuild switch --flake .#predator
 After a big rebuild, free disk: `sudo nh clean all`. If `/nix/store` truly
 fills: `sudo nix-collect-garbage -d`.
 
-Dry-build (full eval + closure realization, no switch):
+## Workflow loop
+
+`.vscode/tasks.json` encodes the pipeline below as labeled one-click steps.
+Each task gets a dedicated terminal panel addressable as `@terminal:<label>`
+in the Claude Code extension — reference live output rather than pasting
+snapshots that go stale within one fix.
+
+`.mcp.json` registers `mcp-nixos` so option paths get validated against the
+live `search.nixos.org` for the active release instead of hallucinated from
+training data.
+
+**When something fails, identify the class before proposing a fix:**
+
+| Class | Signal | First read |
+|---|---|---|
+| Eval | error before `building '...'` | `nix flake check --no-build` traceback |
+| Build | `builder for '/nix/store/…drv' failed` | `nix log /nix/store/…drv` |
+| Activation | `Failed to start <unit>` during `switch-to-configuration` | `journalctl -xeu <unit>` |
+| Runtime | unit "running" but misbehaves | `journalctl -u <unit> -b 0` |
+
+Hypothesis-first debugging on NixOS confirms whatever you point at — the
+option surface is large enough that plausible-looking fixes are everywhere.
+Read the specific log first, then propose.
+
+**Validation pipeline (in order, never skip ahead):**
+
+1. `nix flake check --no-build` — eval-time validation
+2. `nixos-rebuild dry-build --flake .#predator` — full eval, no closure realization
+3. `sudo nixos-rebuild test --flake .#predator` — activates, not bootable
+4. `systemctl --failed` and `journalctl -p err -b 0` — verify clean
+5. `sudo nixos-rebuild switch --flake .#predator` — only if step 4 is clean
+6. `git commit && git push` — keep git generation in lockstep with NixOS
+
+`test` is reversible by reboot; `switch` is not. Going straight to `switch`
+is the most common cause of stuck or unbootable generations.
+
+For changes whose effect is not yet understood, use the extension's plan
+mode so the proposed diff is visible before anything writes. Use the
+checkpoint/rewind UI on a message when a fix goes sideways — combined with
+git generations that's two layers of rollback.
+
+## Local validation tools
+
+`nix develop` drops into a shell with everything below pre-built:
 
 ```
-nixos-rebuild build --flake /etc/nixos#predator
-```
-
-## Local validation (no system change)
-
-```
-nix develop                       # drops into shell with nixd/statix/deadnix/etc.
-nix flake check                   # eval-time validation
-nixos-rebuild build --flake .#predator   # full build, no switch
+nix flake check                   # eval-time validation (add --no-build for fast path)
+nixos-rebuild build --flake .#predator   # full closure realization, no activation
 nixfmt --check **/*.nix
 statix check .
 deadnix .

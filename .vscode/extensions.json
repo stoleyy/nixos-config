@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "anthropic.claude-code",
+    "jnoortheen.nix-ide",
+    "mkhl.direnv",
+    "timonwong.shellcheck",
+    "redhat.vscode-yaml"
+  ]
+}
