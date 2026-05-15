@@ -3,7 +3,7 @@
 {
   fonts = {
     enableDefaultPackages = true;
-    fontDir.enable        = true;
+    fontDir.enable = true;
 
     packages = with pkgs; [
       noto-fonts
@@ -12,7 +12,7 @@
       liberation_ttf
       jetbrains-mono
       fira-code
-      fira-code-symbols          # F08: ligature symbols for fira-code
+      fira-code-symbols # F08: ligature symbols for fira-code
       nerd-fonts.jetbrains-mono
     ];
 
@@ -21,10 +21,21 @@
     # agree with the desktop. Inter + nerd-fonts.geist-mono are installed at
     # the system level via modules/theming.nix.
     fontconfig.defaultFonts = {
-      monospace = [ "GeistMono Nerd Font" "JetBrainsMono Nerd Font" "Noto Sans Mono" ];
-      sansSerif = [ "Inter" "Noto Sans" "Liberation Sans" ];
-      serif     = [ "Noto Serif" "Liberation Serif" ];
-      emoji     = [ "Noto Color Emoji" ];
+      monospace = [
+        "GeistMono Nerd Font"
+        "JetBrainsMono Nerd Font"
+        "Noto Sans Mono"
+      ];
+      sansSerif = [
+        "Inter"
+        "Noto Sans"
+        "Liberation Sans"
+      ];
+      serif = [
+        "Noto Serif"
+        "Liberation Serif"
+      ];
+      emoji = [ "Noto Color Emoji" ];
     };
   };
 }

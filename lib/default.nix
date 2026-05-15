@@ -36,18 +36,20 @@
         inputs.sops-nix.nixosModules.sops
         inputs.home-manager.nixosModules.home-manager
         {
-          home-manager.useGlobalPkgs = true;
-          home-manager.useUserPackages = true;
-          home-manager.backupFileExtension = "backup";
-          home-manager.extraSpecialArgs = {
-            inherit inputs;
-            colors = import ../lib/colors.nix;
+          home-manager = {
+            useGlobalPkgs = true;
+            useUserPackages = true;
+            backupFileExtension = "backup";
+            extraSpecialArgs = {
+              inherit inputs;
+              colors = import ../lib/colors.nix;
+            };
+            sharedModules = [
+              inputs.plasma-manager.homeModules.plasma-manager
+              inputs.nix-index-database.homeModules.nix-index
+            ];
+            users.stoleyy = import ../home/stoleyy;
           };
-          home-manager.sharedModules = [
-            inputs.plasma-manager.homeModules.plasma-manager
-            inputs.nix-index-database.homeModules.nix-index
-          ];
-          home-manager.users.stoleyy = import ../home/stoleyy;
         }
       ]
       ++ extraModules;

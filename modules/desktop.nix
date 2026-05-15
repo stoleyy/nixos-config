@@ -1,16 +1,18 @@
 { pkgs, ... }:
 
 {
-  services.xserver.enable = true;
-  services.desktopManager.plasma6.enable = true;
-  services.displayManager.sddm = {
-    enable = true;
-    wayland.enable = true;
-  };
+  services = {
+    xserver.enable = true;
+    desktopManager.plasma6.enable = true;
+    displayManager.sddm = {
+      enable = true;
+      wayland.enable = true;
+    };
 
-  # Plasma 6 Wayland is the default session; Hyprland stays available in the
-  # SDDM session dropdown for occasional use.
-  services.displayManager.defaultSession = "plasma";
+    # Plasma 6 Wayland is the default session; Hyprland stays available in the
+    # SDDM session dropdown for occasional use.
+    displayManager.defaultSession = "plasma";
+  };
 
   programs.kdeconnect.enable = true;
 
@@ -19,8 +21,10 @@
   # it must be set on the services that *actually* authenticate (sddm for the
   # graphical login, login for TTYs); setting it on a non-authenticating
   # "kwallet" service alone is a no-op.
-  security.pam.services.sddm.enableKwallet  = true;
-  security.pam.services.login.enableKwallet = true;
+  security.pam.services = {
+    sddm.enableKwallet = true;
+    login.enableKwallet = true;
+  };
 
   environment.systemPackages = with pkgs; [
     kdePackages.plasma-browser-integration

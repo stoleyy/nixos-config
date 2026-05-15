@@ -1,4 +1,4 @@
-{ ... }:
+_:
 
 {
   # EasyEffects preset for HD 560S (oratory1990).

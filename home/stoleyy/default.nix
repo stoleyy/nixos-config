@@ -21,17 +21,19 @@
     ./mpv.nix
   ];
 
-  home.username = "stoleyy";
-  home.homeDirectory = "/home/stoleyy";
-  home.stateVersion = "25.11";
+  home = {
+    username = "stoleyy";
+    homeDirectory = "/home/stoleyy";
+    stateVersion = "25.11";
+
+    file.".local/share/color-schemes/BladeeBlack.colors".source = ./bladee-black.colors;
+
+    packages = with pkgs; [
+      keepassxc
+      proton-pass
+      tor-browser
+    ];
+  };
 
   programs.home-manager.enable = true;
-
-  home.file.".local/share/color-schemes/BladeeBlack.colors".source = ./bladee-black.colors;
-
-  home.packages = with pkgs; [
-    keepassxc
-    proton-pass
-    tor-browser
-  ];
 }

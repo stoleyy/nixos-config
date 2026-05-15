@@ -1,4 +1,4 @@
-{ ... }:
+_:
 
 # Linux audit subsystem — kernel-level syscall observability for Wazuh.
 #

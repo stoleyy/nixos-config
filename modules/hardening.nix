@@ -4,39 +4,39 @@
   # F-18 + F-19: kernel runtime hardening via sysctl
   boot.kernel.sysctl = {
     # F-18: IPv6 Router Advertisement — disable for non-router workstations (mitm6 vector)
-    "net.ipv6.conf.all.accept_ra"     = 0;
+    "net.ipv6.conf.all.accept_ra" = 0;
     "net.ipv6.conf.default.accept_ra" = 0;
 
     # F-18: ICMP redirect handling — workstations neither send nor accept
-    "net.ipv4.conf.all.send_redirects"        = 0;
-    "net.ipv4.conf.default.send_redirects"    = 0;
-    "net.ipv4.conf.all.accept_redirects"      = 0;
-    "net.ipv4.conf.default.accept_redirects"  = 0;
-    "net.ipv6.conf.all.accept_redirects"      = 0;
-    "net.ipv6.conf.default.accept_redirects"  = 0;
+    "net.ipv4.conf.all.send_redirects" = 0;
+    "net.ipv4.conf.default.send_redirects" = 0;
+    "net.ipv4.conf.all.accept_redirects" = 0;
+    "net.ipv4.conf.default.accept_redirects" = 0;
+    "net.ipv6.conf.all.accept_redirects" = 0;
+    "net.ipv6.conf.default.accept_redirects" = 0;
 
     # F-18: also refuse "secure" (gateway-validated) redirects. Behind a NAT
     # no legitimate gateway redirect exists; closes the last redirect vector.
-    "net.ipv4.conf.all.secure_redirects"     = 0;
+    "net.ipv4.conf.all.secure_redirects" = 0;
     "net.ipv4.conf.default.secure_redirects" = 0;
 
     # F-18: reverse path filtering — drop source-spoofed packets
-    "net.ipv4.conf.all.rp_filter"     = 1;
+    "net.ipv4.conf.all.rp_filter" = 1;
     "net.ipv4.conf.default.rp_filter" = 1;
 
     # F-18: refuse IP source-routed packets — classic IP-spoof / MITM vector.
-    "net.ipv4.conf.all.accept_source_route"     = 0;
+    "net.ipv4.conf.all.accept_source_route" = 0;
     "net.ipv4.conf.default.accept_source_route" = 0;
-    "net.ipv6.conf.all.accept_source_route"     = 0;
+    "net.ipv6.conf.all.accept_source_route" = 0;
     "net.ipv6.conf.default.accept_source_route" = 0;
 
     # F-18: don't amplify ICMP echo broadcasts (Smurf) or respond to bogus
     # ICMP error replies.
-    "net.ipv4.icmp_echo_ignore_broadcasts"       = 1;
+    "net.ipv4.icmp_echo_ignore_broadcasts" = 1;
     "net.ipv4.icmp_ignore_bogus_error_responses" = 1;
 
     # F-18: log spoofed / source-routed / redirect packets
-    "net.ipv4.conf.all.log_martians"     = 1;
+    "net.ipv4.conf.all.log_martians" = 1;
     "net.ipv4.conf.default.log_martians" = 1;
 
     # F-18: TIME_WAIT assassination hardening
@@ -46,10 +46,10 @@
     "net.ipv4.tcp_syncookies" = 1;
 
     # F-19: filesystem TOCTOU protections (symlink/hardlink/fifo/regular)
-    "fs.protected_symlinks"  = 1;
+    "fs.protected_symlinks" = 1;
     "fs.protected_hardlinks" = 1;
-    "fs.protected_fifos"     = 2;
-    "fs.protected_regular"   = 2;
+    "fs.protected_fifos" = 2;
+    "fs.protected_regular" = 2;
 
     # F-19: refuse to write a core dump from suid/sgid binaries. Belt+suspenders
     # with the `kernel.core_pattern = "|/bin/false"` setting below.
@@ -105,9 +105,9 @@
   # F-23: Profiles from `apparmor-profiles` load in their declared mode (typically
   # enforce). Use `aa-complain <profile>` post-boot to switch one to complain mode.
   security.apparmor = {
-    enable                   = true;
+    enable = true;
     killUnconfinedConfinables = false;
-    packages                 = [ pkgs.apparmor-profiles ];
+    packages = [ pkgs.apparmor-profiles ];
   };
 
   # Defense-in-depth: only members of the `wheel` group can exec the sudo

@@ -1,4 +1,4 @@
-{ ... }:
+_:
 
 # Periodic update wiring so the system doesn't slowly turn into a
 # fossilized snapshot. Two timers:

@@ -17,17 +17,17 @@ _:
   programs.mpv = {
     enable = true;
     config = {
-      vo                     = "gpu-next";
-      gpu-context            = "wayland";
-      hwdec                  = "nvdec-copy";
-      profile                = "high-quality";
+      vo = "gpu-next";
+      gpu-context = "wayland";
+      hwdec = "nvdec-copy";
+      profile = "high-quality";
       target-colorspace-hint = "yes";
-      hdr-compute-peak       = "yes";
-      tone-mapping           = "bt.2446a";
-      inverse-tone-mapping   = "yes";
-      interpolation          = "yes";
-      video-sync             = "display-resample";
-      deband                 = "yes";
+      hdr-compute-peak = "yes";
+      tone-mapping = "bt.2446a";
+      inverse-tone-mapping = "yes";
+      interpolation = "yes";
+      video-sync = "display-resample";
+      deband = "yes";
     };
   };
 }

@@ -87,16 +87,16 @@ in
     # rofi-wayland was merged into rofi in nixpkgs 25.11 — unified package now
     # supports both X11 and Wayland backends; selection is automatic.
     package = pkgs.rofi;
-    theme   = gruvboxTheme;
+    theme = gruvboxTheme;
     extraConfig = {
-      modi             = "drun,run,window";
-      icon-theme       = "Papirus-Dark";
-      show-icons       = true;
-      font             = "JetBrainsMono Nerd Font 12";
+      modi = "drun,run,window";
+      icon-theme = "Papirus-Dark";
+      show-icons = true;
+      font = "JetBrainsMono Nerd Font 12";
       drun-display-fmt = "{name}";
-      display-drun     = "  Apps";
-      display-run      = "  Run";
-      display-window   = "  Windows";
+      display-drun = "  Apps";
+      display-run = "  Run";
+      display-window = "  Windows";
     };
   };
 }
