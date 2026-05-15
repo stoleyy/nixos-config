@@ -17,13 +17,15 @@ _:
     backlogLimit = 8192;
     failureMode = "printk"; # don't panic on full buffer; just log
     rules = [
-      # Track modifications to authentication state.
+      # Track modifications to authentication state. NixOS-only path set:
+      # /etc/gshadow and /etc/sudoers.d/ do NOT exist here (NixOS manages
+      # users via passwd/group/shadow and compiles all sudo policy into
+      # /etc/sudoers). auditctl -R rejects a watch on a missing path and
+      # fails the whole unit, so only real paths are listed.
       "-w /etc/passwd  -p wa -k identity"
       "-w /etc/shadow  -p wa -k identity"
       "-w /etc/group   -p wa -k identity"
-      "-w /etc/gshadow -p wa -k identity"
       "-w /etc/sudoers -p wa -k identity"
-      "-w /etc/sudoers.d/ -p wa -k identity"
 
       # Privilege escalations via SUID/SGID binary execution (filtered to
       # interactive UIDs only — uid>=1000 excludes daemons and kernel).
@@ -31,10 +33,11 @@ _:
 
       # Sensitive command auditing — only the binaries that matter for
       # incident response on this kind of box. NixOS has no /usr/bin; the
-      # real sudo is the setuid wrapper under /run/wrappers/bin (watching a
-      # non-existent path makes `auditctl -R` exit 1 and fails the unit).
+      # real sudo is the setuid wrapper under /run/wrappers/bin. The
+      # /etc/ssh/sshd_config watch is dropped too — openssh is not enabled
+      # on this host so the file does not exist (re-add the watch if/when
+      # services.openssh is turned on).
       "-w /run/wrappers/bin/sudo -p x -k sudo-exec"
-      "-w /etc/ssh/sshd_config -p wa -k sshd-config"
 
       # Module loads / unloads — kernel-level changes need eyes on them.
       "-a always,exit -F arch=b64 -S init_module,delete_module,finit_module -k modules"
