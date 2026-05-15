@@ -43,17 +43,28 @@ wire_path() {
   local tmp
   tmp="$(mktemp)" || { log "mktemp failed; PATH wiring skipped"; return 1; }
 
+  # Heredoc with unquoted EOF: $MARKER_* and $NIX_*_SH expand here (we want
+  # the literal paths written into bashrc), but \$__nix_env is escaped so it
+  # ends up as a literal $__nix_env in bashrc — expansion happens there.
   {
-    printf '%s\n' "$MARKER_BEGIN"
-    printf '%s\n' 'for __nix_env in '"$NIX_DAEMON_SH"' '"$NIX_SINGLE_SH"'; do'
-    printf '%s\n' '  if [ -e "$__nix_env" ]; then . "$__nix_env"; break; fi'
-    printf '%s\n' 'done'
-    printf '%s\n' 'unset __nix_env'
-    printf '%s\n' "$MARKER_END"
+    cat <<EOF
+$MARKER_BEGIN
+for __nix_env in $NIX_DAEMON_SH $NIX_SINGLE_SH; do
+  if [ -e "\$__nix_env" ]; then . "\$__nix_env"; break; fi
+done
+unset __nix_env
+$MARKER_END
+EOF
     cat "$BASHRC"
-  } > "$tmp" && mv "$tmp" "$BASHRC" \
-    && log "wired Nix into $BASHRC" \
-    || log "FAILED writing to $BASHRC"
+  } > "$tmp"
+
+  if mv "$tmp" "$BASHRC"; then
+    log "wired Nix into $BASHRC"
+  else
+    log "FAILED writing to $BASHRC"
+    rm -f "$tmp"
+    return 1
+  fi
 }
 
 install_nix() {
