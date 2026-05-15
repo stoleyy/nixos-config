@@ -28,7 +28,14 @@
         ../modules/hyprland.nix
         ../modules/theming.nix
         ../modules/containers.nix
-        ../modules/wazuh-manager.nix
+        # wazuh-manager.nix unconditionally declares the
+        # virtualisation.oci-containers stack (no enable gate). Without the
+        # one-time manual cert bootstrap (see the module header), all three
+        # containers restart-loop forever — burning CPU/disk and flooding
+        # the journal (observed on the box). Disabled until the certs exist;
+        # re-add this import after completing the cert setup. Mirrors the
+        # disabled-by-default posture of wazuh-agent.nix.
+        # ../modules/wazuh-manager.nix
         ../modules/wazuh-agent.nix
         ../modules/protonvpn.nix
         ../modules/auditd.nix

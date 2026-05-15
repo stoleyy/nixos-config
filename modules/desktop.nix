@@ -6,7 +6,15 @@
     desktopManager.plasma6.enable = true;
     displayManager.sddm = {
       enable = true;
-      wayland.enable = true;
+      # SDDM greeter runs on Xorg, NOT Wayland. The Wayland greeter is
+      # kwin_wayland-backed and crashes ~1s after start on this NVIDIA stack
+      # (RTX 4070, open module) — confirmed in journalctl: "Greeter
+      # started successfully" immediately followed by "Greeter stopped",
+      # dropping the box to a text `predator login:`. The Xorg greeter is
+      # the stable path on NVIDIA. The user's Plasma SESSION is still
+      # Wayland (defaultSession = "plasma" below) — only the login screen
+      # is X11.
+      wayland.enable = false;
     };
 
     # Plasma 6 Wayland is the default session; Hyprland stays available in the
