@@ -41,7 +41,7 @@
   # After running: sudo mkfs.ext4 -L games /dev/nvme0n1p2
   # replace the UUID with: sudo blkid /dev/nvme0n1p2
   fileSystems."/home/stoleyy/games" = {
-    device = "/dev/disk/by-uuid/REPLACE_WITH_GAMES_UUID";
+    device = "/dev/disk/by-uuid/efd6d32e-54f9-4e6d-965f-67279a31da47";
     fsType = "ext4";
     options = [
       "nofail"
@@ -53,7 +53,7 @@
   # After running: sudo mkfs.ext4 -L data /dev/nvme1n1p1
   # replace the UUID with: sudo blkid /dev/nvme1n1p1
   fileSystems."/data" = {
-    device = "/dev/disk/by-uuid/REPLACE_WITH_DATA_UUID";
+    device = "/dev/disk/by-uuid/88c50d98-1905-405d-a9c2-5ce522c9ad77";
     fsType = "ext4";
     options = [
       "nofail"
