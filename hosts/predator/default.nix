@@ -106,6 +106,13 @@
   # We've migrated to wg-quick above; the GUI stays installed as a fallback
   # for ad-hoc server picking, but the main tunnel is kernel-managed.
 
+  # Ensure mount-point directories exist with correct ownership before systemd
+  # mounts the filesystems declared in hardware-configuration.nix.
+  systemd.tmpfiles.rules = [
+    "d /home/stoleyy/games 0755 stoleyy stoleyy -"
+    "d /data               0755 stoleyy stoleyy -"
+  ];
+
   specialisation = {
     # Boot with Hyprland as the default session instead of Plasma.
     # Select "hyprland" from the systemd-boot menu.
