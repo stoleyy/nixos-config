@@ -1,5 +1,5 @@
 {
-  description = "stoleyy's NixOS — Acer Predator (i7-13700K + RTX 4070), dual-boot with Windows";
+  description = "stoleyy's NixOS — Acer Predator (i7-13700K + RTX 4070)";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";

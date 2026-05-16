@@ -1,8 +1,8 @@
 # stoleyy/nixos-config
 
-NixOS 25.11 flake for a single Acer Predator desktop (`predator`). Dual-boot
-with Windows on a separate NVMe drive. **Active flake on the running system is
-`/etc/nixos`, not this clone.**
+NixOS 25.11 flake for a single Acer Predator desktop (`predator`), single-OS
+(migrated off a former Windows dual-boot). **Active flake on the running system
+is `/etc/nixos`, not this clone.**
 
 ## Hardware
 
@@ -11,8 +11,9 @@ with Windows on a separate NVMe drive. **Active flake on the running system is
 - Samsung Odyssey OLED G80SD on **HDMI-A-1** at 3840x2160@240Hz, 10-bit
   (XBGR2101010), VRR active
 - Root: `/dev/nvme0n1p4` ext4, ~294 GB (grown from 47.8 GB via GParted Live)
-- Games NTFS partition: `/dev/nvme0n1p2`, ~1.5 TiB
-- Windows on `/dev/nvme1n1`
+- Games library: ext4 at `/home/stoleyy/games`, ~1.5 TiB (formerly an NTFS
+  partition; reformatted in the post-Windows migration, flake-declared by-UUID)
+- `/data`: ext4 (former Windows NVMe — wiped + reformatted, flake-declared)
 
 ## Repo layout
 
