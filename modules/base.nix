@@ -128,6 +128,10 @@
     kernelParams = [
       "split_lock_detect=off"
       "transparent_hugepage=madvise"
+      # PREEMPT_DYNAMIC (6.12) → reversible boot param, no rebuild. Lower input
+      # latency + steadier frametimes (gaming) and snappier UI (desktop) for a
+      # negligible throughput cost. The low-latency model gaming distros ship.
+      "preempt=full"
     ];
 
     # === Memory (64 GB) ===
@@ -137,7 +141,15 @@
     tmp.useTmpfs = true;
 
     kernel.sysctl = {
-      "vm.swappiness" = 10; # 64 GB — barely swap
+      # zram (zramSwap.enable) is compressed-RAM swap — far faster than NVMe
+      # filesystem IO, so the kernel should PREFER swapping cold pages over
+      # evicting hot page-cache. Low swappiness does the opposite and starves
+      # the cache under exactly the Brave+Steam+game pressure systemd-oomd
+      # below is the safety net for. Kernel docs sanction >100 for in-memory
+      # swap; 180 + page-cluster=0 (no readahead — pointless for random-access
+      # compressed RAM) is the Fedora/Pop!_OS/CachyOS reference.
+      "vm.swappiness" = 180;
+      "vm.page-cluster" = 0;
       "vm.vfs_cache_pressure" = 50; # Keep dentry/inode cache around longer
       "net.core.default_qdisc" = "fq"; # Pair with BBR
       "net.ipv4.tcp_congestion_control" = "bbr";
@@ -184,8 +196,15 @@
     steam-hardware.enable = true;
   };
 
-  # P-cores locked at boost; lower wake-to-clock latency. Desktop = no power concern.
-  powerManagement.cpuFreqGovernor = "performance";
+  # Efficient AND responsive by default. intel_pstate runs in *active* mode on
+  # the 13700K, where "powersave" is the HWP/EPP-driven governor: idles cores
+  # down (cold/quiet) yet ramps to full boost in ~1 ms — NOT the legacy slow
+  # governor. At true idle HWP floors at the min P-state regardless of EPP, so
+  # this idles as cold as "performance" would. Full "performance" is applied
+  # only while gaming, by Feral GameMode (modules/gaming.nix); a deliberately
+  # booted gaming-tuned specialisation pins it system-wide. EPP + HWP boost
+  # tuned by the cpu-power-tuning unit below.
+  powerManagement.cpuFreqGovernor = "powersave";
 
   # Compressed-RAM swap. Free responsiveness win; complements the on-disk swapfile.
   zramSwap.enable = true;
@@ -210,6 +229,29 @@
     settings.Manager.DefaultLimitNOFILE = "1048576";
 
     coredump.enable = false;
+
+    # intel_pstate active mode: pin EPP=balance_performance (kernel HWP
+    # default; set explicitly for determinism — best desktop burst + sustained
+    # throughput, idle unaffected since HWP floors at min P-state) and enable
+    # hwp_dynamic_boost (raises the min P-state on I/O wakeups → sub-ms ramp,
+    # makes powersave feel identical to the perf governor for desktop bursts;
+    # active+HWP only, no downside, sysfs-only — there is no module/boot param
+    # for it). Gaming unaffected — GameMode's performance governor overrides
+    # EPP in hardware while a game runs.
+    services.cpu-power-tuning = {
+      description = "CPU EPP + HWP dynamic boost (cold idle, snappy bursts)";
+      wantedBy = [ "multi-user.target" ];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+      };
+      script = ''
+        for f in /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference; do
+          echo balance_performance > "$f" || true
+        done
+        echo 1 > /sys/devices/system/cpu/intel_pstate/hwp_dynamic_boost || true
+      '';
+    };
   };
 
   users.users.stoleyy = {

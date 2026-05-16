@@ -41,6 +41,7 @@
         ../modules/auditd.nix
         ../modules/update-routines.nix
         inputs.nix-gaming.nixosModules.pipewireLowLatency
+        inputs.nix-gaming.nixosModules.platformOptimizations
         inputs.sops-nix.nixosModules.sops
         inputs.home-manager.nixosModules.home-manager
         {

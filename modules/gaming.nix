@@ -6,8 +6,15 @@
       enable = true;
       settings = {
         general = {
-          renice = 10; # gamemoderun'd process gets a priority boost
+          renice = 0; # ananicy owns nice (was 10; would fight ananicy)
+          ioprio = "off"; # ananicy owns ionice ("off" disables; 0 = highest!)
           inhibit_screensaver = 1;
+          # Full boost while a game runs. No defaultgov on purpose → GameMode
+          # restores the PRE-game governor, which is correctly "powersave" in
+          # the secure default boot and "performance" in the gaming-tuned
+          # specialisation. (softrealtime omitted — SCHED_ISO is a no-op on
+          # mainline/nixpkgs 6.12; the -ck patch was never upstreamed.)
+          desiredgov = "performance";
         };
         gpu = {
           apply_gpu_optimisations = "accept-responsibility";
@@ -23,6 +30,31 @@
       remotePlay.openFirewall = true;
       gamescopeSession.enable = true;
       extraCompatPackages = with pkgs; [ proton-ge-bin ];
+      # Vetted nix-gaming SteamOS sysctl bundle: vm.max_map_count=2147483642
+      # (fixes CS2/Hogwarts/DayZ/UE5 Proton crashes — default 65530 too low),
+      # kernel.split_lock_mitigate=0, sched_cfs_bandwidth_slice_us,
+      # tcp_fin_timeout. Module imported in lib/default.nix.
+      platformOptimizations.enable = true;
+    };
+  };
+
+  # System-wide auto nice/ionice/sched/oom tuning for ALL apps (browser,
+  # compiles, media) via the CachyOS rule set. GameMode cedes renice/ioprio
+  # (above) so they don't fight; GameMode keeps the governor swap + GPU power
+  # state. cgroup_load uses BPF — fine on this non-hardened 6.12 kernel; set
+  # false if the journal ever shows BPF/cgroup errors.
+  services.ananicy = {
+    enable = true;
+    package = pkgs.ananicy-cpp;
+    rulesProvider = pkgs.ananicy-rules-cachyos;
+    settings = {
+      check_freq = 5;
+      cgroup_load = true;
+      apply_nice = true;
+      apply_ioclass = true;
+      apply_ionice = true;
+      apply_sched = true;
+      apply_oom_score_adj = true;
     };
   };
 

@@ -113,5 +113,20 @@
         gdb
       ];
     };
+
+    # Opt-in maximum-performance boot. Select "gaming-tuned" from the
+    # systemd-boot menu for dedicated gaming sessions; the DEFAULT boot stays
+    # secure (mitigations on — this box runs Wazuh/auditd/hardening). Trades
+    # Spectre-class mitigations for the last ~5-15% CPU-bound headroom in
+    # Proton/DXVK. kernelParams append to the parent's (preempt=full is
+    # already inherited from base); the governor needs mkForce to override
+    # base.nix's powersave.
+    gaming-tuned.configuration = {
+      boot.kernelParams = [
+        "mitigations=off"
+        "nowatchdog"
+      ];
+      powerManagement.cpuFreqGovernor = lib.mkForce "performance";
+    };
   };
 }
