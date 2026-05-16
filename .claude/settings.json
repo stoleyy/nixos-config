@@ -9,7 +9,7 @@
       "Bash(nix eval .#nixosConfigurations.predator.config.*:*)",
       "Bash(nixos-rebuild build --flake .#predator:*)",
       "Bash(nixos-rebuild dry-build --flake .#predator:*)",
-      "Bash(nixfmt --check **/*.nix:*)",
+      "Bash(nixfmt:*)",
       "Bash(statix check:*)",
       "Bash(statix fix:*)",
       "Bash(deadnix:*)",
@@ -20,6 +20,7 @@
       "Bash(nix-tree:*)",
       "Bash(nix path-info:*)",
       "Bash(nix develop:*)",
+      "Bash(nix build:*)",
       "Bash(nix run:*)",
       "Bash(nix log:*)",
       "Bash(systemctl status:*)",
@@ -29,16 +30,30 @@
       "Bash(git status:*)",
       "Bash(git diff:*)",
       "Bash(git log:*)",
-      "Bash(git show:*)"
+      "Bash(git show:*)",
+      "Bash(git fetch:*)",
+      "Bash(git pull:*)",
+      "Bash(git branch:*)",
+      "Bash(git stash:*)",
+      "Bash(git add:*)",
+      "Bash(jq:*)"
     ]
   },
   "hooks": {
     "SessionStart": [
       {
-        "matcher": "*",
+        "matcher": "",
         "hooks": [
-          { "type": "command", "command": ".claude/hooks/bootstrap-nix.sh" },
-          { "type": "command", "command": ".claude/hooks/session-start.sh" }
+          { "type": "command", "command": ".claude/hooks/bootstrap-nix.sh", "timeout": 360, "statusMessage": "Bootstrapping Nix…" },
+          { "type": "command", "command": ".claude/hooks/session-start.sh", "timeout": 30 }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          { "type": "command", "command": ".claude/hooks/post-edit-nixfmt.sh", "statusMessage": "nixfmt" }
         ]
       }
     ]

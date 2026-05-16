@@ -72,7 +72,10 @@ install_nix() {
   # pipefail (set above) propagates the installer's exit code through the
   # `curl | sh` pipe. Installer output goes to stderr so it ends up in the
   # SessionStart hook log without polluting stdout.
-  if curl --proto '=https' --tlsv1.2 --fail --silent --show-error -L \
+  # Timeouts: 30 s to connect, 300 s total — prevents a silent hang in
+  # containers with restricted egress.
+  if curl --proto '=https' --tlsv1.2 --fail --silent --show-error \
+       --connect-timeout 30 --max-time 300 -L \
        https://install.determinate.systems/nix \
        | sh -s -- install linux --init none --no-confirm >&2; then
     log "Nix installed at $NIX_BIN"
@@ -102,6 +105,12 @@ prewarm() {
 main() {
   if [ -x "$NIX_BIN" ]; then
     log "Nix present at $NIX_BIN"
+    # Sanity-check the binary actually responds before declaring success.
+    if "$NIX_BIN" --version >/dev/null 2>&1; then
+      log "Nix operational: $("$NIX_BIN" --version)"
+    else
+      log "WARNING: $NIX_BIN exists but --version failed; Nix store may be corrupt"
+    fi
     wire_path
     prewarm
     return 0
