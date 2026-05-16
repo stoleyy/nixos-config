@@ -24,6 +24,7 @@
         ../modules/fonts.nix
         ../modules/gaming.nix
         ../modules/apps.nix
+        ../modules/ollama.nix
         ../modules/hardening.nix
         ../modules/hyprland.nix
         ../modules/theming.nix
