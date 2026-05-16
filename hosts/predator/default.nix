@@ -20,6 +20,22 @@
     }
   ];
 
+  # Steam/Lutris game library (ext4, label "games" = nvme1n1p2). This mount was
+  # never declared in the flake, so every real `nixos-rebuild switch` dropped
+  # it — switch-to-configuration stopped the old generation's unit and the new
+  # generation had none (observed 2026-05-16, breaking Steam/Lutris). by-uuid
+  # for robustness + consistency with hardware-configuration.nix. nofail +
+  # device-timeout so a missing/slow games disk degrades to a boot warning
+  # instead of the hard "Dependency failed for /home/stoleyy/games" stop.
+  fileSystems."/home/stoleyy/games" = {
+    device = "/dev/disk/by-uuid/efd6d32e-54f9-4e6d-965f-67279a31da47";
+    fsType = "ext4";
+    options = [
+      "nofail"
+      "x-systemd.device-timeout=5s"
+    ];
+  };
+
   networking.hostName = "predator";
 
   # sops-nix: decrypt secrets at activation using the host SSH Ed25519 key.
