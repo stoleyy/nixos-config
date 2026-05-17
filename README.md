@@ -37,7 +37,7 @@ scripts/               install-nixos.sh
 | Logitech LIGHTSPEED | `hardware.logitech.wireless` (Solaar) |
 | TPM 2.0 | `security.tpm2` |
 
-Intel VMD is disabled in BIOS — NVMe drives appear as standard AHCI.
+Intel VMD is disabled in BIOS, but the `vmd` kernel module is still required to enumerate the root NVMe — it is force-loaded early in the initrd (see `hosts/predator/hardware-configuration.nix`). Do **not** reduce this to AHCI-only: that bricked Stage-1 boot once (PR #13). SATA drives use `ahci`.
 
 ## Install (predator)
 

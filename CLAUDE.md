@@ -147,13 +147,22 @@ shellcheck .claude/hooks/*.sh
   produces `hosts/predator/hardware-configuration.nix`, `git add` it before
   rebuilding or eval can't see it.
 - **Intentional mounts live in `hosts/predator/default.nix`, never
-  hand-added to `hardware-configuration.nix`** — the latter is
-  `nixos-generate-config` output; a regen silently drops hand-added
-  `fileSystems` entries (`/data` would simply stop mounting). The games and
-  `/data` mounts are declared once, in `default.nix`, **by UUID**: the
-  device node was historically self-contradictory (`nvme0n1p2` vs
-  `nvme1n1p2` across files/commits) — trust the UUID + on-box `blkid`,
-  never the node.
+  hand-added to `hardware-configuration.nix`** — the latter is *mostly*
+  `nixos-generate-config` output (one deliberate exception: the
+  load-bearing `vmd` line — see next pitfall); a regen silently drops
+  hand-added `fileSystems` entries (`/data` would simply stop mounting).
+  The games and `/data` mounts are declared once, in `default.nix`,
+  **by UUID**: the device node was historically self-contradictory
+  (`nvme0n1p2` vs `nvme1n1p2` across files/commits) — trust the UUID +
+  on-box `blkid`, never the node.
+- **`boot.initrd.kernelModules = [ "vmd" ]` in
+  `hardware-configuration.nix` is LOAD-BEARING — never remove it or move
+  it to `availableKernelModules`.** Intel VMD is disabled in BIOS but the
+  controller persists; the kernel still needs the `vmd` driver to find the
+  root NVMe by-UUID, force-loaded so it inits before Stage-1 root discovery
+  (6.12+). Removing it = unbootable "cannot find root" (PR #8 tried → #13
+  bricked → #14 is the current fix). A fresh `nixos-generate-config`
+  clobbers this placement — re-apply it after any regen.
 - **Hyprland 0.46+** removed `gestures.workspace_swipe*` and
   `render.explicit_sync`; both must be absent from
   `home/stoleyy/hyprland.nix`.
