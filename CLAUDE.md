@@ -146,6 +146,14 @@ shellcheck .claude/hooks/*.sh
 - **`nixos-rebuild` excludes untracked files**: after `nixos-generate-config`
   produces `hosts/predator/hardware-configuration.nix`, `git add` it before
   rebuilding or eval can't see it.
+- **Intentional mounts live in `hosts/predator/default.nix`, never
+  hand-added to `hardware-configuration.nix`** — the latter is
+  `nixos-generate-config` output; a regen silently drops hand-added
+  `fileSystems` entries (`/data` would simply stop mounting). The games and
+  `/data` mounts are declared once, in `default.nix`, **by UUID**: the
+  device node was historically self-contradictory (`nvme0n1p2` vs
+  `nvme1n1p2` across files/commits) — trust the UUID + on-box `blkid`,
+  never the node.
 - **Hyprland 0.46+** removed `gestures.workspace_swipe*` and
   `render.explicit_sync`; both must be absent from
   `home/stoleyy/hyprland.nix`.
