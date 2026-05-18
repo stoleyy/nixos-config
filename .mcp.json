@@ -2,8 +2,19 @@
   "mcpServers": {
     "nixos": {
       "command": "nix",
-      "args": ["run", "nixpkgs#mcp-nixos", "--"],
-      "description": "Live access to search.nixos.org so Claude validates option paths against the actual nixpkgs release instead of pattern-matching from training data. Routed through `nix run` so the only runtime requirement is Nix itself (web sessions install it via .claude/hooks/bootstrap-nix.sh; the user's host is NixOS)."
+      "args": ["run", "github:utensils/mcp-nixos", "--"],
+      "description": "NixOS + Home Manager + Nix function lookup. Use FIRST for any option path, package name, or Nix builtin — stops hallucinated option names."
+    },
+    "github": {
+      "command": "nix",
+      "args": ["run", "github:natsukium/mcp-servers-nix#mcp-server-github", "--"],
+      "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "" },
+      "description": "Search nixpkgs/HM/PM issues, browse module source. Token: set GITHUB_PERSONAL_ACCESS_TOKEN in ~/.claude/settings.json env or .claude/settings.local.json env."
+    },
+    "fetch": {
+      "command": "nix",
+      "args": ["run", "github:natsukium/mcp-servers-nix#mcp-server-fetch", "--"],
+      "description": "Fetch NixOS Discourse, Wiki, and upstream docs for debugging. Use when community troubleshooting is needed."
     }
   }
 }
