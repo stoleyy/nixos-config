@@ -35,6 +35,14 @@
     package = config.boot.kernelPackages.nvidiaPackages.production;
   };
 
+  # nvidia-drm.fbdev=1 — required by kwin_wayland (Plasma 6) on NVIDIA 545+
+  # to get a usable DRM framebuffer; modeset=1 alone (via
+  # hardware.nvidia.modesetting.enable) is not sufficient and is a prime
+  # suspect for the Plasma-Wayland crash-loop reverted in 59af7a7. Harmless
+  # on the current X11 default session. Merges with boot.kernelParams from
+  # base.nix / hardening.nix (NixOS concatenates list options).
+  boot.kernelParams = [ "nvidia-drm.fbdev=1" ];
+
   environment.sessionVariables = {
     LIBVA_DRIVER_NAME = "nvidia";
     NVD_BACKEND = "direct";

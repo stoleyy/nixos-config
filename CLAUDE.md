@@ -33,10 +33,18 @@ is `/etc/nixos`, not this clone.**
 
 ## Sessions
 
-- **Plasma 6 Wayland** is the SDDM default
-  (`services.displayManager.defaultSession = "plasma"` in
-  `modules/desktop.nix`, set in commit `76d8d69`).
-- **Hyprland** is the fallback, selectable from the SDDM dropdown.
+- **Plasma 6 X11** (`plasmax11`) is the deliberate SDDM default
+  (`services.displayManager.defaultSession = "plasmax11"`, SDDM greeter on
+  Xorg — `modules/desktop.nix`). The Plasma **Wayland** session crash-loops
+  on this RTX 4070 + open kernel module (login → ~1 s flash → SDDM); it was
+  reverted X11 in `59af7a7` (NOT the stale state CLAUDE.md once claimed for
+  `76d8d69`). A Wayland fix is in progress (`nvidia-drm.fbdev=1` in
+  `modules/nvidia.nix`); X11 stays default until an on-box
+  `nixos-rebuild test` proves the Wayland session stays up.
+- **Plasma Wayland** is still installed and selectable from the SDDM
+  session dropdown to retest after driver bumps.
+- **Hyprland** is selectable from the SDDM dropdown and via its boot
+  specialisation entry.
 - Both home-manager profiles ship simultaneously; HM imports both stacks.
 
 ## Rebuilding
@@ -181,3 +189,10 @@ shellcheck .claude/hooks/*.sh
   `time.morning` and `time.evening`. Easiest: use `mode = "automatic"`.
 - **HM `gtk` module owns `~/.config/gtk-{3,4}.0/gtk.css`** — use
   `gtk.gtk3.extraCss` / `gtk.gtk4.extraCss`, never `home.file` for those paths.
+- **SDDM remembers the per-user last session and overrides
+  `services.displayManager.defaultSession`** — the system default only
+  applies to a user with no stored session. Changing `defaultSession`
+  (Plasma↔Hyprland, X11↔Wayland) looks like it "didn't apply" because SDDM
+  prefers the remembered session in `~/.local/share/sddm/state.conf`. Clear
+  that file (or pick the target session once from the SDDM dropdown) for the
+  new default to take effect.
