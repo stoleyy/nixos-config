@@ -47,6 +47,8 @@
   # the by-label ambiguity that kept this out of the flake in #37 (two ext4
   # partitions briefly shared label "data"); the UUID is unambiguous. Same
   # nofail + device-timeout degradation contract as games above.
+  # Former Windows NVMe (nvme1n1) — wiped and repartitioned as a single ext4.
+  # General-purpose data partition (backups, media, project archives).
   fileSystems."/data" = {
     device = "/dev/disk/by-uuid/88c50d98-1905-405d-a9c2-5ce522c9ad77";
     fsType = "ext4";

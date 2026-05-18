@@ -18,18 +18,25 @@ is `/etc/nixos`, not this clone.**
 ## Repo layout
 
 - `flake.nix` — inputs (nixpkgs 25.11, home-manager 25.11, nix-gaming,
-  nixos-hardware, plasma-manager, spicetify-nix) + the single host entry
-  `nixosConfigurations.predator` + a `nix develop` shell
+  nixos-hardware, plasma-manager, spicetify-nix, nix-index-database, sops-nix)
+  + the single host entry `nixosConfigurations.predator` + a `nix develop` shell
 - `lib/default.nix` — `mkHost` factory; **the canonical list of system modules
   lives here, not in `flake.nix`**
 - `hosts/predator/` — per-host hardware config
   (`hardware-configuration.nix`, `default.nix`)
 - `modules/*.nix` — system modules (base, networking, desktop, audio, fonts,
-  gaming, apps, hardening, hyprland, theming)
+  gaming, apps, hardening, hyprland, theming, ollama, containers, wazuh-agent,
+  protonvpn, auditd, update-routines). `wazuh-manager.nix` exists but is
+  commented out in `lib/default.nix` pending cert bootstrap.
 - `home/stoleyy/*.nix` — home-manager modules; `home/stoleyy/default.nix`
-  imports them all
+  imports them all (shell, ai, terminal, editor, browser, git, gpg, audio,
+  hyprland, waybar, rofi, swaync, wlogout, gtk, plasma, spicetify, ghostty, mpv)
 - `overlays/` — auto-imported via `overlays/default.nix` (any `*.nix` dropped
   in becomes an overlay; a non-`.nix` file aborts evaluation by design)
+- `docs/` — operational runbooks (runbook.md, opnsense-ethname-setup.md,
+  protonvpn-wg-setup.md)
+- `secrets/` — sops-nix encrypted secrets (`.sops.yaml` at repo root defines
+  age key paths; ciphertext in `secrets/secrets.yaml`)
 
 ## Sessions
 
@@ -46,6 +53,17 @@ is `/etc/nixos`, not this clone.**
 - **Hyprland** is selectable from the SDDM dropdown and via its boot
   specialisation entry.
 - Both home-manager profiles ship simultaneously; HM imports both stacks.
+- **Plasma 6 X11** is the SDDM default
+  (`services.displayManager.defaultSession = "plasmax11"` in
+  `modules/desktop.nix`). Switched from Wayland after the kwin_wayland
+  compositor + SDDM Wayland greeter crash-looped on this NVIDIA RTX 4070 +
+  open kernel module stack (~1 s greeter → drop to text login). The Plasma
+  Wayland session is still installed and selectable from SDDM to retest
+  after driver bumps.
+- **Hyprland** is the Wayland option, selectable from the SDDM dropdown.
+  This is the working Wayland path on this hardware.
+- Both home-manager profiles (Plasma + Hyprland) ship simultaneously; HM
+  imports both stacks.
 
 ## Rebuilding
 
@@ -65,9 +83,14 @@ Each task gets a dedicated terminal panel addressable as `@terminal:<label>`
 in the Claude Code extension — reference live output rather than pasting
 snapshots that go stale within one fix.
 
-`.mcp.json` registers `mcp-nixos` so option paths get validated against the
-live `search.nixos.org` for the active release instead of hallucinated from
-training data.
+`.mcp.json` registers three MCP servers:
+- **nixos** — NixOS + Home Manager option/package lookup via
+  `search.nixos.org`. Use FIRST for any option path or package name.
+- **github** — search nixpkgs/HM/PM issues and browse module source code.
+  Use when a rebuild fails unexpectedly — the answer is often in an
+  upstream issue. Needs `GITHUB_PERSONAL_ACCESS_TOKEN` in env.
+- **fetch** — pull NixOS Discourse threads, Wiki pages, and upstream docs.
+  Use for community troubleshooting when official docs don't cover it.
 
 `.claude/hooks/bootstrap-nix.sh` installs Nix on session start in Claude
 Code on the Web containers so the `nix develop` harness (nixfmt, statix,
@@ -196,3 +219,9 @@ shellcheck .claude/hooks/*.sh
   prefers the remembered session in `~/.local/share/sddm/state.conf`. Clear
   that file (or pick the target session once from the SDDM dropdown) for the
   new default to take effect.
+- **sops-nix age key not bootstrapped** — `.sops.yaml` still has the
+  placeholder `age1REPLACE_WITH_OUTPUT_OF_SSH_TO_AGE`. Until the real host
+  key is generated (`ssh-to-age < /etc/ssh/ssh_host_ed25519_key.pub`) and
+  `sops updatekeys secrets/secrets.yaml` is run, all `sops.secrets.*`
+  references will fail at activation. Do not add sops secret references to
+  modules until bootstrapped.

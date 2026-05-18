@@ -36,7 +36,21 @@
       "Bash(git branch:*)",
       "Bash(git stash:*)",
       "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git remote:*)",
+      "Bash(nh:*)",
+      "Bash(sops:*)",
+      "Bash(nix-collect-garbage:*)",
       "Bash(jq:*)"
+    ],
+    "deny": [
+      "Bash(rm -rf:*)",
+      "Bash(sudo rm -rf:*)",
+      "Bash(nix-store --delete:*)",
+      "Bash(sudo nix-store --delete:*)",
+      "Bash(nixos-rebuild switch:*)",
+      "Bash(sudo nixos-rebuild switch:*)"
     ]
   },
   "hooks": {
@@ -53,7 +67,7 @@
       {
         "matcher": "Write|Edit",
         "hooks": [
-          { "type": "command", "command": ".claude/hooks/post-edit-nixfmt.sh", "statusMessage": "nixfmt" }
+          { "type": "command", "command": ".claude/hooks/post-edit-nixfmt.sh", "timeout": 10, "statusMessage": "nixfmt" }
         ]
       }
     ]
