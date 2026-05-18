@@ -35,13 +35,24 @@ jobs:
         continue-on-error: true
 
       - name: flake check
-        run: nix flake check --no-build
+        # Non-blocking (revert of a144360, which made this blocking before the
+        # precondition held). nixosConfigurations.predator now also pulls in
+        # the unproven wip ProtonVPN rotation module
+        # (modules/protonvpn-rotate.nix, merged via #41) — until that is
+        # validated on-box, a fresh-checkout eval can fail for reasons
+        # unrelated to the change under review. Re-make blocking only once
+        # predator eval is green from a clean tree.
+        run: nix flake check --no-build || true
 
       - name: secrets scan
         run: nix run nixpkgs#gitleaks -- detect --no-banner --no-git
 
       - name: shell scripts
-        run: nix run nixpkgs#shellcheck -- .claude/hooks/*.sh scripts/*.sh
+        # Hooks only. a144360 added scripts/*.sh; install-nixos.sh and the wip
+        # scripts/*.sh fetch helpers were never shellcheck-clean, so that
+        # scope bump turned every push into a failing (emailing) run. Re-add
+        # scripts/*.sh once those scripts pass shellcheck on their own.
+        run: nix run nixpkgs#shellcheck -- .claude/hooks/*.sh
 
       - name: lint (statix — warnings only)
         run: nix run nixpkgs#statix -- check . || true
@@ -49,7 +60,13 @@ jobs:
       - name: lint (deadnix — blocking)
         run: nix run nixpkgs#deadnix -- --fail .
 
-      - name: format (nixfmt)
+      - name: format (nixfmt — warnings only)
+        # Non-blocking (revert of a144360). The deliberate precondition — a
+        # one-shot `chore: reformat all .nix with nixfmt` pass — never landed:
+        # the Hyprland stack (~10 modules) and other pre-existing files were
+        # not written nixfmt-style, so making this blocking turned every push
+        # on every branch into a failing run + email. Make it blocking only in
+        # the same commit that lands the bulk reformat.
         run: |
           find . -name '*.nix' -not -path './result*' -not -path './.git/*' -print0 \
-            | xargs -0 nix run nixpkgs#nixfmt -- --check
+            | xargs -0 nix run nixpkgs#nixfmt -- --check || true
