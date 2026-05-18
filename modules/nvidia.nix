@@ -50,7 +50,11 @@
     # F11: MOZ_DISABLE_RDD_SANDBOX removed — disabling Firefox's RDD sandbox is a
     # security regression that was a workaround for older NVIDIA driver paths.
     # 560+ open kernel modules + nvidia-vaapi-driver 0.0.13+ no longer require it.
-    NIXOS_OZONE_WL = "1";
+    # NIXOS_OZONE_WL is deliberately NOT set here: environment.sessionVariables
+    # is session-agnostic, so a global value leaks a Wayland Ozone hint into the
+    # default Plasma X11 session — a Chromium/CEF footgun (implicated in Steam's
+    # steamwebhelper crash-loop). It is set in the Wayland path only, at
+    # home/stoleyy/hyprland.nix.
     # G-Sync / VRR negotiation. Previously only set inside Hyprland's session
     # env (home/stoleyy/hyprland.nix) — under Plasma these were never present,
     # so VRR didn't actually engage for many GL/Vulkan games. Promoting to a
