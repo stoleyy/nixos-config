@@ -35,29 +35,30 @@
       # kernel.split_lock_mitigate=0, sched_cfs_bandwidth_slice_us,
       # tcp_fin_timeout. Module imported in lib/default.nix.
       platformOptimizations.enable = true;
-      # CEF steamwebhelper crash-loop (cef_log error_code=1002 → "GPU
-      # process isn't usable"). On NixOS pressure-vessel can't map the host
-      # NVIDIA provider, so the in-container CEF GPU process falls back to
-      # the runtime's Mesa ICD (llvmpipe); Mesa's GLSL path spawns threads,
-      # tripping Chromium's single-threaded GPU-sandbox init. Disabling
-      # Mesa's shader caches stops those pre-sandbox threads. extraEnv is
-      # exported via the FHS /etc/profile and passes through pressure-vessel
-      # into the CEF process. NVIDIA-only box → MESA_* is inert for native/
-      # Proton games (NVIDIA GL/Vulkan) — games-safe. No upstream/nixpkgs
-      # fix exists for the pressure-vessel provider failure (nixpkgs#485863).
+      # Steam's CEF steamwebhelper GPU process hard-aborts inside the
+      # pressure-vessel sandbox on this FHS-less NixOS box (cef_log
+      # error_code=1002 → "GPU process isn't usable"; kernel: repeating
+      # "trap int3 … in libcef.so" every ~10 s). Root cause: pressure-vessel
+      # cannot map the host NVIDIA graphics provider into the container
+      # (`Unable to determine architecture of provider / ldconfig`) — an
+      # open upstream NixOS×pressure-vessel limitation with NO fix
+      # (NixOS/nixpkgs#485863; GNU Guix steam-runtime#480).
+      #
+      # Exhaustively falsified on-box (do not retry): open=false (kernel
+      # module irrelevant — retained for the separate Wayland crash-loop),
+      # MESA_GLSL/SHADER_CACHE_DISABLE extraEnv, -cef-disable-gpu (ignored
+      # by this client build), -cef-disable-sandbox, -no-cef-sandbox, Steam
+      # Beta, GLCache/htmlcache wipes.
+      #
+      # -no-browser is the documented reliable endpoint (steam-for-linux
+      # #8405): Steam runs in Small Mode (games list, launch/play, settings)
+      # with the crashing CEF web UI disabled — no full store/library web
+      # views. All games run 100 % NVIDIA-accelerated (separate processes /
+      # their own per-game runtime, unaffected). Revisit / drop this when
+      # NixOS/nixpkgs#485863 (pressure-vessel provider on FHS-less distros)
+      # is fixed upstream.
       package = pkgs.steam.override {
-        extraEnv = {
-          MESA_GLSL_CACHE_DISABLE = "true";
-          MESA_SHADER_CACHE_DISABLE = "true";
-        };
-        # extraEnv and -cef-disable-sandbox both insufficient on-box
-        # (error_code=1002 ×41; libcef.so int3 abort persists). Trying the
-        # alternate sandbox-disable spelling some client builds honour.
-        # -cef-disable-gpu is proven ignored by this build. Local-only
-        # desktop → CEF GPU process unsandboxed is an acceptable tradeoff.
-        # Affects only the Steam client UI; game processes are separate.
-        # If this also fails the next step is -no-browser (Small Mode).
-        extraArgs = "-no-cef-sandbox";
+        extraArgs = "-no-browser";
       };
     };
   };
