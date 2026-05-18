@@ -62,5 +62,6 @@
     mangohud
     heroic
     lutris
+    wineWowPackages.stable
   ];
 }
