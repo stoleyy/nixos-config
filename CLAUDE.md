@@ -1,8 +1,8 @@
 # stoleyy/nixos-config
 
-NixOS 25.11 flake for a single Acer Predator desktop (`predator`). Dual-boot
-with Windows on a separate NVMe drive. **Active flake on the running system is
-`/etc/nixos`, not this clone.**
+NixOS 25.11 flake for a single Acer Predator desktop (`predator`), single-OS
+(migrated off a former Windows dual-boot). **Active flake on the running system
+is `/etc/nixos`, not this clone.**
 
 ## Hardware
 
@@ -11,8 +11,9 @@ with Windows on a separate NVMe drive. **Active flake on the running system is
 - Samsung Odyssey OLED G80SD on **HDMI-A-1** at 3840x2160@240Hz, 10-bit
   (XBGR2101010), VRR active
 - Root: `/dev/nvme0n1p4` ext4, ~294 GB (grown from 47.8 GB via GParted Live)
-- Games NTFS partition: `/dev/nvme0n1p2`, ~1.5 TiB
-- Windows on `/dev/nvme1n1`
+- Games library: ext4 at `/home/stoleyy/games`, ~1.5 TiB (formerly an NTFS
+  partition; reformatted in the post-Windows migration, flake-declared by-UUID)
+- `/data`: ext4 (former Windows NVMe — wiped + reformatted, flake-declared)
 
 ## Repo layout
 
@@ -39,6 +40,19 @@ with Windows on a separate NVMe drive. **Active flake on the running system is
 
 ## Sessions
 
+- **Plasma 6 X11** (`plasmax11`) is the deliberate SDDM default
+  (`services.displayManager.defaultSession = "plasmax11"`, SDDM greeter on
+  Xorg — `modules/desktop.nix`). The Plasma **Wayland** session crash-loops
+  on this RTX 4070 + open kernel module (login → ~1 s flash → SDDM); it was
+  reverted X11 in `59af7a7` (NOT the stale state CLAUDE.md once claimed for
+  `76d8d69`). A Wayland fix is in progress (`nvidia-drm.fbdev=1` in
+  `modules/nvidia.nix`); X11 stays default until an on-box
+  `nixos-rebuild test` proves the Wayland session stays up.
+- **Plasma Wayland** is still installed and selectable from the SDDM
+  session dropdown to retest after driver bumps.
+- **Hyprland** is selectable from the SDDM dropdown and via its boot
+  specialisation entry.
+- Both home-manager profiles ship simultaneously; HM imports both stacks.
 - **Plasma 6 X11** is the SDDM default
   (`services.displayManager.defaultSession = "plasmax11"` in
   `modules/desktop.nix`). Switched from Wayland after the kwin_wayland
@@ -163,6 +177,23 @@ shellcheck .claude/hooks/*.sh
 - **`nixos-rebuild` excludes untracked files**: after `nixos-generate-config`
   produces `hosts/predator/hardware-configuration.nix`, `git add` it before
   rebuilding or eval can't see it.
+- **Intentional mounts live in `hosts/predator/default.nix`, never
+  hand-added to `hardware-configuration.nix`** — the latter is *mostly*
+  `nixos-generate-config` output (one deliberate exception: the
+  load-bearing `vmd` line — see next pitfall); a regen silently drops
+  hand-added `fileSystems` entries (`/data` would simply stop mounting).
+  The games and `/data` mounts are declared once, in `default.nix`,
+  **by UUID**: the device node was historically self-contradictory
+  (`nvme0n1p2` vs `nvme1n1p2` across files/commits) — trust the UUID +
+  on-box `blkid`, never the node.
+- **`boot.initrd.kernelModules = [ "vmd" ]` in
+  `hardware-configuration.nix` is LOAD-BEARING — never remove it or move
+  it to `availableKernelModules`.** Intel VMD is disabled in BIOS but the
+  controller persists; the kernel still needs the `vmd` driver to find the
+  root NVMe by-UUID, force-loaded so it inits before Stage-1 root discovery
+  (6.12+). Removing it = unbootable "cannot find root" (PR #8 tried → #13
+  bricked → #14 is the current fix). A fresh `nixos-generate-config`
+  clobbers this placement — re-apply it after any regen.
 - **Hyprland 0.46+** removed `gestures.workspace_swipe*` and
   `render.explicit_sync`; both must be absent from
   `home/stoleyy/hyprland.nix`.
@@ -181,6 +212,13 @@ shellcheck .claude/hooks/*.sh
   `time.morning` and `time.evening`. Easiest: use `mode = "automatic"`.
 - **HM `gtk` module owns `~/.config/gtk-{3,4}.0/gtk.css`** — use
   `gtk.gtk3.extraCss` / `gtk.gtk4.extraCss`, never `home.file` for those paths.
+- **SDDM remembers the per-user last session and overrides
+  `services.displayManager.defaultSession`** — the system default only
+  applies to a user with no stored session. Changing `defaultSession`
+  (Plasma↔Hyprland, X11↔Wayland) looks like it "didn't apply" because SDDM
+  prefers the remembered session in `~/.local/share/sddm/state.conf`. Clear
+  that file (or pick the target session once from the SDDM dropdown) for the
+  new default to take effect.
 - **sops-nix age key not bootstrapped** — `.sops.yaml` still has the
   placeholder `age1REPLACE_WITH_OUTPUT_OF_SSH_TO_AGE`. Until the real host
   key is generated (`ssh-to-age < /etc/ssh/ssh_host_ed25519_key.pub`) and

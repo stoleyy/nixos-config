@@ -2,7 +2,7 @@
 
 Personal NixOS flake.
 
-- **`predator`** — Acer Predator desktop, i7-13700K + RTX 4070, dual-boot with Windows on a Samsung 980 Pro 2TB.
+- **`predator`** — Acer Predator desktop, i7-13700K + RTX 4070, NixOS on a Samsung 980 Pro 2TB.
 
 ## Layout
 
@@ -21,7 +21,7 @@ home/stoleyy/          home-manager config, split by concern
   ├── gpg.nix
   └── audio.nix        easyeffects preset
 overlays/              auto-imported — drop new .nix files in here
-scripts/               install-nixos.sh + shrink-f.ps1
+scripts/               install-nixos.sh
 ```
 
 ## Hardware support
@@ -37,20 +37,19 @@ scripts/               install-nixos.sh + shrink-f.ps1
 | Logitech LIGHTSPEED | `hardware.logitech.wireless` (Solaar) |
 | TPM 2.0 | `security.tpm2` |
 
-Intel VMD is disabled in BIOS — NVMe drives appear as standard AHCI.
+Intel VMD is disabled in BIOS, but the `vmd` kernel module is still required to enumerate the root NVMe — it is force-loaded early in the initrd (see `hosts/predator/hardware-configuration.nix`). Do **not** reduce this to AHCI-only: that bricked Stage-1 boot once (PR #13). SATA drives use `ahci`.
 
-## Install (predator, dual-boot)
+## Install (predator)
 
-1. In Windows, run `scripts/shrink-f.ps1` as Administrator to free 150 GB on the Samsung SSD.
-2. Boot the NixOS 25.11 graphical ISO from USB.
-3. In the live environment:
+1. Boot the NixOS 25.11 graphical ISO from USB.
+2. In the live environment:
 
    ```bash
    curl -O https://raw.githubusercontent.com/stoleyy/nixos-config/main/scripts/install-nixos.sh
    sudo bash install-nixos.sh
    ```
 
-4. After install: `nixos-enter --root /mnt -c 'passwd stoleyy'` then reboot.
+3. After install: `nixos-enter --root /mnt -c 'passwd stoleyy'` then reboot.
 
 ## Day-to-day
 
@@ -59,27 +58,9 @@ sudo nixos-rebuild switch --flake /etc/nixos#predator   # or alias `nb`
 sudo nix flake update /etc/nixos                        # bump nixpkgs
 ```
 
-## NTFS games partition (post-install)
-
-```bash
-sudo blkid /dev/nvme1n1p2   # grab the UUID of the Windows games partition
-```
-
-Add to `hosts/predator/default.nix`:
-
-```nix
-fileSystems."/games" = {
-  device  = "/dev/disk/by-uuid/PASTE-UUID-HERE";
-  fsType  = "ntfs3";
-  options = [ "uid=1000" "gid=100" "dmask=022" "fmask=133" "nofail" "x-systemd.automount" ];
-};
-```
-
-Disable Windows Fast Startup first or NTFS will be locked.
-
 ## Brave debloat
 
-Brave runs with managed enterprise policy (`modules/apps.nix`) that disables Rewards, Wallet, AI Chat, News, Talk, VPN, Tor mode, P3A telemetry, and search suggestions. Sync is left on — sign in at `brave://sync` to pull search engines and bookmarks from Windows Brave.
+Brave runs with managed enterprise policy (`modules/apps.nix`) that disables Rewards, Wallet, AI Chat, News, Talk, VPN, Tor mode, P3A telemetry, and search suggestions. Sync is left on — sign in at `brave://sync` to sync search engines and bookmarks across devices.
 
 ## Adding a new host
 

@@ -63,8 +63,10 @@
   # Brave debloat via enterprise policy (managed via /etc/brave/policies/managed/).
   # Disables: Rewards, Wallet (crypto), AI Chat (Leo), News, Talk, VPN, Tor mode,
   # default-browser nag, P3A telemetry, and the new-tab "stats" tiles.
-  # Sync is left enabled so Windows search engines, bookmarks, and passwords can
-  # be brought over with Brave Sync (brave://sync).
+  # Sync is the one deliberate exception to the debloat above — left
+  # enabled so the user's search engines, bookmarks, and passwords sync
+  # across devices via Brave Sync (brave://sync). Not telemetry; see
+  # SyncDisabled below.
   environment.etc."brave/policies/managed/debloat.json".text = builtins.toJSON {
     BraveRewardsDisabled = true;
     BraveWalletDisabled = true;
@@ -77,7 +79,7 @@
     DefaultBrowserSettingEnabled = false;
     MetricsReportingEnabled = false;
     SearchSuggestEnabled = false;
-    SyncDisabled = false; # keep on so Windows settings can import
+    SyncDisabled = false; # deliberately enabled — user's cross-device sync (see note above)
   };
 
   services.flatpak.enable = true;

@@ -20,13 +20,20 @@
     }
   ];
 
-  # Steam/Lutris game library (ext4, label "games" = nvme1n1p2). This mount was
-  # never declared in the flake, so every real `nixos-rebuild switch` dropped
-  # it — switch-to-configuration stopped the old generation's unit and the new
-  # generation had none (observed 2026-05-16, breaking Steam/Lutris). by-uuid
-  # for robustness + consistency with hardware-configuration.nix. nofail +
-  # device-timeout so a missing/slow games disk degrades to a boot warning
-  # instead of the hard "Dependency failed for /home/stoleyy/games" stop.
+  # Intentional host data mounts live HERE, not appended to the generated
+  # hardware-configuration.nix — nixos-generate-config clobbers hand-added
+  # fileSystems entries (see CLAUDE.md Pitfalls). Both are keyed by UUID; the
+  # physical device node is deliberately NOT asserted — repo history
+  # contradicted itself (nvme0n1p2 vs nvme1n1p2 across files/commits). If a
+  # node is ever needed, confirm on the box with `blkid`, never from here.
+  #
+  # /home/stoleyy/games — Steam/Lutris library (former NTFS games partition,
+  # reformatted ext4). Pre-#37 it was never flake-declared, so every real
+  # `nixos-rebuild switch` dropped it: switch-to-configuration stopped the old
+  # generation's mount unit and the new generation declared none (observed
+  # 2026-05-16, breaking Steam/Lutris). nofail + device-timeout so a
+  # missing/slow disk degrades to a boot warning instead of a hard
+  # "Dependency failed for /home/stoleyy/games" stop.
   fileSystems."/home/stoleyy/games" = {
     device = "/dev/disk/by-uuid/efd6d32e-54f9-4e6d-965f-67279a31da47";
     fsType = "ext4";
@@ -36,6 +43,10 @@
     ];
   };
 
+  # /data — former Windows NVMe, wiped + reformatted ext4. by-UUID sidesteps
+  # the by-label ambiguity that kept this out of the flake in #37 (two ext4
+  # partitions briefly shared label "data"); the UUID is unambiguous. Same
+  # nofail + device-timeout degradation contract as games above.
   # Former Windows NVMe (nvme1n1) — wiped and repartitioned as a single ext4.
   # General-purpose data partition (backups, media, project archives).
   fileSystems."/data" = {
@@ -72,6 +83,17 @@
     serverEndpoint = "146.70.84.2:51820";
     # clientAddress defaults to 10.2.0.2/32 (matches Proton's issued tunnel IP)
     # killSwitch defaults to true
+    autoRotate = {
+      enable = true;
+      interval = "30min";
+      hysteresisMs = 15; # only swap if new server is 15ms+ faster
+      refreshPool = {
+        enable = true;
+        country = "US";
+        top = 10;
+        refreshInterval = "6h";
+      };
+    };
   };
 
   # sops-nix: decrypt secrets at activation using the host SSH Ed25519 key.

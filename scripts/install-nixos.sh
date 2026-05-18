@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# NixOS installer — Acer Predator dual-boot
+# NixOS installer — Acer Predator (single-OS)
 # Clones the flake from GitHub and installs in one shot.
 #
 # Usage:
@@ -9,7 +9,8 @@
 #
 # Prereqs (already handled in this engagement):
 #   - BIOS:  Secure Boot disabled, VMD disabled (drives in AHCI)
-#   - Disk:  150 GB of unallocated space on the Samsung 980 Pro
+#   - Disk:  unallocated space on the Samsung 980 Pro. This script creates
+#            partitions in free space; it does NOT wipe existing partitions.
 #   - USB:   NixOS 25.11 graphical ISO booted
 
 set -euo pipefail
@@ -28,7 +29,7 @@ DISK=$(lsblk -d -n -o NAME,MODEL | grep -i "980" | awk '{print "/dev/"$1}' | hea
 if [[ -z "$DISK" ]]; then
     echo "Auto-detect failed. Available disks:"
     lsblk -d -o NAME,SIZE,MODEL
-    read -rp "Enter disk path (e.g. /dev/nvme1n1): " DISK
+    read -rp "Enter disk path (e.g. /dev/nvme0n1): " DISK
 fi
 
 echo "Target disk: $DISK"
@@ -90,4 +91,4 @@ echo ""
 echo "Set your user password before rebooting:"
 echo "  nixos-enter --root /mnt -c 'passwd stoleyy'"
 echo ""
-echo "Then reboot. Press F12 at POST to choose Samsung SSD."
+echo "Then reboot."

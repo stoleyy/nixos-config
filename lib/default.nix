@@ -39,6 +39,7 @@
         # ../modules/wazuh-manager.nix
         ../modules/wazuh-agent.nix
         ../modules/protonvpn.nix
+        ../modules/protonvpn-rotate.nix
         ../modules/auditd.nix
         ../modules/update-routines.nix
         inputs.nix-gaming.nixosModules.pipewireLowLatency

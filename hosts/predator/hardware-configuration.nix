@@ -20,6 +20,11 @@
     "nvme"
     "usbhid"
   ];
+  # LOAD-BEARING — do NOT remove or move to availableKernelModules. VMD is
+  # disabled in BIOS but the controller persists; the kernel still needs vmd
+  # to find the root NVMe by-UUID, force-loaded here so it inits before
+  # Stage-1 root discovery (6.12+). Removing it = unbootable "cannot find
+  # root" (PR #8 tried -> #13 bricked -> #14 this fix). Regen clobbers it.
   boot.initrd.kernelModules = [ "vmd" ];
   boot.kernelModules = [ "kvm-intel" ];
   boot.extraModulePackages = [ ];
