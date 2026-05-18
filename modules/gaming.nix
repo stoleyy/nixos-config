@@ -35,6 +35,22 @@
       # kernel.split_lock_mitigate=0, sched_cfs_bandwidth_slice_us,
       # tcp_fin_timeout. Module imported in lib/default.nix.
       platformOptimizations.enable = true;
+      # CEF steamwebhelper crash-loop (cef_log error_code=1002 → "GPU
+      # process isn't usable"). On NixOS pressure-vessel can't map the host
+      # NVIDIA provider, so the in-container CEF GPU process falls back to
+      # the runtime's Mesa ICD (llvmpipe); Mesa's GLSL path spawns threads,
+      # tripping Chromium's single-threaded GPU-sandbox init. Disabling
+      # Mesa's shader caches stops those pre-sandbox threads. extraEnv is
+      # exported via the FHS /etc/profile and passes through pressure-vessel
+      # into the CEF process. NVIDIA-only box → MESA_* is inert for native/
+      # Proton games (NVIDIA GL/Vulkan) — games-safe. No upstream/nixpkgs
+      # fix exists for the pressure-vessel provider failure (nixpkgs#485863).
+      package = pkgs.steam.override {
+        extraEnv = {
+          MESA_GLSL_CACHE_DISABLE = "true";
+          MESA_SHADER_CACHE_DISABLE = "true";
+        };
+      };
     };
   };
 
