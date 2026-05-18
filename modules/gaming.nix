@@ -50,15 +50,14 @@
           MESA_GLSL_CACHE_DISABLE = "true";
           MESA_SHADER_CACHE_DISABLE = "true";
         };
-        # extraEnv alone insufficient (error_code=1002 persists). Also
-        # disable the CEF sandbox so the GPU process may initialise
-        # multi-threaded — the documented exact cause. -cef-disable-gpu is
-        # proven ignored by this client build; -cef-disable-sandbox is the
-        # sandbox-specific lever, passed as a steam CLI arg (reaches the CEF
-        # launch directly, not env-propagation-dependent). Local-only
+        # extraEnv and -cef-disable-sandbox both insufficient on-box
+        # (error_code=1002 ×41; libcef.so int3 abort persists). Trying the
+        # alternate sandbox-disable spelling some client builds honour.
+        # -cef-disable-gpu is proven ignored by this build. Local-only
         # desktop → CEF GPU process unsandboxed is an acceptable tradeoff.
         # Affects only the Steam client UI; game processes are separate.
-        extraArgs = "-cef-disable-sandbox";
+        # If this also fails the next step is -no-browser (Small Mode).
+        extraArgs = "-no-cef-sandbox";
       };
     };
   };
