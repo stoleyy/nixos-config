@@ -3,6 +3,10 @@ on:
   push:
   pull_request:
 
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
 # Tight default for GITHUB_TOKEN — this workflow only reads the tree to lint /
 # check / scan it. No issues, no comments, no pushes. Any future job needing
 # more scope can opt-in via its own `permissions:` block.
@@ -31,17 +35,13 @@ jobs:
         continue-on-error: true
 
       - name: flake check
-        # Non-blocking until hosts/predator/hardware-configuration.nix is
-        # committed — without that file, nixosConfigurations.predator can't be
-        # evaluated from a fresh checkout (CI, Windows). Remove `|| true` once
-        # that file lands.
-        run: nix flake check --no-build || true
+        run: nix flake check --no-build
 
       - name: secrets scan
         run: nix run nixpkgs#gitleaks -- detect --no-banner --no-git
 
       - name: shell scripts
-        run: nix run nixpkgs#shellcheck -- .claude/hooks/*.sh
+        run: nix run nixpkgs#shellcheck -- .claude/hooks/*.sh scripts/*.sh
 
       - name: lint (statix — warnings only)
         run: nix run nixpkgs#statix -- check . || true
@@ -49,12 +49,7 @@ jobs:
       - name: lint (deadnix — blocking)
         run: nix run nixpkgs#deadnix -- --fail .
 
-      - name: format (nixfmt — warnings only)
-        # Non-blocking until a one-shot `chore: reformat all .nix with nixfmt`
-        # pass lands. The Hyprland stack files (~10 modules) and a handful of
-        # other pre-existing files weren't written nixfmt-style and would each
-        # need ~light churn. `nixfmt-rfc-style` is also now a deprecated alias
-        # for plain `nixfmt`, so use that to avoid the eval warning.
+      - name: format (nixfmt)
         run: |
-          files=$(find . -name '*.nix' -not -path './result*' -not -path './.git/*')
-          nix run nixpkgs#nixfmt -- --check $files || true
+          find . -name '*.nix' -not -path './result*' -not -path './.git/*' -print0 \
+            | xargs -0 nix run nixpkgs#nixfmt -- --check

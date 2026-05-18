@@ -83,6 +83,7 @@
           vulnix
           gitleaks
           shellcheck
+          sops
         ];
       };
     };

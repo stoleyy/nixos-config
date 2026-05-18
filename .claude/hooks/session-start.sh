@@ -52,8 +52,11 @@ echo
 echo "## Harness"
 if command -v nix >/dev/null 2>&1; then
   echo "- nix: $(nix --version)"
-  echo "- nixfmt on PATH: $(command -v nixfmt 2>/dev/null || echo 'no (run: nix develop)')"
-  echo "- statix  on PATH: $(command -v statix  2>/dev/null || echo 'no (run: nix develop)')"
+  echo "- nixfmt:   $(command -v nixfmt   2>/dev/null || echo 'no (run: nix develop)')"
+  echo "- statix:   $(command -v statix   2>/dev/null || echo 'no (run: nix develop)')"
+  echo "- deadnix:  $(command -v deadnix  2>/dev/null || echo 'no (run: nix develop)')"
+  echo "- gitleaks: $(command -v gitleaks 2>/dev/null || echo 'no (run: nix develop)')"
+  echo "- sops:     $(command -v sops     2>/dev/null || echo 'no (run: nix develop)')"
 else
   echo "- Harness NOT available — bootstrap-nix.sh exited without putting nix on PATH (see hook log above)."
 fi
