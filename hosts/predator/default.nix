@@ -81,6 +81,17 @@
     serverEndpoint = "146.70.84.2:51820";
     # clientAddress defaults to 10.2.0.2/32 (matches Proton's issued tunnel IP)
     # killSwitch defaults to true
+    autoRotate = {
+      enable = true;
+      interval = "30min";
+      hysteresisMs = 15; # only swap if new server is 15ms+ faster
+      refreshPool = {
+        enable = true;
+        country = "US";
+        top = 10;
+        refreshInterval = "6h";
+      };
+    };
   };
 
   # sops-nix: decrypt secrets at activation using the host SSH Ed25519 key.
