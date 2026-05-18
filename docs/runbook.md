@@ -216,42 +216,48 @@ sudo ausearch -k identity --start recent      # auth-state changes
 
 ---
 
-## Steam: native client is broken — use Flatpak
+## Steam: client UI is BLOCKED on this box (upstream bug) — game via Heroic/Lutris
 
-The **native nixpkgs Steam UI does not work on `predator`**. Its CEF
-`steamwebhelper` GPU process hard-aborts inside Steam's pressure-vessel
-sandbox: on FHS-less NixOS, pressure-vessel cannot map the host NVIDIA
-graphics provider into the container (`cef_log` `error_code=1002` → "GPU
-process isn't usable"; kernel `trap int3 … in libcef.so`). This is an open
-upstream bug with **no fix** — NixOS/nixpkgs#485863, GNU Guix
-steam-runtime#480.
+**The Steam client UI does not work on `predator`, and there is currently no
+fix.** Its CEF `steamwebhelper` GPU process cannot initialise inside Valve's
+`steamrt` pressure-vessel container on this NixOS + NVIDIA host: `cef_log`
+`error_code=1002` → "GPU process isn't usable"; kernel `trap int3 … in
+libcef.so`. Modern Steam needs CEF even to draw its login window, so the
+client never becomes usable. This is the open upstream NixOS × pressure-vessel
+limitation — NixOS/nixpkgs#485863, GNU Guix steam-runtime#480 — **no upstream
+fix exists**.
 
-Falsified on-box (do **not** retry): `open=false`, `MESA_*` extraEnv,
+Exhaustively falsified on-box (do **not** retry any of these):
+`hardware.nvidia.open=false`, `MESA_GLSL/SHADER_CACHE_DISABLE` extraEnv,
 `-cef-disable-gpu` (ignored by the client build), `-cef-disable-sandbox`,
-`-no-cef-sandbox`, `-no-browser`, Steam Beta, GLCache/htmlcache wipes.
+`-no-cef-sandbox`, `-no-browser` (no window — login is CEF too), Steam Beta,
+GLCache/htmlcache wipes, `VK_ICD_FILENAMES`/`VK_DRIVER_FILES` pin, **and the
+Flatpak `com.valvesoftware.Steam`** — Flatpak Steam *also* runs
+`steamwebhelper` inside the same Valve `steamrt` pressure-vessel and fails
+identically (it does not escape the bug). Steam has never been authenticated
+on this box and no Steam games are installed, so there is no cached session
+to launch games headlessly either. The Steam-owned library is blocked until
+upstream resolves the pressure-vessel/CEF issue.
 
-**Steam runs via Flatpak instead** — it ships its own freedesktop runtime +
-NVIDIA GL extension and does not use the failing host-provider path.
-`services.flatpak` + `xdg.portal` are already enabled (`modules/apps.nix`);
-`programs.steam.enable` stays `true` (no package override) only for system
-gaming plumbing the Flatpak reuses (steam-hardware udev / controllers,
-Remote Play firewall, nix-gaming sysctl bundle, gamescope).
+**Workaround — game via host-native launchers (fully working, NVIDIA-accel):**
+the bug is specific to Valve's pressure-vessel CEF; anything that runs
+directly on the host is unaffected (verified: host Electron/Chromium use the
+GPU normally). Both are already installed (`modules/gaming.nix`
+`environment.systemPackages`):
+- **Heroic** (`heroic`) — Epic, GOG, Amazon libraries.
+- **Lutris** (`lutris`) — GOG, Battle.net, standalone/DRM-free installers,
+  emulators, any Wine/Proton title. Use the installed `proton-ge-bin`;
+  enable `gamemoderun` + MangoHud (`programs.gamemode`, `mangohud` already
+  configured).
 
-One-time install (per-user, on `predator`):
+What stays committed (real, keepable wins, independent of the Steam block):
+- `3d9333a` `hardware.nvidia.open = false` — fixes the **separate**
+  Plasma/SDDM-Wayland crash-loop (retest the Wayland session).
+- `650aa91` removed a global `NIXOS_OZONE_WL` X11 leak (merged via PR #43).
+- `programs.steam.enable = true` stays (vanilla, no override) only for
+  system gaming plumbing Heroic/Lutris/controllers reuse: steam-hardware
+  udev, Remote Play firewall, the nix-gaming sysctl bundle, gamescope.
 
-```bash
-flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-flatpak install -y flathub com.valvesoftware.Steam
-# Existing 1.5 TiB library at /home/stoleyy/games — grant the sandbox access:
-flatpak override --user --filesystem=/home/stoleyy/games com.valvesoftware.Steam
-flatpak run com.valvesoftware.Steam
-```
-
-Notes:
-- The NVIDIA GL extension (`org.freedesktop.Platform.GL.nvidia-*`) matching
-  the host driver is pulled automatically by `flatpak install`.
-- Controllers work via the host `steam-hardware` udev rules (no extra perms).
-- Proton-GE is managed inside the Flatpak (e.g. ProtonUp-Qt), not via the
-  NixOS `extraCompatPackages`.
-- **Revert to the native client only after nixpkgs#485863 is fixed upstream
-  and proven on an on-box `nixos-rebuild test`.**
+**Revisit Steam only when nixpkgs#485863 / the pressure-vessel-on-FHS-less
+provider issue is fixed upstream, and prove it with an on-box
+`nixos-rebuild test` before trusting it again.**
