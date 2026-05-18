@@ -35,31 +35,27 @@
       # kernel.split_lock_mitigate=0, sched_cfs_bandwidth_slice_us,
       # tcp_fin_timeout. Module imported in lib/default.nix.
       platformOptimizations.enable = true;
-      # Steam's CEF steamwebhelper GPU process hard-aborts inside the
-      # pressure-vessel sandbox on this FHS-less NixOS box (cef_log
+      # NOTE: the native nixpkgs Steam UI does NOT work on this box. Its CEF
+      # steamwebhelper GPU process hard-aborts inside the pressure-vessel
+      # sandbox because, on FHS-less NixOS, pressure-vessel cannot map the
+      # host NVIDIA graphics provider into the container (cef_log
       # error_code=1002 → "GPU process isn't usable"; kernel: repeating
-      # "trap int3 … in libcef.so" every ~10 s). Root cause: pressure-vessel
-      # cannot map the host NVIDIA graphics provider into the container
-      # (`Unable to determine architecture of provider / ldconfig`) — an
-      # open upstream NixOS×pressure-vessel limitation with NO fix
-      # (NixOS/nixpkgs#485863; GNU Guix steam-runtime#480).
+      # "trap int3 … in libcef.so"). Open upstream bug, no fix:
+      # NixOS/nixpkgs#485863 / GNU Guix steam-runtime#480. Exhaustively
+      # falsified on-box: open=false (kept for the separate Wayland
+      # crash-loop), MESA_* extraEnv, -cef-disable-gpu (ignored),
+      # -cef-disable-sandbox, -no-cef-sandbox, -no-browser, Beta, cache wipes.
       #
-      # Exhaustively falsified on-box (do not retry): open=false (kernel
-      # module irrelevant — retained for the separate Wayland crash-loop),
-      # MESA_GLSL/SHADER_CACHE_DISABLE extraEnv, -cef-disable-gpu (ignored
-      # by this client build), -cef-disable-sandbox, -no-cef-sandbox, Steam
-      # Beta, GLCache/htmlcache wipes.
-      #
-      # -no-browser is the documented reliable endpoint (steam-for-linux
-      # #8405): Steam runs in Small Mode (games list, launch/play, settings)
-      # with the crashing CEF web UI disabled — no full store/library web
-      # views. All games run 100 % NVIDIA-accelerated (separate processes /
-      # their own per-game runtime, unaffected). Revisit / drop this when
-      # NixOS/nixpkgs#485863 (pressure-vessel provider on FHS-less distros)
-      # is fixed upstream.
-      package = pkgs.steam.override {
-        extraArgs = "-no-browser";
-      };
+      # Steam is therefore run via FLATPAK (com.valvesoftware.Steam): it
+      # ships its own freedesktop runtime + NVIDIA GL extension and does not
+      # use the failing host-provider path. services.flatpak + xdg.portal
+      # are already enabled (modules/apps.nix); install is a one-time
+      # `flatpak install flathub com.valvesoftware.Steam` (see docs/runbook).
+      # programs.steam.enable stays true (no package override) for the
+      # system gaming plumbing the Flatpak benefits from: steam-hardware
+      # udev (controllers), Remote Play firewall, the nix-gaming sysctl
+      # bundle, gamescope. Revert to the native client only after
+      # nixpkgs#485863 is fixed upstream and proven on an on-box test.
     };
   };
 

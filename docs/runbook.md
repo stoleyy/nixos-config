@@ -213,3 +213,45 @@ sudo ausearch -k identity --start recent      # auth-state changes
 - **/etc/nixos is the deploy point**, but the canonical source is the GitHub
   repo. Edits to `/etc/nixos` files are lost on next `git pull origin main`.
 - **NixOS modules go in `lib/default.nix`**, not `flake.nix`.
+
+---
+
+## Steam: native client is broken — use Flatpak
+
+The **native nixpkgs Steam UI does not work on `predator`**. Its CEF
+`steamwebhelper` GPU process hard-aborts inside Steam's pressure-vessel
+sandbox: on FHS-less NixOS, pressure-vessel cannot map the host NVIDIA
+graphics provider into the container (`cef_log` `error_code=1002` → "GPU
+process isn't usable"; kernel `trap int3 … in libcef.so`). This is an open
+upstream bug with **no fix** — NixOS/nixpkgs#485863, GNU Guix
+steam-runtime#480.
+
+Falsified on-box (do **not** retry): `open=false`, `MESA_*` extraEnv,
+`-cef-disable-gpu` (ignored by the client build), `-cef-disable-sandbox`,
+`-no-cef-sandbox`, `-no-browser`, Steam Beta, GLCache/htmlcache wipes.
+
+**Steam runs via Flatpak instead** — it ships its own freedesktop runtime +
+NVIDIA GL extension and does not use the failing host-provider path.
+`services.flatpak` + `xdg.portal` are already enabled (`modules/apps.nix`);
+`programs.steam.enable` stays `true` (no package override) only for system
+gaming plumbing the Flatpak reuses (steam-hardware udev / controllers,
+Remote Play firewall, nix-gaming sysctl bundle, gamescope).
+
+One-time install (per-user, on `predator`):
+
+```bash
+flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+flatpak install -y flathub com.valvesoftware.Steam
+# Existing 1.5 TiB library at /home/stoleyy/games — grant the sandbox access:
+flatpak override --user --filesystem=/home/stoleyy/games com.valvesoftware.Steam
+flatpak run com.valvesoftware.Steam
+```
+
+Notes:
+- The NVIDIA GL extension (`org.freedesktop.Platform.GL.nvidia-*`) matching
+  the host driver is pulled automatically by `flatpak install`.
+- Controllers work via the host `steam-hardware` udev rules (no extra perms).
+- Proton-GE is managed inside the Flatpak (e.g. ProtonUp-Qt), not via the
+  NixOS `extraCompatPackages`.
+- **Revert to the native client only after nixpkgs#485863 is fixed upstream
+  and proven on an on-box `nixos-rebuild test`.**
