@@ -35,6 +35,27 @@
       # kernel.split_lock_mitigate=0, sched_cfs_bandwidth_slice_us,
       # tcp_fin_timeout. Module imported in lib/default.nix.
       platformOptimizations.enable = true;
+      # NOTE: the native nixpkgs Steam UI does NOT work on this box. Its CEF
+      # steamwebhelper GPU process hard-aborts inside the pressure-vessel
+      # sandbox because, on FHS-less NixOS, pressure-vessel cannot map the
+      # host NVIDIA graphics provider into the container (cef_log
+      # error_code=1002 → "GPU process isn't usable"; kernel: repeating
+      # "trap int3 … in libcef.so"). Open upstream bug, no fix:
+      # NixOS/nixpkgs#485863 / GNU Guix steam-runtime#480. Exhaustively
+      # falsified on-box: open=false (kept for the separate Wayland
+      # crash-loop), MESA_* extraEnv, -cef-disable-gpu (ignored),
+      # -cef-disable-sandbox, -no-cef-sandbox, -no-browser, Beta, cache wipes.
+      #
+      # Steam is therefore run via FLATPAK (com.valvesoftware.Steam): it
+      # ships its own freedesktop runtime + NVIDIA GL extension and does not
+      # use the failing host-provider path. services.flatpak + xdg.portal
+      # are already enabled (modules/apps.nix); install is a one-time
+      # `flatpak install flathub com.valvesoftware.Steam` (see docs/runbook).
+      # programs.steam.enable stays true (no package override) for the
+      # system gaming plumbing the Flatpak benefits from: steam-hardware
+      # udev (controllers), Remote Play firewall, the nix-gaming sysctl
+      # bundle, gamescope. Revert to the native client only after
+      # nixpkgs#485863 is fixed upstream and proven on an on-box test.
     };
   };
 
