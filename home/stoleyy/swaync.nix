@@ -16,8 +16,8 @@
     timeout-low = 5;
     timeout-critical = 0;
     fit-to-screen = true;
-    control-center-width = 500;
-    notification-window-width = 500;
+    control-center-width = 550;
+    notification-window-width = 550;
     keyboard-shortcuts = true;
     image-visibility = "when-available";
     transition-time = 200;
@@ -58,13 +58,13 @@
     .notification-row .notification-background {
       background:    rgba(29, 32, 33, 0.95);
       color:         ${colors.fg0};
-      border:        1px solid rgba(152, 151, 26, 0.4);
-      border-radius: 12px;
+      border:        1px solid rgba(152, 151, 26, 0.3);
+      border-radius: 14px;
     }
 
     .notification-row .notification-background {
-      margin:  4px 8px;
-      padding: 8px;
+      margin:  6px 8px;
+      padding: 12px;
     }
 
     .notification-row .notification-background .notification {
@@ -73,30 +73,47 @@
     }
 
     .notification-row .notification-background .notification .notification-content {
-      padding: 4px;
+      padding: 6px;
     }
 
-    .notification-row .notification-background.critical {
-      border-color: ${colors.red};
-    }
-
-    .control-center {
-      margin:  8px;
-      padding: 8px;
-    }
-
-    .widget-title > label {
+    .notification-row .notification-background .notification .notification-content .summary {
       font-weight: bold;
       font-size:   14px;
       color:       ${colors.yellow};
     }
 
+    .notification-row .notification-background .notification .notification-content .body {
+      color: ${colors.fg1};
+    }
+
+    .notification-row .notification-background .notification .image {
+      border-radius: 8px;
+      margin-right:  8px;
+    }
+
+    .notification-row .notification-background.critical {
+      border-color: ${colors.red};
+      border-width: 2px;
+    }
+
+    .control-center {
+      margin:  8px;
+      padding: 12px;
+    }
+
+    .widget-title > label {
+      font-weight: bold;
+      font-size:   15px;
+      color:       ${colors.yellow};
+    }
+
     .widget-title button {
-      background:    rgba(60, 56, 54, 0.8);
+      background:    rgba(60, 56, 54, 0.6);
       color:         ${colors.fg0};
       border:        none;
-      border-radius: 6px;
-      padding:       4px 8px;
+      border-radius: 8px;
+      padding:       6px 12px;
+      transition:    all 0.2s ease;
     }
 
     .widget-title button:hover {
@@ -104,18 +121,20 @@
     }
 
     .widget-dnd > switch:checked {
-      background: ${colors.green};
+      background:    ${colors.green};
+      border-radius: 8px;
     }
 
     .close-button {
-      background:    rgba(204, 36, 29, 0.8);
+      background:    rgba(214, 93, 14, 0.7);
       color:         ${colors.fg0};
       border:        none;
-      border-radius: 4px;
+      border-radius: 6px;
+      transition:    all 0.2s ease;
     }
 
     .close-button:hover {
-      background: ${colors.red};
+      background: ${colors.orange};
     }
   '';
 }

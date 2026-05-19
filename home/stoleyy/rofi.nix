@@ -5,6 +5,7 @@ let
     * {
       bg0:    ${colors.bg0}ff;
       bg1:    ${colors.bg1}ff;
+      bg2:    ${colors.bg2}ff;
       fg0:    ${colors.fg0}ff;
       fg1:    ${colors.fg1}ff;
       accent: ${colors.green}ff;
@@ -14,49 +15,58 @@ let
     }
 
     window {
-      width:            42%;
+      width:            50%;
       background-color: @bg0;
       border:           2px solid;
       border-color:     @accent;
-      border-radius:    12px;
+      border-radius:    14px;
     }
 
     mainbox {
       background-color: transparent;
       children:         [ inputbar, listview ];
-      spacing:          8px;
-      padding:          12px;
+      spacing:          10px;
+      padding:          16px;
     }
 
     inputbar {
       background-color: @bg1;
-      border-radius:    8px;
-      padding:          10px 12px;
+      border-radius:    10px;
+      padding:          12px 16px;
       children:         [ prompt, entry ];
     }
 
     prompt {
       background-color: transparent;
       text-color:       @accent;
-      padding:          0 6px 0 0;
+      padding:          0 8px 0 0;
     }
 
     entry {
       background-color:  transparent;
       text-color:        @fg0;
-      placeholder:       "Search...";
+      placeholder:       "Type to search...";
       placeholder-color: @fg1;
     }
 
     listview {
       background-color: transparent;
-      lines:            8;
-      scrollbar:        false;
+      lines:            10;
+      scrollbar:        true;
+      spacing:          4px;
+    }
+
+    scrollbar {
+      width:        4px;
+      handle-width: 4px;
+      handle-color: @bg2;
+      border-radius: 2px;
     }
 
     element {
-      padding:       8px 10px;
-      border-radius: 6px;
+      padding:       10px 14px;
+      border-radius: 8px;
+      spacing:       12px;
     }
 
     element normal.normal {
@@ -64,9 +74,16 @@ let
       text-color:       @fg0;
     }
 
+    element alternate.normal {
+      background-color: transparent;
+      text-color:       @fg0;
+    }
+
     element selected.normal {
       background-color: @bg1;
       text-color:       @accent;
+      border:           1px solid;
+      border-color:     @accent;
     }
 
     element-text {
@@ -76,7 +93,7 @@ let
     }
 
     element-icon {
-      size:             24px;
+      size:             28px;
       background-color: transparent;
     }
   '';
@@ -92,7 +109,7 @@ in
       modi = "drun,run,window";
       icon-theme = "Papirus-Dark";
       show-icons = true;
-      font = "JetBrainsMono Nerd Font 12";
+      font = "JetBrainsMono Nerd Font 13";
       drun-display-fmt = "{name}";
       display-drun = "  Apps";
       display-run = "  Run";

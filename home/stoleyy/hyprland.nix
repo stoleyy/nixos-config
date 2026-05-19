@@ -1,5 +1,17 @@
 { pkgs, ... }:
 
+let
+  # Warm diagonal gradient wallpaper generated at build time (no external files).
+  gradientWallpaper = pkgs.runCommand "gruvbox-gradient.png" {
+    nativeBuildInputs = [ pkgs.imagemagick ];
+  } ''
+    magick -size 3840x2160 \
+      gradient:'#1d2021'-'#32302f' \
+      -distort SRT 25 \
+      -sigmoidal-contrast 4x50% \
+      $out
+  '';
+in
 {
   home.packages = with pkgs; [
     swaynotificationcenter
@@ -77,7 +89,7 @@
 
       exec-once = [
         "swww-daemon"
-        "swww clear 1d2021"
+        "sleep 1 && swww img --transition-type grow --transition-duration 2 --transition-pos center --transition-fps 240 ${gradientWallpaper}"
         "waybar"
         "swaync"
         "nm-applet --indicator"
@@ -102,13 +114,14 @@
       ];
 
       general = {
-        gaps_in = 5;
-        gaps_out = 10;
+        gaps_in = 3;
+        gaps_out = 8;
         border_size = 2;
-        "col.active_border" = "rgb(98971a) rgb(458588) 45deg";
-        "col.inactive_border" = "rgb(3c3836)";
+        "col.active_border" = "rgba(d79921ff) rgba(98971aff) 45deg";
+        "col.inactive_border" = "rgba(3c3836cc) rgba(504945cc) 45deg";
         layout = "dwindle";
         resize_on_border = true;
+        snap.enabled = true;
         # Fullscreen tearing path — paired with an `immediate` window rule for
         # steam_app_.* below. Big input-latency win on the G80SD.
         allow_tearing = true;
@@ -116,34 +129,49 @@
 
       decoration = {
         rounding = 10;
+        active_opacity = 0.90;
+        inactive_opacity = 0.80;
+        fullscreen_opacity = 1;
+        dim_inactive = false;
+        dim_special = 0.3;
         blur = {
           enabled = true;
           size = 6;
           passes = 3;
           new_optimizations = true;
-          vibrancy = 0.15;
+          ignore_opacity = true;
+          xray = false;
+          special = true;
         };
         shadow = {
-          enabled = true;
-          range = 8;
-          render_power = 3;
-          color = "rgba(1d202199)";
+          enabled = false;
         };
       };
 
+      # Blur the waybar for frosted glass effect.
+      layerrule = [
+        "blur, waybar"
+      ];
+
+      # HyDE-inspired animation curves — wind for general, winIn/winOut for
+      # open/close with distinct overshoot, liner for borders.
       animations = {
         enabled = true;
         bezier = [
-          "smooth,   0.05, 0.9, 0.1, 1.05"
-          "linear,   0.0,  0.0, 1.0, 1.0"
-          "overshot, 0.13, 0.99, 0.29, 1.1"
+          "wind,   0.05, 0.9,  0.1,  1.05"
+          "winIn,  0.1,  1.1,  0.1,  1.1"
+          "winOut, 0.3,  -0.3, 0,    1"
+          "liner,  1,    1,    1,    1"
         ];
         animation = [
-          "windows,    1, 4,  smooth,   slide"
-          "windowsOut, 1, 4,  smooth,   slide"
-          "border,     1, 10, linear"
-          "fade,       1, 10, smooth"
-          "workspaces, 1, 6,  overshot, slide"
+          "windows,     1, 6, wind,   slide"
+          "windowsIn,   1, 6, winIn,  slide"
+          "windowsOut,  1, 5, winOut, slide"
+          "windowsMove, 1, 5, wind,   slide"
+          "border,      1, 1, liner"
+          "borderangle, 1, 30, liner, once"
+          "fade,        1, 10, default"
+          "workspaces,  1, 5, wind"
         ];
       };
 
@@ -282,6 +310,7 @@
     };
   };
 
+  # HyDE-inspired hyprlock layout — time top-right, greeting center, input bottom.
   programs.hyprlock = {
     enable = true;
     settings = {
@@ -293,34 +322,56 @@
       background = [
         {
           path = "screenshot";
-          blur_passes = 3;
-          blur_size = 8;
+          blur_passes = 2;
+          blur_size = 6;
           brightness = 0.5;
+        }
+      ];
+      # Time — large, top-right.
+      label = [
+        {
+          position = "-40, -20";
+          halign = "right";
+          valign = "top";
+          color = "rgb(ebdbb2)";
+          font_size = 90;
+          font_family = "JetBrainsMono Nerd Font";
+          text = ''cmd[update:1000] echo "$(date +"%H:%M")"'';
+        }
+        # Date — below time, top-right.
+        {
+          position = "-40, -150";
+          halign = "right";
+          valign = "top";
+          color = "rgb(d5c4a1)";
+          font_size = 22;
+          font_family = "JetBrainsMono Nerd Font";
+          text = ''cmd[update:60000] echo "$(date +"%A, %d %B %Y")"'';
+        }
+        # Greeting — center.
+        {
+          position = "0, 60";
+          halign = "center";
+          valign = "center";
+          color = "rgb(d79921)";
+          font_size = 18;
+          font_family = "JetBrainsMono Nerd Font";
+          text = ''cmd[update:60000] echo "Good $(date +%H | awk '{if ($1 < 12) print "Morning"; else if ($1 < 18) print "Afternoon"; else print "Evening"}'), $USER"'';
         }
       ];
       input-field = [
         {
-          size = "250, 50";
+          size = "200, 50";
           position = "0, -80";
           halign = "center";
           valign = "center";
           outline_thickness = 3;
-          outer_color = "rgb(98971a)";
+          outer_color = "rgb(d79921)";
           inner_color = "rgb(1d2021)";
           font_color = "rgb(ebdbb2)";
           fade_on_empty = false;
           placeholder_text = "<i>Password...</i>";
           shadow_passes = 2;
-        }
-      ];
-      label = [
-        {
-          position = "0, 80";
-          halign = "center";
-          valign = "center";
-          color = "rgb(ebdbb2)";
-          font_size = 50;
-          text = ''cmd[update:1000] echo "$(date +"%H:%M")"'';
         }
       ];
     };
