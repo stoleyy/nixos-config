@@ -9,9 +9,6 @@ let
     ]
   );
 
-  # Thin OpenAI-compatible proxy that wraps `claude -p`.
-  # Lets hermes (and any other OpenAI client) use the claude CLI
-  # without an API key.
   proxyScript = pkgs.writeTextFile {
     name = "claude-openai-proxy";
     executable = true;
@@ -57,12 +54,16 @@ let
                   parts.append(f"[Assistant]: {m.content}")
           return "\n\n".join(parts)
 
-      def call_claude(prompt: str) -> str:
+      def _run_claude(prompt: str) -> str:
           r = subprocess.run(
               [CLAUDE, "-p", prompt],
               capture_output=True, text=True, timeout=180,
           )
-          return (r.stdout or r.stderr).strip()
+          return r.stdout.strip() if r.returncode == 0 else f"Error: {r.stderr.strip()}"
+
+      async def call_claude(prompt: str) -> str:
+          loop = asyncio.get_event_loop()
+          return await loop.run_in_executor(None, _run_claude, prompt)
 
       async def sse_stream(content: str, model: str) -> AsyncIterator[str]:
           cid = f"chatcmpl-{uuid.uuid4().hex[:8]}"
@@ -74,7 +75,7 @@ let
 
       @app.post("/v1/chat/completions")
       async def chat_completions(req: ChatRequest):
-          content = call_claude(build_prompt(req.messages))
+          content = await call_claude(build_prompt(req.messages))
           if req.stream:
               return StreamingResponse(
                   sse_stream(content, req.model),
@@ -116,10 +117,34 @@ in
     Install.WantedBy = [ "default.target" ];
   };
 
-  # Install hermes via uv tool install on first activation.
-  # Requires network — if the ProtonVPN kill switch is active during rebuild,
-  # run manually afterward: uv tool install "hermes-agent[all]"
-  home.activation.installHermes = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+  # Ensure ~/.local/bin is in fish PATH so `hermes` is found after uv install.
+  programs.fish.shellInit = ''
+    fish_add_path --move --prepend "$HOME/.local/bin"
+  '';
+
+  # Install hermes and write config as mutable files via activation.
+  # home.file would create read-only Nix store symlinks — hermes needs to write
+  # to config.yaml and .env at runtime, so we write plain files instead.
+  home.activation.setupHermes = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    # Write hermes config (mutable — hermes updates it at runtime)
+    mkdir -p "$HOME/.hermes"
+
+    if ! test -f "$HOME/.hermes/config.yaml"; then
+      $DRY_RUN_CMD ${pkgs.coreutils}/bin/install -m 0644 /dev/stdin "$HOME/.hermes/config.yaml" << 'YAML'
+    model:
+      provider: custom
+      model: claude
+      base_url: http://127.0.0.1:8765/v1
+    YAML
+    fi
+
+    if ! test -f "$HOME/.hermes/.env"; then
+      $DRY_RUN_CMD ${pkgs.coreutils}/bin/install -m 0600 /dev/stdin "$HOME/.hermes/.env" << 'ENV'
+    OPENAI_API_KEY=claude-cli-proxy
+    ENV
+    fi
+
+    # Install hermes if not already present (needs network / VPN up)
     if ! test -x "$HOME/.local/bin/hermes"; then
       echo "Installing hermes-agent via uv..."
       $DRY_RUN_CMD ${pkgs.uv}/bin/uv tool install \
@@ -128,17 +153,6 @@ in
         || echo "[warn] hermes install failed — run manually: uv tool install 'hermes-agent[all]'"
     fi
   '';
-
-  # Point hermes at the local claude proxy.
-  home.file.".hermes/config.yaml".text = ''
-    model:
-      provider: custom
-      model: claude
-      base_url: http://127.0.0.1:8765/v1
-  '';
-
-  # Dummy key — proxy ignores it, hermes requires a non-empty value.
-  home.file.".hermes/.env".text = "OPENAI_API_KEY=claude-cli-proxy\n";
 
   programs.fish.functions.hermes-proxy-status = {
     description = "Check claude-openai-proxy systemd service";
