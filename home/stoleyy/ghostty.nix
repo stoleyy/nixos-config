@@ -4,7 +4,6 @@ _:
   programs.ghostty = {
     enable = true;
     settings = {
-      theme = "GruvboxDark";
       background-opacity = 0.85;
       background-blur-radius = 20;
       cursor-style = "bar";
