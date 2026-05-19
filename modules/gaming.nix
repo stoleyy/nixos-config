@@ -62,6 +62,7 @@
     mangohud
     heroic
     lutris
+    prismlauncher
     wineWowPackages.stable
   ];
 }
