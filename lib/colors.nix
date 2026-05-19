@@ -1,4 +1,4 @@
-# Gruvbox Hard palette + BladeeBlack accents.
+# Gruvbox Dark Hard palette — shared across Plasma, Hyprland, and all HM modules.
 # Imported via home-manager.extraSpecialArgs: { colors, ... }
 {
   bg0 = "#1d2021";

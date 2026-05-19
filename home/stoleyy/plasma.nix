@@ -22,17 +22,17 @@ in
       # package (e.g. org.kde.breezedark.desktop) bundles its own default
       # ColorScheme/iconTheme/cursorTheme and overrides the per-component
       # settings declared below — which made every rebuild revert to
-      # BreezeDark and silently undo BladeeBlack. The components below are
-      # individually sufficient; Plasma falls back to BreezeDark internals
-      # for anything not specified, which is what we want.
-      colorScheme = "BladeeBlack";
+      # BreezeDark and silently undo the custom scheme. The components
+      # below are individually sufficient; Plasma falls back to BreezeDark
+      # internals for anything not specified, which is what we want.
+      colorScheme = "GruvboxDarkHard";
       cursor = {
         theme = "Bibata-Modern-Classic";
         size = 24;
       };
       iconTheme = "Tela-circle-black-dark";
       wallpaperBackground = {
-        color = "0,0,0";
+        color = "29,32,33";
       };
       clickItemTo = "open";
     };
@@ -43,7 +43,7 @@ in
         pointSize = 10;
       };
       fixedWidth = {
-        family = "GeistMono Nerd Font";
+        family = "JetBrainsMono Nerd Font";
         pointSize = 11;
       };
       small = {

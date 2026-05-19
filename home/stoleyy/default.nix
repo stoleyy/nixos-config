@@ -29,7 +29,7 @@
     homeDirectory = "/home/stoleyy";
     stateVersion = "25.11";
 
-    file.".local/share/color-schemes/BladeeBlack.colors".source = ./bladee-black.colors;
+    file.".local/share/color-schemes/GruvboxDarkHard.colors".source = ./gruvbox-dark-hard.colors;
 
     packages = with pkgs; [
       keepassxc

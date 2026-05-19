@@ -7,14 +7,17 @@
 }:
 
 let
-  blackCss = ''
-    @define-color window_bg_color ${colors.black};
-    @define-color view_bg_color ${colors.black};
-    @define-color headerbar_bg_color ${colors.black};
-    @define-color popover_bg_color ${colors.black2};
-    @define-color sidebar_bg_color ${colors.black};
+  gruvboxCss = ''
+    @define-color window_bg_color ${colors.bg0};
+    @define-color view_bg_color ${colors.bg0};
+    @define-color headerbar_bg_color ${colors.bg0};
+    @define-color popover_bg_color ${colors.bg1};
+    @define-color sidebar_bg_color ${colors.bg0};
+    @define-color accent_bg_color ${colors.yellow};
+    @define-color accent_color ${colors.yellow};
     window, .background, headerbar, .titlebar, .view, textview text {
-      background-color: ${colors.black};
+      background-color: ${colors.bg0};
+      color: ${colors.fg0};
     }
   '';
 in
@@ -35,9 +38,9 @@ in
       size = 24;
     };
     gtk3.extraConfig.gtk-application-prefer-dark-theme = 1;
-    gtk3.extraCss = blackCss;
+    gtk3.extraCss = gruvboxCss;
     gtk4.extraConfig.gtk-application-prefer-dark-theme = 1;
-    gtk4.extraCss = blackCss;
+    gtk4.extraCss = gruvboxCss;
   };
 
   qt = {

@@ -14,5 +14,6 @@
   fonts.packages = with pkgs; [
     inter
     nerd-fonts.geist-mono
+    nerd-fonts.jetbrains-mono
   ];
 }
