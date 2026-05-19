@@ -20,10 +20,27 @@
     # did on this RTX 4070 + open-module stack: the Xorg greeter now shows
     # the login screen, but a Wayland session bounced straight back to it
     # (login → ~1s flash → SDDM). Full X11 (Xorg greeter + X11 Plasma) is
-    # the stable NVIDIA path here. The Wayland session is still installed
-    # and selectable from the SDDM session dropdown to retest after a
-    # driver bump. Hyprland stays available via its specialisation entry.
+    # the stable NVIDIA path here. The Wayland session is still installed;
+    # autologin (below) skips the greeter at boot, so to retest it after a
+    # driver bump, log out (the greeter then reappears) and pick it from the
+    # SDDM session dropdown. Hyprland stays available via its specialisation
+    # entry.
     displayManager.defaultSession = "plasmax11";
+
+    # Autologin into the default session. SDDM stamps the last-used session
+    # into the $HOME-shared ~/.local/share/sddm/state.conf on every login —
+    # autologin included — and prefers that cache over defaultSession at the
+    # greeter. $HOME is shared across specialisations, so the hyprland
+    # specialisation's autologin poisoned the cache and the default Plasma
+    # entry's greeter then pre-selected Hyprland too (both boot entries
+    # landed in Hyprland). Autologin here skips the greeter and uses the
+    # configured Autologin.Session (= defaultSession), making each boot entry
+    # deterministic: default -> plasmax11; the hyprland specialisation
+    # mkForce-overrides defaultSession so it -> hyprland.
+    displayManager.autoLogin = {
+      enable = true;
+      user = "stoleyy";
+    };
   };
 
   programs.kdeconnect.enable = true;
