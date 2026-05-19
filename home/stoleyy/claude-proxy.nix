@@ -138,10 +138,7 @@ in
   '';
 
   # Dummy key — proxy ignores it, hermes requires a non-empty value.
-  home.file.".hermes/.env" = {
-    text = "OPENAI_API_KEY=claude-cli-proxy\n";
-    mode = "0600";
-  };
+  home.file.".hermes/.env".text = "OPENAI_API_KEY=claude-cli-proxy\n";
 
   programs.fish.functions.hermes-proxy-status = {
     description = "Check claude-openai-proxy systemd service";
