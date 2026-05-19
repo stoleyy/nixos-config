@@ -213,3 +213,64 @@ sudo ausearch -k identity --start recent      # auth-state changes
 - **/etc/nixos is the deploy point**, but the canonical source is the GitHub
   repo. Edits to `/etc/nixos` files are lost on next `git pull origin main`.
 - **NixOS modules go in `lib/default.nix`**, not `flake.nix`.
+
+---
+
+## Steam: native Linux client is blocked — run the WINDOWS client under Wine
+
+**Native Linux Steam (and the Flatpak) cannot run on `predator`.** Their CEF
+`steamwebhelper` GPU process cannot initialise inside Valve's `steamrt`
+pressure-vessel on this NixOS + NVIDIA host: `cef_log` `error_code=1002` →
+"GPU process isn't usable"; kernel `trap int3 … in libcef.so`. Modern Steam
+needs CEF even for its login window, so the Linux client never becomes
+usable. Open upstream NixOS × pressure-vessel limitation —
+NixOS/nixpkgs#485863, GNU Guix steam-runtime#480 — **no upstream fix exists**.
+
+Exhaustively falsified on-box (do **not** retry): `hardware.nvidia.open=false`,
+`MESA_GLSL/SHADER_CACHE_DISABLE` extraEnv, `-cef-disable-gpu` (ignored by the
+build), `-cef-disable-sandbox`, `-no-cef-sandbox`, `-no-browser`, Steam Beta,
+GLCache/htmlcache wipes, `VK_ICD_FILENAMES`/`VK_DRIVER_FILES` pin, **and the
+Flatpak** (also runs `steamwebhelper` in the same `steamrt` pressure-vessel —
+fails identically; does not escape the bug).
+
+### Working solution: Windows `steam.exe` under Wine ✅ (verified on-box)
+
+The bug is specific to Valve's **Linux** pressure-vessel CEF. The **Windows**
+Steam client run under Wine uses Windows CEF translated straight onto the
+NVIDIA driver — it never touches the Linux runtime, so its GPU process is
+healthy and the full UI works (confirmed: live `--type=gpu-process` +
+renderers, usable window).
+
+```bash
+# system wine (wineWowPackages.stable, already in modules/gaming.nix);
+# default ~/.wine prefix; Windows Steam install lives on the old Windows
+# NTFS "Vault" partition (/dev/sda2, automounted by the desktop):
+wine "/run/media/stoleyy/Vault/Steam/steam.exe"
+```
+
+Add the Vault `steamapps` as a Steam library inside that client to see games.
+
+**Caveats / durability (worth fixing later, not required to play):**
+- Runs off NTFS (`/dev/sda2`) auto-mounted at `/run/media/stoleyy/Vault` by
+  udisks — the mount is **not guaranteed at boot**; mount the drive (open it
+  once in the file manager, or declare it by-UUID in
+  `hosts/predator/default.nix` like the games/`/data` mounts) before
+  launching, or `wine` will fail to find `steam.exe`.
+- NTFS + Wine is poorer for a game library than a Linux FS. Durable setup:
+  dedicated `WINEPREFIX` + library on a Linux filesystem.
+- This is the standard escape hatch for the "Linux Steam CEF won't render"
+  class of bug; revisit native Linux Steam only when nixpkgs#485863 is fixed
+  upstream and proven on an on-box `nixos-rebuild test`.
+
+### Also available for non-Steam games (host-native, unaffected)
+- **Heroic** (`heroic`) — Epic / GOG / Amazon. **Lutris** (`lutris`) — GOG,
+  Battle.net, DRM-free installers, emulators, any Wine/Proton title (uses
+  installed `proton-ge-bin`, `gamemode`, MangoHud).
+
+### Keepable wins from this investigation (independent of the Steam block)
+- `3d9333a` `hardware.nvidia.open = false` — fixes the **separate**
+  Plasma/SDDM-Wayland crash-loop (retest the Wayland session).
+- `650aa91` removed a global `NIXOS_OZONE_WL` X11 leak (merged via PR #43).
+- `programs.steam.enable = true` stays (vanilla) for system gaming plumbing
+  reused by Wine-Steam/controllers: steam-hardware udev, Remote Play
+  firewall, the nix-gaming sysctl bundle, gamescope.

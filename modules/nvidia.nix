@@ -18,7 +18,16 @@
 
   hardware.nvidia = {
     modesetting.enable = true;
-    open = true;
+    # open = false (proprietary module): the open kernel module is
+    # unreliable for GPU init on THIS RTX 4070 (Ada) box — it crash-loops
+    # the Plasma Wayland session / SDDM Wayland greeter (modules/desktop.nix)
+    # AND fails the Steam CEF GPU process (cef_log: gpu_process_host.cc
+    # error_code=1002 → "GPU process isn't usable"; upstream
+    # ValveSoftware/steam-for-linux #9780/#10980/#11728, NVIDIA-tracked).
+    # Proprietary is the mature Ada path and the documented fix for broken
+    # NVIDIA GL/VA-API hw-accel. Revisit open=true only after a driver bump
+    # proves these stay fixed on an on-box `nixos-rebuild test`.
+    open = false;
     nvidiaSettings = true;
 
     powerManagement.enable = true;
@@ -26,7 +35,7 @@
 
     # nvidia-persistenced keeps the GPU initialised across userspace sessions:
     # eliminates ~1 s GPU re-init on app launches, smooths suspend/resume,
-    # and prevents rare GPU resets seen on the open kernel module.
+    # and prevents rare GPU resets. Valuable on the proprietary module too.
     nvidiaPersistenced = true;
 
     # Production driver — best Wayland + Ada (RTX 4070) combination in 2025/26.
