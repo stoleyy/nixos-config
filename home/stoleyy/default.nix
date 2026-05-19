@@ -4,6 +4,7 @@
   imports = [
     ./shell.nix
     ./ai.nix
+    ./openhuman.nix
     ./terminal.nix
     ./editor.nix
     ./browser.nix
