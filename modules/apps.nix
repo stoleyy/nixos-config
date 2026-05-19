@@ -31,6 +31,11 @@
     htop
     unzip
     p7zip
+    # update-desktop-database — clears openhuman's non-fatal
+    # "Failed to run OS command 'update-desktop-database'" + the
+    # "[deep-link] register_all failed" warning (deep-link registration
+    # shells out to it).
+    desktop-file-utils
     # Git toolchain — lazygit TUI for staging/squashing, gh for repo ops,
     # delta as the pretty pager (wired in home/stoleyy/git.nix).
     lazygit

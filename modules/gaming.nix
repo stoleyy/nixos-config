@@ -30,6 +30,36 @@
       remotePlay.openFirewall = true;
       gamescopeSession.enable = true;
       extraCompatPackages = with pkgs; [ proton-ge-bin ];
+      # NVIDIA 580+'s libnvidia-glcore.so references __malloc_hook (removed
+      # in glibc 2.34+) and Steam's libcef.so needs localtime64 (absent on
+      # x86_64 glibc 2.40). Both cause the CEF GPU process to crash-loop
+      # with error_code=1002. Force Mesa software rendering for Steam's UI
+      # browser — games still use the real NVIDIA driver via Vulkan/Proton.
+      package = pkgs.steam.override {
+        extraEnv = {
+          LIBGL_ALWAYS_SOFTWARE = "1";
+          __GLX_VENDOR_LIBRARY_NAME = "mesa";
+        };
+      };
+      # steamwebhelper (CEF) and steamui.so need these in the FHS
+      # environment — without them the GPU process can't load and
+      # crash-loops with error_code=1002 / "GPU process isn't usable".
+      extraPackages = with pkgs; [
+        # CEF (steamwebhelper + libcef.so)
+        ibus # libibus-1.0.so.5
+        nss # libnss3.so, libnssutil3.so, libsmime3.so, libsoftokn3.so
+        nspr # libnspr4.so
+        # steamui.so (32-bit)
+        xorg.libXtst # libXtst.so.6
+        xorg.libXi # libXi.so.6
+        gtk2 # libgtk-x11-2.0.so.0
+        pipewire # libpipewire-0.3.so.0
+        libpulseaudio # libpulse.so.0
+        gdk-pixbuf # libgdk_pixbuf-2.0.so.0
+        libvpx # libvpx.so.6
+        libvdpau # libvdpau.so.1
+        bzip2 # libbz2.so.1.0
+      ];
       # Vetted nix-gaming SteamOS sysctl bundle: vm.max_map_count=2147483642
       # (fixes CS2/Hogwarts/DayZ/UE5 Proton crashes — default 65530 too low),
       # kernel.split_lock_mitigate=0, sched_cfs_bandwidth_slice_us,

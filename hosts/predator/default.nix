@@ -150,7 +150,13 @@
     # Boot with Hyprland as the default session instead of Plasma.
     # Select "hyprland" from the systemd-boot menu.
     hyprland.configuration = {
-      services.displayManager.defaultSession = lib.mkForce "hyprland";
+      services.displayManager = {
+        defaultSession = lib.mkForce "hyprland";
+        autoLogin = {
+          enable = true;
+          user = "stoleyy";
+        };
+      };
     };
 
     # Verbose boot + tracing tools for diagnosing kernel/driver issues.
