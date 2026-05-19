@@ -1,5 +1,31 @@
 { pkgs, ... }:
-
+let
+  # The only working Steam path on this box: the Windows steam.exe under
+  # Wine. Native Linux Steam + Flatpak are blocked by the steamrt
+  # pressure-vessel bug (nixpkgs#485863) — see docs/runbook.md and the
+  # programs.steam note below. Fails loudly if the Vault drive isn't mounted.
+  steam-wine = pkgs.writeShellScriptBin "steam-wine" ''
+    set -euo pipefail
+    steam_exe=/run/media/stoleyy/Vault/Steam/steam.exe
+    if [ ! -e "$steam_exe" ]; then
+      msg="Vault drive not mounted, or Steam missing at $steam_exe"
+      ${pkgs.libnotify}/bin/notify-send -u critical -a 'Steam (Wine)' \
+        'Steam cannot start' "$msg" 2>/dev/null || true
+      echo "steam-wine: $msg" >&2
+      exit 1
+    fi
+    exec ${pkgs.wineWowPackages.stable}/bin/wine "$steam_exe" "$@"
+  '';
+  steam-wine-desktop = pkgs.makeDesktopItem {
+    name = "steam-wine";
+    desktopName = "Steam (Wine)";
+    comment = "Windows Steam under Wine — native Linux Steam blocked (nixpkgs#485863)";
+    exec = "steam-wine %U";
+    icon = "steam";
+    categories = [ "Game" ];
+    startupWMClass = "steam.exe";
+  };
+in
 {
   programs = {
     gamemode = {
@@ -46,16 +72,14 @@
       # crash-loop), MESA_* extraEnv, -cef-disable-gpu (ignored),
       # -cef-disable-sandbox, -no-cef-sandbox, -no-browser, Beta, cache wipes.
       #
-      # Steam is therefore run via FLATPAK (com.valvesoftware.Steam): it
-      # ships its own freedesktop runtime + NVIDIA GL extension and does not
-      # use the failing host-provider path. services.flatpak + xdg.portal
-      # are already enabled (modules/apps.nix); install is a one-time
-      # `flatpak install flathub com.valvesoftware.Steam` (see docs/runbook).
-      # programs.steam.enable stays true (no package override) for the
-      # system gaming plumbing the Flatpak benefits from: steam-hardware
-      # udev (controllers), Remote Play firewall, the nix-gaming sysctl
-      # bundle, gamescope. Revert to the native client only after
-      # nixpkgs#485863 is fixed upstream and proven on an on-box test.
+      # WORKING PATH: the Windows steam.exe under Wine (wineWowPackages
+      # .stable) — see the `steam-wine` wrapper in this module's let block
+      # and docs/runbook.md. Flatpak was also tried and fails identically
+      # (same steamrt pressure-vessel). programs.steam.enable stays true
+      # (no package override) for system gaming plumbing steam-wine /
+      # controllers reuse: steam-hardware udev, Remote Play firewall, the
+      # nix-gaming sysctl bundle, gamescope. Revert to the native client
+      # only after nixpkgs#485863 is fixed upstream and proven on-box.
     };
   };
 
@@ -84,5 +108,7 @@
     heroic
     lutris
     wineWowPackages.stable
+    steam-wine
+    steam-wine-desktop
   ];
 }
