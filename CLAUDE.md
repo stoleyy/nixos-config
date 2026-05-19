@@ -48,20 +48,22 @@ is `/etc/nixos`, not this clone.**
   `76d8d69`). A Wayland fix is in progress (`nvidia-drm.fbdev=1` in
   `modules/nvidia.nix`); X11 stays default until an on-box
   `nixos-rebuild test` proves the Wayland session stays up.
-- **Plasma Wayland** is still installed and selectable from the SDDM
-  session dropdown to retest after driver bumps.
-- **Hyprland** is selectable from the SDDM dropdown and via its boot
-  specialisation entry.
-- Both home-manager profiles ship simultaneously; HM imports both stacks.
-- **Plasma 6 X11** is the SDDM default
-  (`services.displayManager.defaultSession = "plasmax11"` in
-  `modules/desktop.nix`). Switched from Wayland after the kwin_wayland
-  compositor + SDDM Wayland greeter crash-looped on this NVIDIA RTX 4070 +
-  open kernel module stack (~1 s greeter → drop to text login). The Plasma
-  Wayland session is still installed and selectable from SDDM to retest
-  after driver bumps.
-- **Hyprland** is the Wayland option, selectable from the SDDM dropdown.
-  This is the working Wayland path on this hardware.
+- **Autologin is enabled** (`services.displayManager.autoLogin`, user
+  `stoleyy` — `modules/desktop.nix`) so every boot entry is deterministic
+  and does NOT consult SDDM's mutable, `$HOME`-shared
+  `~/.local/share/sddm/state.conf` last-session cache: the default entry
+  autologins into `plasmax11`; the **hyprland** specialisation
+  `mkForce`-overrides `defaultSession` and autologins into `hyprland`.
+  Without this the specialisation's autologin poisoned the shared cache and
+  the Plasma entry's greeter then pre-selected Hyprland too — both boot
+  entries landed in Hyprland (see Pitfalls).
+- **Switching session / retesting Plasma Wayland**: autologin skips the
+  greeter at boot. To reach the SDDM session dropdown (e.g. to retest Plasma
+  Wayland after a driver bump) **log out without rebooting** — the greeter
+  then reappears — or boot the relevant specialisation entry.
+- **Hyprland** is reached via its boot specialisation entry (deterministic
+  autologin). Plasma Wayland is still installed and dropdown-selectable
+  after a logout as above.
 - Both home-manager profiles (Plasma + Hyprland) ship simultaneously; HM
   imports both stacks.
 
@@ -213,12 +215,19 @@ shellcheck .claude/hooks/*.sh
 - **HM `gtk` module owns `~/.config/gtk-{3,4}.0/gtk.css`** — use
   `gtk.gtk3.extraCss` / `gtk.gtk4.extraCss`, never `home.file` for those paths.
 - **SDDM remembers the per-user last session and overrides
-  `services.displayManager.defaultSession`** — the system default only
-  applies to a user with no stored session. Changing `defaultSession`
-  (Plasma↔Hyprland, X11↔Wayland) looks like it "didn't apply" because SDDM
-  prefers the remembered session in `~/.local/share/sddm/state.conf`. Clear
-  that file (or pick the target session once from the SDDM dropdown) for the
-  new default to take effect.
+  `services.displayManager.defaultSession`** — SDDM stamps `[Last] Session`
+  into `~/.local/share/sddm/state.conf` on *every* login (autologin
+  included), and `$HOME` is shared across specialisations, so the hyprland
+  specialisation's autologin poisoned this file and made the default Plasma
+  entry's greeter pre-select Hyprland too (both entries booted Hyprland).
+  **Now mitigated by `services.displayManager.autoLogin`**
+  (`modules/desktop.nix`): autologin skips the greeter and uses the
+  configured `Autologin.Session` (= `defaultSession`), so each boot entry is
+  deterministic and ignores the cache. Residual edge: after an in-session
+  **logout without reboot** the greeter reappears and *will* still honour
+  the cached last-session — reboot (or pick from the dropdown) to switch. A
+  stale `state.conf` predating this change must be cleared once on the box:
+  `rm -f ~/.local/share/sddm/state.conf`.
 - **sops-nix age key not bootstrapped** — `.sops.yaml` still has the
   placeholder `age1REPLACE_WITH_OUTPUT_OF_SSH_TO_AGE`. Until the real host
   key is generated (`ssh-to-age < /etc/ssh/ssh_host_ed25519_key.pub`) and
