@@ -82,12 +82,19 @@
       '';
     };
 
-    # Open an interactive Claude agent session with full tool access.
+    # Open an interactive Claude agent session rooted at /etc/nixos so the
+    # full harness is active: .mcp.json (mcp-nixos), .claude/hooks/, and
+    # .claude/settings.json are all picked up automatically by Claude Code.
     # Usage:  agent
     #         agent --allowedTools Bash,Read,Write
     agent = {
-      description = "Interactive Claude autonomous agent session";
-      body = "claude $argv";
+      description = "Interactive Claude session with nixos-config harness";
+      body = ''
+        set _prev $PWD
+        cd /etc/nixos
+        claude $argv
+        cd $_prev
+      '';
     };
 
     # Local Ollama query — offline fallback, no auth required.

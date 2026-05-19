@@ -4,19 +4,19 @@ _:
   programs.ghostty = {
     enable = true;
     settings = {
-      background = "#000000";
-      foreground = "#e5e5e5";
-      cursor-color = "#ffffff";
-      background-opacity = 1.0;
-      background-blur-radius = 0;
-      font-family = "GeistMono Nerd Font";
-      font-size = 12;
-      window-padding-x = 14;
-      window-padding-y = 14;
-      window-decoration = false;
-      cursor-style = "block";
+      theme = "GruvboxDark";
+      background-opacity = 0.85;
+      background-blur-radius = 20;
+      cursor-style = "bar";
       cursor-style-blink = false;
+      font-family = "JetBrainsMono Nerd Font";
+      font-size = 13;
+      window-padding-x = 12;
+      window-padding-y = 12;
+      window-decoration = false;
       mouse-hide-while-typing = true;
+      selection-background = "#3c3836";
+      selection-foreground = "#ebdbb2";
     };
   };
 }
