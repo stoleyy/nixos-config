@@ -5,6 +5,7 @@
     ./shell.nix
     ./ai.nix
     ./openhuman.nix
+    ./claude-proxy.nix
     ./terminal.nix
     ./editor.nix
     ./browser.nix
