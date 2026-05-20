@@ -48,11 +48,30 @@ log()  { printf '%-6s %s\n' "[$1]" "$2"; }
 # ── 1. Discover API keys ─────────────────────────────────────────────────────
 
 find_api_key() {
-  local app="$1"
-  local cfg
-  cfg=$(find "/var/lib/$app" -maxdepth 4 -name config.xml -type f 2>/dev/null | head -1)
-  [[ -n "$cfg" ]] || { echo "No config.xml under /var/lib/$app — has $app started yet?" >&2; return 1; }
-  grep -oP '(?<=<ApiKey>)[^<]+' "$cfg" | head -1
+  local app="$1" path
+  # Try common config.xml locations in priority order. Direct path is the
+  # default on NixOS (prowlarr's `-data=/var/lib/<app>`). The capitalised
+  # subfolder and `.config/NzbDrone` variants cover sonarr/radarr layouts
+  # depending on which NixOS module version is in use.
+  for path in \
+    "/var/lib/$app/config.xml" \
+    "/var/lib/$app/${app^}/config.xml" \
+    "/var/lib/$app/.config/${app^}/config.xml" \
+    "/var/lib/$app/.config/NzbDrone/config.xml"; do
+    if [[ -f "$path" ]]; then
+      grep -oP '(?<=<ApiKey>)[^<]+' "$path" | head -1
+      return 0
+    fi
+  done
+  echo "No config.xml under /var/lib/$app — tried:" >&2
+  printf '  %s\n' \
+    "/var/lib/$app/config.xml" \
+    "/var/lib/$app/${app^}/config.xml" \
+    "/var/lib/$app/.config/${app^}/config.xml" \
+    "/var/lib/$app/.config/NzbDrone/config.xml" >&2
+  echo "Files actually present:" >&2
+  ls "/var/lib/$app" 2>&1 | sed 's/^/  /' >&2
+  return 1
 }
 
 log INFO "Reading API keys from /var/lib/{prowlarr,sonarr,radarr}/"
