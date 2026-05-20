@@ -32,9 +32,7 @@ readonly PUBLIC_INDEXERS=(
   "EZTV"
   "Nyaa.si"
   "LimeTorrents"
-  "TheRARBG"
   "YTS"
-  "TorrentGalaxy"
 )
 
 # ── 0. Sanity ────────────────────────────────────────────────────────────────
@@ -93,8 +91,25 @@ done
 
 # ── 3. Prowlarr API helpers ──────────────────────────────────────────────────
 
-pq_get()  { curl -fsS -H "X-Api-Key: $PROWLARR_KEY" "$PROWLARR_URL/api/v1$1"; }
-pq_post() { curl -fsS -H "X-Api-Key: $PROWLARR_KEY" -H 'Content-Type: application/json' -X POST -d "$2" "$PROWLARR_URL/api/v1$1"; }
+pq_get() { curl -fsS -H "X-Api-Key: $PROWLARR_KEY" "$PROWLARR_URL/api/v1$1"; }
+
+# pq_post writes the response body to stdout on 2xx, or to stderr with the
+# HTTP code on non-2xx — so callers can grep schema names out of stderr when
+# Prowlarr rejects a payload.
+pq_post() {
+  local resp http body
+  resp=$(curl -sS -H "X-Api-Key: $PROWLARR_KEY" -H 'Content-Type: application/json' \
+    -X POST -w $'\n%{http_code}' -d "$2" "$PROWLARR_URL/api/v1$1")
+  http="${resp##*$'\n'}"
+  body="${resp%$'\n'*}"
+  if [[ "$http" =~ ^2 ]]; then
+    printf '%s' "$body"
+    return 0
+  else
+    printf '%s\n' "HTTP $http: $body" >&2
+    return 1
+  fi
+}
 
 # ── 4. Register Sonarr / Radarr as Prowlarr Apps ─────────────────────────────
 
@@ -164,7 +179,8 @@ add_indexer() {
   fi
 
   local payload
-  payload=$(echo "$schema" | jq '. + {enable: true, priority: 25, tags: []}')
+  payload=$(echo "$schema" | jq --argjson pid "$DEFAULT_APP_PROFILE_ID" \
+    '. + {enable: true, priority: 25, tags: [], appProfileId: $pid}')
 
   if pq_post /indexer "$payload" >/dev/null; then
     log ADD  "indexer $name"
@@ -174,6 +190,8 @@ add_indexer() {
 }
 
 log INFO "Adding public indexers"
+DEFAULT_APP_PROFILE_ID=$(pq_get /appprofile | jq -r '.[0].id // 1')
+log INFO "Linking to appProfileId=$DEFAULT_APP_PROFILE_ID"
 for idx in "${PUBLIC_INDEXERS[@]}"; do
   add_indexer "$idx"
 done
