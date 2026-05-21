@@ -1,21 +1,9 @@
 { pkgs, ... }:
 
-let
-  # Warm diagonal gradient wallpaper generated at build time (no external files).
-  gradientWallpaper = pkgs.runCommand "gruvbox-gradient.png" {
-    nativeBuildInputs = [ pkgs.imagemagick ];
-  } ''
-    magick -size 3840x2160 \
-      gradient:'#1d2021'-'#32302f' \
-      -distort SRT 25 \
-      -sigmoidal-contrast 4x50% \
-      $out
-  '';
-in
 {
   home.packages = with pkgs; [
     swaynotificationcenter
-    swww
+    linux-wallpaperengine
     wl-clip-persist
     hyprpicker
     rofimoji
@@ -88,8 +76,9 @@ in
       ];
 
       exec-once = [
-        "swww-daemon"
-        "sleep 1 && swww img --transition-type grow --transition-duration 2 --transition-pos center --transition-fps 240 ${gradientWallpaper}"
+        # Wallpaper Engine wallpaper (workshop ID 3544773177) via the native
+        # linux-wallpaperengine. Pinned to HDMI-A-1; --silent mutes audio.
+        "linux-wallpaperengine --silent --screen-root HDMI-A-1 3544773177"
         "waybar"
         "swaync"
         "nm-applet --indicator"
@@ -199,7 +188,8 @@ in
         key_press_enables_dpms = true;
         # Adaptive Sync / VRR — pairs with __GL_VRR_ALLOWED=1 in env.
         vrr = 1;
-        # Match swww's clear colour so there's no black flash at startup.
+        # Dark fallback colour shown briefly before the wallpaper engine
+        # process renders — avoids a black flash at startup.
         background_color = "rgb(1d2021)";
       };
 
