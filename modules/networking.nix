@@ -43,28 +43,22 @@
   # seconds on the sole server before reaching FallbackDns (the classic
   # "internet looks broken the moment the VPN connects" symptom).
   #
-  # `domains = [ "~." ]` forces all queries to the declared DNS server;
-  # without it, DHCP-supplied DNS from the home router wins and OPNsense
-  # never sees the queries.
-  #
-  # dnssec = "allow-downgrade" + dnsovertls = "opportunistic" because
-  # OPNsense Unbound speaks plain DNS on the LAN side; strict "true"
-  # would refuse the server and break resolution entirely.
+  # DNS goes straight to Quad9 over TLS (port 853), bypassing OPNsense
+  # Unbound. Quad9 provides DNSSEC validation + threat-domain blocking.
+  # strict DoT = queries never fall back to plaintext.
   services = {
     resolved = {
       enable = true;
-      dnssec = "allow-downgrade";
-      dnsovertls = "opportunistic";
+      dnssec = "true";
+      dnsovertls = "true";
       llmnr = "false"; # disable LLMNR — credential-theft surface (T1557.001)
       domains = [ "~." ];
       fallbackDns = [
-        "9.9.9.9"
-        "149.112.112.112"
-        "2620:fe::fe"
-        "2620:fe::9"
+        "149.112.112.112#dns.quad9.net"
+        "2620:fe::9#dns.quad9.net"
       ];
       extraConfig = ''
-        DNS=192.168.1.114 9.9.9.9 149.112.112.112
+        DNS=9.9.9.9#dns.quad9.net 149.112.112.112#dns.quad9.net 2620:fe::fe#dns.quad9.net 2620:fe::9#dns.quad9.net
       '';
     };
 
