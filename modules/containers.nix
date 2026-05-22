@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
 # Container runtime for declarative services (Wazuh manager, future workloads).
 # Uses podman with dockerCompat = true so `virtualisation.oci-containers` works
@@ -10,9 +10,20 @@
       enable = true;
       dockerCompat = true; # `docker` CLI = podman
       defaultNetwork.settings.dns_enabled = true; # container hostnames resolve
+      autoPrune = {
+        enable = true;
+        dates = "weekly";
+        flags = [ "--all" ]; # remove all unused images, not just dangling
+      };
     };
     oci-containers.backend = "podman";
   };
+
+  # Restrict unqualified image pulls to trusted registries only.
+  # mkForce: the containers module also writes this file; override it.
+  environment.etc."containers/registries.conf".text = lib.mkForce ''
+    unqualified-search-registries = ["docker.io", "ghcr.io", "quay.io"]
+  '';
 
   # Make podman-compose available for ad-hoc compose-file workloads.
   environment.systemPackages = with pkgs; [

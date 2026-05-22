@@ -24,4 +24,14 @@ _:
     wants = [ "wg-quick-protonvpn.service" ];
     after = [ "wg-quick-protonvpn.service" ];
   };
+
+  # Resource limits — prevent model inference from starving the desktop.
+  # 48 GB cap leaves 16 GB for the system on 64 GB RAM; 8 cores of 24.
+  systemd.services.ollama.serviceConfig = {
+    MemoryMax = "48G";
+    MemoryHigh = "40G";
+    CPUQuota = "800%";
+    TasksMax = 128;
+    OOMPolicy = "stop";
+  };
 }

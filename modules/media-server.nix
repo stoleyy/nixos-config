@@ -97,8 +97,9 @@
   # qBittorrent: upstream already has full hardening; we override the three
   # settings that differ: ProtectHome off (media in /home), ProtectSystem
   # strict (upstream uses full), PrivateTmp on (upstream disables it).
+  # bindsTo: if VPN dies, qBittorrent stops too — prevents IP leaks.
   systemd.services.qbittorrent = {
-    wants = [ "wg-quick-protonvpn.service" ];
+    bindsTo = [ "wg-quick-protonvpn.service" ];
     after = [ "wg-quick-protonvpn.service" ];
     serviceConfig = {
       ProtectHome = lib.mkForce false;
@@ -108,18 +109,66 @@
         "/home/stoleyy/games/media"
       ];
       PrivateTmp = lib.mkForce true;
+      NoNewPrivileges = true;
+      PrivateDevices = true;
+      ProtectKernelModules = true;
+      ProtectKernelTunables = true;
+      ProtectKernelLogs = true;
+      ProtectControlGroups = true;
+      ProtectClock = true;
+      RestrictRealtime = true;
+      RestrictSUIDSGID = true;
+      LockPersonality = true;
+      RestrictNamespaces = true;
+      ProtectHostname = true;
+      ProtectProc = "invisible";
+      ProcSubset = "pid";
+      RestrictAddressFamilies = [
+        "AF_INET"
+        "AF_INET6"
+        "AF_UNIX"
+        "AF_NETLINK"
+      ];
+      CapabilityBoundingSet = "";
+      SystemCallFilter = [ "@system-service" ];
+      SystemCallArchitectures = "native";
+      MemoryDenyWriteExecute = true;
     };
   };
 
   # ---------- systemd service hardening ----------
-  # Jellyfin: upstream has most hardening; add ProtectSystem=strict + ProtectClock
+  # Jellyfin: upstream has most hardening; add the full sandboxing stack.
+  # PrivateDevices omitted — Jellyfin needs /dev/dri for NVENC GPU transcoding.
   systemd.services.jellyfin.serviceConfig = {
     ProtectSystem = "strict";
     ReadWritePaths = [
       "/var/lib/jellyfin"
       "/home/stoleyy/games/media"
     ];
+    NoNewPrivileges = true;
+    PrivateTmp = true;
+    ProtectKernelModules = true;
+    ProtectKernelTunables = true;
+    ProtectKernelLogs = true;
+    ProtectControlGroups = true;
     ProtectClock = true;
+    RestrictRealtime = true;
+    RestrictSUIDSGID = true;
+    LockPersonality = true;
+    RestrictNamespaces = true;
+    ProtectHostname = true;
+    ProtectProc = "invisible";
+    ProcSubset = "pid";
+    RestrictAddressFamilies = [
+      "AF_INET"
+      "AF_INET6"
+      "AF_UNIX"
+      "AF_NETLINK"
+    ];
+    CapabilityBoundingSet = "";
+    SystemCallFilter = [ "@system-service" ];
+    SystemCallArchitectures = "native";
+    # MemoryDenyWriteExecute omitted: .NET CoreCLR JIT requires W+X pages
   };
   systemd.services.sonarr.serviceConfig = {
     ProtectSystem = "strict";
@@ -138,6 +187,19 @@
     RestrictRealtime = true;
     RestrictSUIDSGID = true;
     LockPersonality = true;
+    RestrictNamespaces = true;
+    ProtectHostname = true;
+    ProtectProc = "invisible";
+    ProcSubset = "pid";
+    RestrictAddressFamilies = [
+      "AF_INET"
+      "AF_INET6"
+      "AF_UNIX"
+    ];
+    CapabilityBoundingSet = "";
+    SystemCallFilter = [ "@system-service" ];
+    SystemCallArchitectures = "native";
+    # MemoryDenyWriteExecute omitted: .NET/Mono JIT requires W+X pages
   };
   systemd.services.radarr.serviceConfig = {
     ProtectSystem = "strict";
@@ -156,6 +218,19 @@
     RestrictRealtime = true;
     RestrictSUIDSGID = true;
     LockPersonality = true;
+    RestrictNamespaces = true;
+    ProtectHostname = true;
+    ProtectProc = "invisible";
+    ProcSubset = "pid";
+    RestrictAddressFamilies = [
+      "AF_INET"
+      "AF_INET6"
+      "AF_UNIX"
+    ];
+    CapabilityBoundingSet = "";
+    SystemCallFilter = [ "@system-service" ];
+    SystemCallArchitectures = "native";
+    # MemoryDenyWriteExecute omitted: .NET/Mono JIT requires W+X pages
   };
   systemd.services.prowlarr.serviceConfig = {
     ProtectSystem = "strict";
@@ -171,6 +246,19 @@
     RestrictRealtime = true;
     RestrictSUIDSGID = true;
     LockPersonality = true;
+    RestrictNamespaces = true;
+    ProtectHostname = true;
+    ProtectProc = "invisible";
+    ProcSubset = "pid";
+    RestrictAddressFamilies = [
+      "AF_INET"
+      "AF_INET6"
+      "AF_UNIX"
+    ];
+    CapabilityBoundingSet = "";
+    SystemCallFilter = [ "@system-service" ];
+    SystemCallArchitectures = "native";
+    # MemoryDenyWriteExecute omitted: .NET/Mono JIT requires W+X pages
   };
   systemd.services.bazarr.serviceConfig = {
     ProtectSystem = "strict";
@@ -189,6 +277,19 @@
     RestrictRealtime = true;
     RestrictSUIDSGID = true;
     LockPersonality = true;
+    RestrictNamespaces = true;
+    ProtectHostname = true;
+    ProtectProc = "invisible";
+    ProcSubset = "pid";
+    RestrictAddressFamilies = [
+      "AF_INET"
+      "AF_INET6"
+      "AF_UNIX"
+    ];
+    CapabilityBoundingSet = "";
+    SystemCallFilter = [ "@system-service" ];
+    SystemCallArchitectures = "native";
+    MemoryDenyWriteExecute = true;
   };
 
   # Torrenting port (TCP+UDP) — needed for incoming peer connections.

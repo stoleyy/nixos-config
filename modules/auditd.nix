@@ -52,6 +52,24 @@ _:
 
       # Kernel module load/unload.
       "-a always,exit -F arch=b64 -S init_module,delete_module,finit_module -k modules"
+
+      # Failed access attempts (EACCES/EPERM = exploitation/recon signal).
+      "-a always,exit -F arch=b64 -S open,openat,creat -F exit=-EACCES -F auid>=1000 -F auid!=-1 -k access-denied"
+      "-a always,exit -F arch=b64 -S open,openat,creat -F exit=-EPERM  -F auid>=1000 -F auid!=-1 -k access-denied"
+
+      # File attribute / ACL tampering.
+      "-a always,exit -F arch=b64 -S setxattr,lsetxattr,fsetxattr,removexattr,lremovexattr,fremovexattr -F auid>=1000 -F auid!=-1 -k file-attr"
+      "-a always,exit -F arch=b64 -S chmod,fchmod,fchmodat -F auid>=1000 -F auid!=-1 -k file-perm"
+      "-a always,exit -F arch=b64 -S fchownat,fchown,chown,lchown -F auid>=1000 -F auid!=-1 -k file-perm"
+
+      # Mount operations (filesystem manipulation).
+      "-a always,exit -F arch=b64 -S mount,umount2 -F auid>=1000 -F auid!=-1 -k mounts"
+
+      # Time changes — no auid filter; any-context time manipulation is suspicious.
+      "-a always,exit -F arch=b64 -S adjtimex,settimeofday,clock_settime -k time-change"
+
+      # Privilege boundary (uid/gid changes).
+      "-a always,exit -F arch=b64 -S setuid,setgid,setresuid,setresgid,setfsuid,setfsgid -F auid>=1000 -F auid!=-1 -k priv-boundary"
     ];
   };
 }

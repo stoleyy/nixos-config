@@ -40,6 +40,46 @@
       Persistent = true;
     };
   };
+  # Flatpak auto-update: weekly, after the flake-lock-update timer.
+  # Steam (Flatpak) and any other Flatpak apps stay current without manual pulls.
+  systemd.timers."flatpak-update" = {
+    description = "Weekly Flatpak update";
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "Sun 05:00";
+      RandomizedDelaySec = "30min";
+      Persistent = true;
+    };
+  };
+  systemd.services."flatpak-update" = {
+    description = "Update all Flatpak applications";
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.flatpak}/bin/flatpak update -y --noninteractive";
+    };
+  };
+
+  # ---------- weekly CVE scan ----------
+  # Runs after auto-upgrade completes, scanning the live closure for known CVEs.
+  # Output goes to journal: journalctl -u vulnix-scan
+  environment.systemPackages = [ pkgs.vulnix ];
+  systemd.timers."vulnix-scan" = {
+    description = "Weekly CVE scan of the running NixOS closure";
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "Sun 06:00";
+      RandomizedDelaySec = "30min";
+      Persistent = true;
+    };
+  };
+  systemd.services."vulnix-scan" = {
+    description = "Scan running system closure for known CVEs (vulnix)";
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.vulnix}/bin/vulnix -S";
+    };
+  };
+
   systemd.services."flake-lock-update" = {
     description = "Refresh flake.lock and commit it to a review branch";
     # `nix flake update` on the /etc/nixos *git* flake shells out to `git`;
