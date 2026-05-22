@@ -36,6 +36,8 @@
       proton-pass
       tor-browser
       claude-code
+      vesktop
+      telegram-desktop
     ];
   };
 

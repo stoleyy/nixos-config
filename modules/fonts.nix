@@ -10,9 +10,6 @@
       noto-fonts-cjk-sans
       noto-fonts-color-emoji
       liberation_ttf
-      jetbrains-mono
-      fira-code
-      fira-code-symbols # F08: ligature symbols for fira-code
       nerd-fonts.jetbrains-mono
     ];
 

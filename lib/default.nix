@@ -42,6 +42,8 @@
         ../modules/protonvpn-rotate.nix
         ../modules/media-server.nix
         ../modules/auditd.nix
+        ../modules/fan-control.nix
+        ../modules/openrgb.nix
         ../modules/update-routines.nix
         inputs.nix-gaming.nixosModules.pipewireLowLatency
         inputs.nix-gaming.nixosModules.platformOptimizations

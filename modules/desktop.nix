@@ -6,26 +6,16 @@
     desktopManager.plasma6.enable = true;
     displayManager.sddm = {
       enable = true;
-      # SDDM greeter runs on Xorg, NOT Wayland. The Wayland greeter is
-      # kwin_wayland-backed and crashes ~1s after start on this NVIDIA stack
-      # (RTX 4070, open module) — confirmed in journalctl: "Greeter
-      # started successfully" immediately followed by "Greeter stopped",
-      # dropping the box to a text `predator login:`. The Xorg greeter is
-      # the stable path on NVIDIA. Pairs with the X11 Plasma session below.
-      wayland.enable = false;
+      # SDDM Wayland greeter: now retesting with open=true + fbdev=1.
+      # Previously crashed on open module without fbdev=1 (reverted 59af7a7).
+      # If it regresses (greeter flashes → text login), revert to false.
+      wayland.enable = true;
     };
 
-    # Plasma 6 X11 session is the default. The Plasma *Wayland* session is
-    # kwin_wayland-backed and crashes the same way the SDDM Wayland greeter
-    # did on this RTX 4070 + open-module stack: the Xorg greeter now shows
-    # the login screen, but a Wayland session bounced straight back to it
-    # (login → ~1s flash → SDDM). Full X11 (Xorg greeter + X11 Plasma) is
-    # the stable NVIDIA path here. The Wayland session is still installed;
-    # autologin (below) skips the greeter at boot, so to retest it after a
-    # driver bump, log out (the greeter then reappears) and pick it from the
-    # SDDM session dropdown. Hyprland stays available via its specialisation
-    # entry.
-    displayManager.defaultSession = "plasmax11";
+    # Plasma 6 Wayland session. Retesting with open=true + fbdev=1
+    # (previously crash-looped without fbdev=1, reverted in 59af7a7).
+    # If it regresses, revert to "plasmax11".
+    displayManager.defaultSession = "plasma";
 
     # Autologin into the default session. SDDM stamps the last-used session
     # into the $HOME-shared ~/.local/share/sddm/state.conf on every login —

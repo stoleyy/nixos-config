@@ -149,8 +149,12 @@
   # Ensure mount-point directories exist with correct ownership before systemd
   # mounts the filesystems declared in hardware-configuration.nix.
   systemd.tmpfiles.rules = [
-    "d /home/stoleyy/games 0755 stoleyy stoleyy -"
-    "d /data               0755 stoleyy stoleyy -"
+    # Mount-point directories: root:root is correct — these are just mount targets,
+    # the mounted filesystem sets the actual permissions. Using stoleyy:stoleyy here
+    # caused early-boot "Failed to resolve group 'stoleyy'" errors because the user
+    # database may not be fully available when 00-nixos.conf tmpfiles rules run.
+    "d /home/stoleyy/games 0755 root root -"
+    "d /data               0755 root root -"
   ];
 
   specialisation = {

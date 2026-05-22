@@ -18,15 +18,12 @@
 
   hardware.nvidia = {
     modesetting.enable = true;
-    # open = false (proprietary module): the open kernel module is
-    # unreliable for GPU init on THIS RTX 4070 (Ada) box — it crash-loops
-    # the Plasma Wayland session / SDDM Wayland greeter (modules/desktop.nix)
-    # AND fails the Steam CEF GPU process (cef_log: gpu_process_host.cc
-    # error_code=1002 → "GPU process isn't usable"; upstream
-    # ValveSoftware/steam-for-linux #9780/#10980/#11728, NVIDIA-tracked).
-    # Proprietary is the mature Ada path and the documented fix for broken
-    # NVIDIA GL/VA-API hw-accel. Revisit open=true only after a driver bump
-    # proves these stay fixed on an on-box `nixos-rebuild test`.
+    # open = false (proprietary module): the open kernel module crash-loops
+    # the Plasma Wayland session / SDDM Wayland greeter on this RTX 4070 (Ada)
+    # box even with nvidia-drm.fbdev=1 — tested and confirmed broken on the
+    # production driver (2026-05). Also breaks Steam CEF GPU process
+    # (error_code=1002). Revisit only after a future driver bump on a spare
+    # generation via nixos-rebuild test.
     open = false;
     nvidiaSettings = true;
 
@@ -76,7 +73,23 @@
     # in big Vulkan/GL titles. Path defaults to ~/.nv when unset; pin it under
     # XDG_CACHE_HOME so it follows the user's cache hygiene.
     __GL_SHADER_DISK_CACHE = "1";
-    __GL_SHADER_DISK_CACHE_PATH = "$HOME/.cache/nv-shader-cache";
+    __GL_SHADER_DISK_CACHE_PATH = "/home/stoleyy/.cache/nv-shader-cache";
+    # Disable the driver's 1 GB shader-cache size limit. Without this, AAA
+    # titles (Cyberpunk, Hogwarts Legacy) fill the cache and the driver prunes
+    # old entries, causing recompilation stutter on revisit. Ref: Steam #11392.
+    __GL_SHADER_DISK_CACHE_SKIP_CLEANUP = "1";
+    # USLEEP yield: the driver uses usleep() instead of busy-waiting on GL
+    # synchronisation, reducing CPU overhead during GPU-bound rendering (the
+    # norm for AAA at 4K on this box). Arch Wiki / NVIDIA OpenGL docs.
+    __GL_YIELD = "USLEEP";
   };
+
+  # PAT write-combining: more efficient CPU→GPU memory mapping than the MTRR
+  # fallback. CachyOS enables this by default. Skip zeroing GPU system-memory
+  # allocations — minor throughput gain, negligible security delta on a
+  # single-user gaming desktop.
+  boot.extraModprobeConfig = ''
+    options nvidia NVreg_UsePageAttributeTable=1 NVreg_InitializeSystemMemoryAllocations=0
+  '';
 
 }

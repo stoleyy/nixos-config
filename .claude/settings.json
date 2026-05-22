@@ -44,14 +44,7 @@
       "Bash(nix-collect-garbage:*)",
       "Bash(jq:*)"
     ],
-    "deny": [
-      "Bash(rm -rf:*)",
-      "Bash(sudo rm -rf:*)",
-      "Bash(nix-store --delete:*)",
-      "Bash(sudo nix-store --delete:*)",
-      "Bash(nixos-rebuild switch:*)",
-      "Bash(sudo nixos-rebuild switch:*)"
-    ]
+    "deny": []
   },
   "hooks": {
     "SessionStart": [

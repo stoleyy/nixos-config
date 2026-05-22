@@ -131,7 +131,8 @@
     "befs"
     "cramfs"
     "efs"
-    "erofs"
+    # erofs intentionally NOT blacklisted — Flatpak's freedesktop runtime 23.08+
+    # uses EROFS for image layers; blacklisting breaks Flatpak updates.
     "exofs"
     "freevxfs"
     "f2fs"

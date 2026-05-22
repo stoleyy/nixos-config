@@ -17,12 +17,12 @@ let
     }:
     stdenv.mkDerivation {
       pname = "it87";
-      version = "unstable-2025-01-01";
+      version = "unstable-2026-05-22";
 
       src = fetchFromGitHub {
         owner = "frankcrawford";
         repo = "it87";
-        rev = "master";
+        rev = "20f2f2f4c92c14fcdd26f60d050e693ad2c30bf8";
         hash = "sha256-o2riPbm75Bez4/SrGV7hB3mlqdxxrwRPdre+3W5y/I0=";
       };
 
@@ -102,10 +102,11 @@ in
     options it87 force_id=0x8628 ignore_resource_conflict=1
   '';
 
-  # iomem=relaxed: allow /dev/mem writes for FTEN (Feature Enable)
-  # acpi_enforce_resources=lax: let it87 claim I/O ports held by ACPI PNP
+  # acpi_enforce_resources=lax: let it87 claim I/O ports held by ACPI PNP.
+  # iomem=relaxed was removed: it87 + fancontrol use sysfs (kernel ioport API),
+  # not /dev/mem. The only things that needed iomem=relaxed were the diagnostic
+  # scripts/enable-ften*.sh (manual /dev/mem writes) which are not production config.
   boot.kernelParams = [
-    "iomem=relaxed"
     "acpi_enforce_resources=lax"
   ];
 
@@ -114,16 +115,16 @@ in
   hardware.fancontrol.enable = true;
   hardware.fancontrol.config = ''
     INTERVAL=5
-    DEVPATH=hwmon7=devices/platform/it87.1840 hwmon5=devices/platform/coretemp.0
-    DEVNAME=hwmon7=it8628 hwmon5=coretemp
-    FCTEMPS=hwmon7/pwm1=hwmon5/temp1_input hwmon7/pwm2=hwmon5/temp1_input hwmon7/pwm3=hwmon5/temp1_input
-    FCFANS=hwmon7/pwm1=hwmon7/fan1_input hwmon7/pwm2=hwmon7/fan2_input hwmon7/pwm3=hwmon7/fan3_input
-    MINTEMP=hwmon7/pwm1=45 hwmon7/pwm2=45 hwmon7/pwm3=45
-    MAXTEMP=hwmon7/pwm1=80 hwmon7/pwm2=80 hwmon7/pwm3=80
-    MINSTART=hwmon7/pwm1=80 hwmon7/pwm2=80 hwmon7/pwm3=80
-    MINSTOP=hwmon7/pwm1=20 hwmon7/pwm2=20 hwmon7/pwm3=20
-    MINPWM=hwmon7/pwm1=20 hwmon7/pwm2=20 hwmon7/pwm3=20
-    MAXPWM=hwmon7/pwm1=255 hwmon7/pwm2=255 hwmon7/pwm3=255
+    DEVPATH=hwmon2=devices/platform/it87.1840 hwmon6=devices/platform/coretemp.0
+    DEVNAME=hwmon2=it8628 hwmon6=coretemp
+    FCTEMPS=hwmon2/pwm1=hwmon6/temp1_input hwmon2/pwm2=hwmon6/temp1_input hwmon2/pwm3=hwmon6/temp1_input
+    FCFANS=hwmon2/pwm1=hwmon2/fan1_input hwmon2/pwm2=hwmon2/fan2_input hwmon2/pwm3=hwmon2/fan3_input
+    MINTEMP=hwmon2/pwm1=45 hwmon2/pwm2=45 hwmon2/pwm3=45
+    MAXTEMP=hwmon2/pwm1=80 hwmon2/pwm2=80 hwmon2/pwm3=80
+    MINSTART=hwmon2/pwm1=80 hwmon2/pwm2=80 hwmon2/pwm3=80
+    MINSTOP=hwmon2/pwm1=20 hwmon2/pwm2=20 hwmon2/pwm3=20
+    MINPWM=hwmon2/pwm1=20 hwmon2/pwm2=20 hwmon2/pwm3=20
+    MAXPWM=hwmon2/pwm1=255 hwmon2/pwm2=255 hwmon2/pwm3=255
   '';
 
   # Hardware monitoring tools

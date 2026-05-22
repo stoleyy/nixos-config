@@ -13,7 +13,8 @@
       autoPrune = {
         enable = true;
         dates = "weekly";
-        flags = [ "--all" ]; # remove all unused images, not just dangling
+        # --all removed: pruning all unused images weekly would require re-pulling
+        # large images (Wazuh ~1 GB) every week. Default (dangling only) is sufficient.
       };
     };
     oci-containers.backend = "podman";

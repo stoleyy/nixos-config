@@ -11,9 +11,9 @@
     cava
   ];
 
+  # nerd-fonts.jetbrains-mono lives in modules/fonts.nix (single source)
   fonts.packages = with pkgs; [
     inter
     nerd-fonts.geist-mono
-    nerd-fonts.jetbrains-mono
   ];
 }

@@ -14,12 +14,9 @@
 # Wazuh and OPNsense are NOT auto-updated — both have plugin/version
 # compatibility surfaces that require human eyeballs on release notes.
 {
-  nix.gc = {
-    automatic = true;
-    dates = "Sun 07:00";
-    randomizedDelaySec = "30min";
-    options = "--delete-older-than 14d";
-  };
+  # nh.clean (base.nix) handles store GC: --keep-since 7d --keep 5.
+  # nix.gc is intentionally absent — both active simultaneously cause an eval conflict.
+
   system.autoUpgrade = {
     enable = true;
     flake = "/etc/nixos";

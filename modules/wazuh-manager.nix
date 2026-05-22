@@ -1,4 +1,9 @@
-{ pkgs, ... }:
+{
+  pkgs,
+  config,
+  lib,
+  ...
+}:
 
 # Wazuh manager + indexer + dashboard, single-node, via podman/oci-containers.
 #
@@ -34,6 +39,20 @@ let
   certsDir = "${stateDir}/certs";
 in
 {
+  # --- 0. Secrets (sops-nix) — passwords decrypted at activation, never in /nix/store.
+  sops.secrets.wazuh-indexer-password = {
+    owner = "root";
+    mode = "0400";
+  };
+  sops.secrets.wazuh-api-password = {
+    owner = "root";
+    mode = "0400";
+  };
+  sops.secrets.wazuh-dashboard-password = {
+    owner = "root";
+    mode = "0400";
+  };
+
   # --- 1. State directories owned by the container UIDs (Wazuh's images run as
   #        root inside the container; bind-mount perms 0700 root:root). The
   #        certs dir needs world-read for the dashboard to mount it as
@@ -104,13 +123,13 @@ in
       environment = {
         "INDEXER_URL" = "https://wazuh-indexer:9200";
         "INDEXER_USERNAME" = "admin";
-        "INDEXER_PASSWORD" = "SecretPassword"; # change after first start
+        # INDEXER_PASSWORD injected via sops-nix (see systemd override below)
         "FILEBEAT_SSL_VERIFICATION_MODE" = "full";
         "SSL_CERTIFICATE_AUTHORITIES" = "/etc/ssl/root-ca.pem";
         "SSL_CERTIFICATE" = "/etc/ssl/filebeat.pem";
         "SSL_KEY" = "/etc/ssl/filebeat.key";
         "API_USERNAME" = "wazuh-wui";
-        "API_PASSWORD" = "MyS3cr37P450r.*-";
+        # API_PASSWORD injected via sops-nix (see systemd override below)
       };
       ports = [
         "1514:1514/udp" # agent logs
@@ -174,9 +193,8 @@ in
         "OPENSEARCH_HOSTS" = ''["https://wazuh-indexer:9200"]'';
         "WAZUH_API_URL" = "https://wazuh-manager";
         "DASHBOARD_USERNAME" = "kibanaserver";
-        "DASHBOARD_PASSWORD" = "kibanaserver";
+        # DASHBOARD_PASSWORD, API_PASSWORD injected via sops-nix (see systemd override below)
         "API_USERNAME" = "wazuh-wui";
-        "API_PASSWORD" = "MyS3cr37P450r.*-";
       };
       ports = [
         "443:5601/tcp"
@@ -193,12 +211,48 @@ in
 
   };
 
-  # --- 4. First-time setup notes (intentionally NOT automated — these are
+  # --- 4. Inject sops-nix secrets into container environments at runtime.
+  #     Podman's --env-file reads key=value lines from a file on the host.
+  #     sops-nix decrypts to /run/secrets/<name> (root:root 0400) at activation.
+  #     The systemd unit's ExecStartPre generates the env file from the secret.
+  systemd.services.podman-wazuh-manager.serviceConfig.ExecStartPre = lib.mkAfter [
+    (pkgs.writeShellScript "inject-wazuh-manager-secrets" ''
+      f=/run/wazuh-manager-env
+      printf 'INDEXER_PASSWORD=%s\nAPI_PASSWORD=%s\n' \
+        "$(cat ${config.sops.secrets.wazuh-indexer-password.path})" \
+        "$(cat ${config.sops.secrets.wazuh-api-password.path})" > "$f"
+      chmod 0400 "$f"
+    '')
+  ];
+  systemd.services.podman-wazuh-dashboard.serviceConfig.ExecStartPre = lib.mkAfter [
+    (pkgs.writeShellScript "inject-wazuh-dashboard-secrets" ''
+      f=/run/wazuh-dashboard-env
+      printf 'DASHBOARD_PASSWORD=%s\nAPI_PASSWORD=%s\n' \
+        "$(cat ${config.sops.secrets.wazuh-dashboard-password.path})" \
+        "$(cat ${config.sops.secrets.wazuh-api-password.path})" > "$f"
+      chmod 0400 "$f"
+    '')
+  ];
+
+  # Pass the env files to the containers
+  virtualisation.oci-containers.containers.wazuh-manager.extraOptions = lib.mkAfter [
+    "--env-file=/run/wazuh-manager-env"
+  ];
+  virtualisation.oci-containers.containers.wazuh-dashboard.extraOptions = lib.mkAfter [
+    "--env-file=/run/wazuh-dashboard-env"
+  ];
+
+  # --- 5. First-time setup notes (intentionally NOT automated — these are
   #     manual one-time steps; the alternative is a complex Nix-side cert
   #     pipeline that's worse than running a documented script once).
   #
-  # Before first `nixos-rebuild switch` that activates these containers, run:
+  # Before first `nixos-rebuild switch` that activates these containers:
   #
+  # A. Add secrets to sops (if not already present):
+  #   nix-shell -p sops --run "sops secrets/secrets.yaml"
+  #   # Add: wazuh-indexer-password, wazuh-api-password, wazuh-dashboard-password
+  #
+  # B. Generate certificates:
   #   sudo mkdir -p /var/lib/wazuh-stack/certs
   #   cd /var/lib/wazuh-stack/certs
   #   sudo curl -sLO https://packages.wazuh.com/${lib.versions.majorMinor version}/config.yml
@@ -215,6 +269,5 @@ in
   #   sudo chmod 640 /var/lib/wazuh-stack/certs/*.pem
   #
   # Then `sudo nixos-rebuild switch` and the three containers come up.
-  # Dashboard at https://<predator-LAN-IP>:443/, login admin / SecretPassword.
-  # After first login, change passwords via the dashboard.
+  # Dashboard at https://<predator-LAN-IP>:443/.
 }

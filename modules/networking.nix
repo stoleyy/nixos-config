@@ -24,28 +24,10 @@
     };
   };
 
-  # DNS goes to the OPNsense laptop running Unbound at 192.168.1.114.
-  # OPNsense and predator are peer hosts on the home-router LAN (the
-  # OPNsense laptop only has one ethernet port — it's not an inline
-  # gateway). As of 2026-05-14 the OPNsense single NIC (ue0) is assigned
-  # to the LAN role at 192.168.1.114/24; predator reaches it as a normal
-  # LAN peer. OPNsense-side requirements:
-  #   - 192.168.1.114 stable (static IP outside the home router's DHCP pool)
-  #   - Unbound listens on LAN (Services → Unbound DNS → Network Interfaces)
-  #   - default OPNsense LAN firewall is "allow all from LAN" so no extra rule needed
-  #
-  # OPNsense is listed first in DNS= so it gets all queries when reachable
-  # (Wazuh visibility) — systemd-resolved sticks to the first reachable
-  # server. Quad9 follows in the *same* DNS= list (not only fallbackDns):
-  # when ProtonVPN routes 0.0.0.0/0 through the WG tunnel, OPNsense
-  # (LAN-only) becomes unreachable and resolved fails over to Quad9 within
-  # the DNS= rotation after the first timeout, instead of stalling for
-  # seconds on the sole server before reaching FallbackDns (the classic
-  # "internet looks broken the moment the VPN connects" symptom).
-  #
-  # DNS goes straight to Quad9 over TLS (port 853), bypassing OPNsense
-  # Unbound. Quad9 provides DNSSEC validation + threat-domain blocking.
-  # strict DoT = queries never fall back to plaintext.
+  # All DNS goes to Quad9 over TLS (port 853), bypassing OPNsense Unbound.
+  # Quad9 provides DNSSEC validation + threat-domain blocking.
+  # strict DoT (dnsovertls = "true") = queries never fall back to plaintext.
+  # fallbackDns is only reached if the primary DNS= list is entirely unreachable.
   services = {
     resolved = {
       enable = true;

@@ -14,6 +14,8 @@ let
   '';
 in
 {
+  home.packages = [ pkgs.kdePackages.wallpaper-engine-plugin ];
+
   programs.plasma = {
     enable = true;
 
@@ -31,9 +33,6 @@ in
         size = 24;
       };
       iconTheme = "Tela-circle-black-dark";
-      wallpaperBackground = {
-        color = "29,32,33";
-      };
       clickItemTo = "open";
     };
 
@@ -128,7 +127,7 @@ in
         location = "bottom";
         height = 44;
         floating = true;
-        hiding = "autohide";
+        hiding = "none";
         lengthMode = "fill";
         widgets = [
           {

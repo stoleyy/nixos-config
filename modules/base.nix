@@ -208,10 +208,11 @@
     ];
 
     # === Memory (64 GB) ===
-    # /tmp in RAM — default 50% cap (~32 GB) on this box. Massive speedup for
-    # nix builds, archive extraction, compilations. Replaces cleanOnBoot (tmpfs
-    # is wiped on every boot inherently).
+    # /tmp in RAM — capped at 16 GB (default 50% = 32 GB is excessive).
+    # Massive speedup for nix builds, archive extraction, compilations.
+    # Replaces cleanOnBoot (tmpfs is wiped on every boot inherently).
     tmp.useTmpfs = true;
+    tmp.tmpfsSize = "16G";
 
     kernel.sysctl = {
       # zram (zramSwap.enable) is compressed-RAM swap — far faster than NVMe
@@ -293,7 +294,7 @@
   # multi-queue scheduling; the kernel's software scheduler adds overhead.
   # Phoronix benchmarks confirm `none` wins on NVMe for random I/O.
   services.udev.extraRules = ''
-    ACTION=="add|change", KERNEL=="nvme[0-9]*", ATTR{queue/scheduler}="none"
+    ACTION=="add|change", KERNEL=="nvme[0-9]n[0-9]", ATTR{queue/scheduler}="none"
   '';
 
   hardware = {

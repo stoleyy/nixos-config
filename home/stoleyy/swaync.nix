@@ -1,6 +1,11 @@
 { colors, ... }:
 
 {
+  # swaync is Wayland-only. Its upstream systemd user service starts automatically
+  # under any graphical session — adding ConditionEnvironment makes it silently skip
+  # (not fail) when WAYLAND_DISPLAY is absent (Plasma X11, TTY, etc.).
+  systemd.user.services.swaync.Unit.ConditionEnvironment = "WAYLAND_DISPLAY";
+
   xdg.configFile."swaync/config.json".text = builtins.toJSON {
     "$schema" = "/etc/xdg/swaync/configSchema.json";
     positionX = "right";

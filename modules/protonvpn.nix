@@ -162,6 +162,9 @@ in
               ip daddr 169.254.0.0/16 accept
               ip daddr 224.0.0.0/4 accept
               ip daddr 255.255.255.255 accept
+              # IPv6: allow link-local + multicast (NDP, mDNS)
+              ip6 daddr fe80::/10 accept
+              ip6 daddr ff00::/8 accept
               # allow VPN endpoint (so tunnel can establish)
               ip daddr ${endpointHost} accept
               # allow traffic going through VPN interface
