@@ -94,11 +94,101 @@
   };
   users.users.qbittorrent.extraGroups = [ "media" ];
 
-  # qBittorrent: override ProtectHome (media lives under /home), order after VPN
+  # qBittorrent: upstream already has full hardening; we override the three
+  # settings that differ: ProtectHome off (media in /home), ProtectSystem
+  # strict (upstream uses full), PrivateTmp on (upstream disables it).
   systemd.services.qbittorrent = {
     wants = [ "wg-quick-protonvpn.service" ];
     after = [ "wg-quick-protonvpn.service" ];
-    serviceConfig.ProtectHome = lib.mkForce false;
+    serviceConfig = {
+      ProtectHome = lib.mkForce false;
+      ProtectSystem = lib.mkForce "strict";
+      ReadWritePaths = [
+        "/var/lib/qbittorrent"
+        "/home/stoleyy/games/media"
+      ];
+      PrivateTmp = lib.mkForce true;
+    };
+  };
+
+  # ---------- systemd service hardening ----------
+  # Jellyfin: upstream has most hardening; add ProtectSystem=strict + ProtectClock
+  systemd.services.jellyfin.serviceConfig = {
+    ProtectSystem = "strict";
+    ReadWritePaths = [
+      "/var/lib/jellyfin"
+      "/home/stoleyy/games/media"
+    ];
+    ProtectClock = true;
+  };
+  systemd.services.sonarr.serviceConfig = {
+    ProtectSystem = "strict";
+    ReadWritePaths = [
+      "/var/lib/sonarr"
+      "/home/stoleyy/games/media"
+    ];
+    NoNewPrivileges = true;
+    PrivateTmp = true;
+    PrivateDevices = true;
+    ProtectKernelModules = true;
+    ProtectKernelTunables = true;
+    ProtectKernelLogs = true;
+    ProtectControlGroups = true;
+    ProtectClock = true;
+    RestrictRealtime = true;
+    RestrictSUIDSGID = true;
+    LockPersonality = true;
+  };
+  systemd.services.radarr.serviceConfig = {
+    ProtectSystem = "strict";
+    ReadWritePaths = [
+      "/var/lib/radarr"
+      "/home/stoleyy/games/media"
+    ];
+    NoNewPrivileges = true;
+    PrivateTmp = true;
+    PrivateDevices = true;
+    ProtectKernelModules = true;
+    ProtectKernelTunables = true;
+    ProtectKernelLogs = true;
+    ProtectControlGroups = true;
+    ProtectClock = true;
+    RestrictRealtime = true;
+    RestrictSUIDSGID = true;
+    LockPersonality = true;
+  };
+  systemd.services.prowlarr.serviceConfig = {
+    ProtectSystem = "strict";
+    ReadWritePaths = [ "/var/lib/prowlarr" ];
+    NoNewPrivileges = true;
+    PrivateTmp = true;
+    PrivateDevices = true;
+    ProtectKernelModules = true;
+    ProtectKernelTunables = true;
+    ProtectKernelLogs = true;
+    ProtectControlGroups = true;
+    ProtectClock = true;
+    RestrictRealtime = true;
+    RestrictSUIDSGID = true;
+    LockPersonality = true;
+  };
+  systemd.services.bazarr.serviceConfig = {
+    ProtectSystem = "strict";
+    ReadWritePaths = [
+      "/var/lib/bazarr"
+      "/home/stoleyy/games/media"
+    ];
+    NoNewPrivileges = true;
+    PrivateTmp = true;
+    PrivateDevices = true;
+    ProtectKernelModules = true;
+    ProtectKernelTunables = true;
+    ProtectKernelLogs = true;
+    ProtectControlGroups = true;
+    ProtectClock = true;
+    RestrictRealtime = true;
+    RestrictSUIDSGID = true;
+    LockPersonality = true;
   };
 
   # Torrenting port needs UDP too (openFirewall only opens TCP)
@@ -123,4 +213,29 @@
 
   # stoleyy needs media group for direct file access
   users.users.stoleyy.extraGroups = [ "media" ];
+
+  # ---------- on-demand startup ----------
+  # Don't start any media service at boot; use `sudo systemctl start media-stack.target`
+  systemd.services.jellyfin.wantedBy = lib.mkForce [ ];
+  systemd.services.sonarr.wantedBy = lib.mkForce [ ];
+  systemd.services.radarr.wantedBy = lib.mkForce [ ];
+  systemd.services.prowlarr.wantedBy = lib.mkForce [ ];
+  systemd.services.qbittorrent.wantedBy = lib.mkForce [ ];
+  systemd.services.bazarr.wantedBy = lib.mkForce [ ];
+
+  systemd.targets.media-stack = {
+    description = "Media Server Stack (Jellyfin + arr + qBittorrent)";
+    wants = [
+      "network-online.target"
+      "jellyfin.service"
+      "sonarr.service"
+      "radarr.service"
+      "prowlarr.service"
+      "qbittorrent.service"
+      "bazarr.service"
+    ];
+    after = [
+      "network-online.target"
+    ];
+  };
 }

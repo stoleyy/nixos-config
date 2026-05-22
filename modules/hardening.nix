@@ -92,9 +92,6 @@
     "randomize_kstack_offset=on"
     "vsyscall=none"
     "slab_nomerge"
-    # Disable debugfs — kernel internals (PMU, IOMMU, tracing) aren't needed
-    # for desktop use. chipsec uses its kernel module's own ioctl path, not
-    # debugfs userspace, so SPI / BIOS / Secure-Boot diagnostics still work.
     "debugfs=off"
   ];
 
@@ -111,4 +108,38 @@
   # an unsandboxed service account) can't even invoke sudo to attempt privesc.
   # stoleyy is in `wheel` already (see modules/base.nix users.users.stoleyy).
   security.sudo.execWheelOnly = true;
+
+  # CIS + NixOS hardened profile: blacklist obscure network protocols and
+  # rarely-used filesystem drivers to reduce kernel attack surface.
+  boot.blacklistedKernelModules = [
+    # Obscure network protocols with CVE histories
+    "dccp"
+    "sctp"
+    "rds"
+    "tipc"
+    "ax25"
+    "netrom"
+    "rose"
+    # Old/rare filesystems — never needed on this box
+    "adfs"
+    "affs"
+    "bfs"
+    "befs"
+    "cramfs"
+    "efs"
+    "erofs"
+    "exofs"
+    "freevxfs"
+    "f2fs"
+    "hfs"
+    "hpfs"
+    "jfs"
+    "minix"
+    "nilfs2"
+    "omfs"
+    "qnx4"
+    "qnx6"
+    "sysv"
+    "ufs"
+  ];
 }
