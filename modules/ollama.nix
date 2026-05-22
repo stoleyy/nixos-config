@@ -4,6 +4,7 @@ _:
   services.ollama = {
     enable = true;
     acceleration = "cuda";
+    host = "127.0.0.1";
     # Pulled asynchronously by the generated ollama-model-loader unit.
     # Soft-fail: rebuild does not block if registry.ollama.ai is unreachable.
     loadModels = [

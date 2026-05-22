@@ -6,7 +6,7 @@
 # Then replace the placeholder below and re-encrypt any existing secrets:
 #   nix-shell -p sops --run "sops updatekeys secrets/secrets.yaml"
 keys:
-  - &predator age1REPLACE_WITH_OUTPUT_OF_SSH_TO_AGE
+  - &predator age14y43hf24nj4xwhr7ym0hpfnquwtg2ve5gtajy6sxx4zzafmskg8qdk8atz
 
 creation_rules:
   - path_regex: secrets/[^/]+\.(yaml|json)$

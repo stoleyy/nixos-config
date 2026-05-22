@@ -31,7 +31,7 @@
   # ---------- Jellyfin (media streaming, port 8096) ----------
   services.jellyfin = {
     enable = true;
-    openFirewall = true;
+    openFirewall = false;
   };
   # NVIDIA hardware transcoding needs render + video; media for shared dirs
   users.users.jellyfin.extraGroups = [
@@ -43,27 +43,27 @@
   # ---------- Sonarr (TV shows, port 8989) ----------
   services.sonarr = {
     enable = true;
-    openFirewall = true;
+    openFirewall = false;
   };
   users.users.sonarr.extraGroups = [ "media" ];
 
   # ---------- Radarr (movies, port 7878) ----------
   services.radarr = {
     enable = true;
-    openFirewall = true;
+    openFirewall = false;
   };
   users.users.radarr.extraGroups = [ "media" ];
 
   # ---------- Prowlarr (indexer proxy, port 9696) ----------
   services.prowlarr = {
     enable = true;
-    openFirewall = true;
+    openFirewall = false;
   };
 
   # ---------- qBittorrent (torrent client, WebUI 6881, BT 50000) ----------
   services.qbittorrent = {
     enable = true;
-    openFirewall = true;
+    openFirewall = false;
     webuiPort = 6881;
     torrentingPort = 50000;
     serverConfig = {
@@ -191,13 +191,15 @@
     LockPersonality = true;
   };
 
-  # Torrenting port needs UDP too (openFirewall only opens TCP)
+  # Torrenting port (TCP+UDP) — needed for incoming peer connections.
+  # qBittorrent is interface-bound to protonvpn, so this only matters on the tunnel.
+  networking.firewall.allowedTCPPorts = [ 50000 ];
   networking.firewall.allowedUDPPorts = [ 50000 ];
 
   # ---------- Bazarr (subtitles, port 6767) ----------
   services.bazarr = {
     enable = true;
-    openFirewall = true;
+    openFirewall = false;
   };
   users.users.bazarr.extraGroups = [ "media" ];
 

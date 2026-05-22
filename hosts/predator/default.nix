@@ -38,6 +38,7 @@
     device = "/dev/disk/by-uuid/efd6d32e-54f9-4e6d-965f-67279a31da47";
     fsType = "ext4";
     options = [
+      "noatime"
       "nofail"
       "x-systemd.device-timeout=5s"
     ];
@@ -53,6 +54,7 @@
     device = "/dev/disk/by-uuid/88c50d98-1905-405d-a9c2-5ce522c9ad77";
     fsType = "ext4";
     options = [
+      "noatime"
       "nofail"
       "x-systemd.device-timeout=5s"
     ];
@@ -109,7 +111,7 @@
       keyFile = "/var/lib/sops-nix/key.txt";
       generateKey = true;
     };
-    validateSopsFiles = false; # placeholder yaml is plaintext until step 3 above
+    validateSopsFiles = true;
   };
 
   # Wazuh HIDS agent — disabled until the Wazuh manager exists on the
@@ -187,6 +189,18 @@
       boot.kernelParams = [
         "mitigations=off"
         "nowatchdog"
+        # Remove page-zeroing overhead — init_on_free is the costly half
+        # (doubles zeroing work). ~1-7% CPU savings in allocation-heavy games.
+        "init_on_alloc=0"
+        "init_on_free=0"
+        # Reduce timer interrupt lock contention across cores.
+        "skew_tick=1"
+        # workqueue.power_efficient=0 is now in the default boot (base.nix)
+        # Eliminate PCIe Active State Power Management link transition latency.
+        # Increases idle power draw — acceptable for a dedicated gaming boot.
+        "pcie_aspm=off"
+        # Make hard IRQs preemptible — lowers worst-case interrupt latency.
+        "threadirqs"
       ];
       powerManagement.cpuFreqGovernor = lib.mkForce "performance";
     };
