@@ -181,15 +181,33 @@ The qBittorrent config file (`~/.config/qBittorrent/qBittorrent.conf`) is intent
 
 ### 3.2 `game-install` script
 
-**File:** `modules/gaming.nix` — added to `environment.systemPackages` as a `pkgs.writeShellScriptBin "game-install"` derivation.
+**File:** `modules/gaming.nix` — added to `environment.systemPackages` as a `pkgs.writeShellApplication` derivation.
 
-The script is a Nix derivation (not a plain `writeShellScriptBin`) so that `python3.withPackages (p: [ p.vdf ])` and its other runtime dependencies can be wired into its PATH via `makeWrapper`.
+`pkgs.writeShellApplication` is used (not plain `writeShellScriptBin`) because it accepts a `runtimeInputs` list that gets prepended to PATH inside the script, ensuring deps are available regardless of how qBittorrent's subprocess inherits the environment:
 
-Runtime dependencies (all already in the system or added here):
-- `wine` — from `wineWowPackages.stable` (already in `environment.systemPackages`)
-- `python3.withPackages (p: [ p.vdf ])` — binary VDF manipulation
-- `rsync`, `findutils`, `coreutils` — standard, always available
-- `libnotify` — for the `notify-send` completion notification in Hyprland
+```nix
+pkgs.writeShellApplication {
+  name = "game-install";
+  runtimeInputs = with pkgs; [
+    wineWowPackages.stable
+    (python3.withPackages (p: [ p.vdf ]))
+    rsync
+    findutils
+    libnotify   # provides notify-send
+    procps      # provides pgrep
+    systemd     # provides systemd-cat
+  ];
+  text = ''...script body...'';
+}
+```
+
+Runtime dependencies bundled into the derivation's PATH:
+- `wineWowPackages.stable` — run Windows installers (already in `environment.systemPackages`; listed here to ensure it's in the script's PATH regardless)
+- `python3.withPackages (p: [ p.vdf ])` — binary VDF read/write for `shortcuts.vdf`
+- `rsync`, `findutils`, `coreutils` — file operations
+- `libnotify` — `notify-send` for the completion notification
+- `procps` — `pgrep` for the Wine process wait loop
+- `systemd` — `systemd-cat` for structured journal logging
 
 #### Full logic
 
