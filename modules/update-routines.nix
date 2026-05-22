@@ -8,10 +8,18 @@
 #      / other inputs, then commits the updated lock to a branch named
 #      `auto/flake-update-<timestamp>` for review (NOT pushed automatically;
 #      /etc/nixos is left back on its original branch, working tree clean).
+#   3. Weekly nix GC — deletes store paths older than 14 days. Keeps recent
+#      generations for rollback while preventing unbounded disk growth.
 #
 # Wazuh and OPNsense are NOT auto-updated — both have plugin/version
 # compatibility surfaces that require human eyeballs on release notes.
 {
+  nix.gc = {
+    automatic = true;
+    dates = "Sun 07:00";
+    randomizedDelaySec = "30min";
+    options = "--delete-older-than 14d";
+  };
   system.autoUpgrade = {
     enable = true;
     flake = "/etc/nixos";
