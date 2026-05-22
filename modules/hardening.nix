@@ -103,7 +103,7 @@
   # enforce). Use `aa-complain <profile>` post-boot to switch one to complain mode.
   security.apparmor = {
     enable = true;
-    killUnconfinedConfinables = false;
+    killUnconfinedConfinables = true;
     packages = [ pkgs.apparmor-profiles ];
   };
 
