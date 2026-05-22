@@ -192,8 +192,8 @@
     # secure (mitigations on — this box runs Wazuh/auditd/hardening). Trades
     # Spectre-class mitigations for the last ~5-15% CPU-bound headroom in
     # Proton/DXVK. kernelParams append to the parent's (preempt=full is
-    # already inherited from base); the governor needs mkForce to override
-    # base.nix's powersave.
+    # already inherited from base). power-profiles-daemon (Plasma 6) manages
+    # the governor; mkForce pins it to performance for this boot entry.
     gaming-tuned.configuration = {
       boot.kernelParams = [
         "mitigations=off"

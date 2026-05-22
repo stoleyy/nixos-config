@@ -336,16 +336,6 @@
     steam-hardware.enable = true;
   };
 
-  # Efficient AND responsive by default. intel_pstate runs in *active* mode on
-  # the 13700K, where "powersave" is the HWP/EPP-driven governor: idles cores
-  # down (cold/quiet) yet ramps to full boost in ~1 ms — NOT the legacy slow
-  # governor. At true idle HWP floors at the min P-state regardless of EPP, so
-  # this idles as cold as "performance" would. Full "performance" is applied
-  # only while gaming, by Feral GameMode (modules/gaming.nix); a deliberately
-  # booted gaming-tuned specialisation pins it system-wide. EPP + HWP boost
-  # tuned by the cpu-power-tuning unit below.
-  powerManagement.cpuFreqGovernor = "powersave";
-
   # Compressed-RAM swap. Free responsiveness win; complements the on-disk swapfile.
   zramSwap.enable = true;
 

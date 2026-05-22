@@ -110,22 +110,9 @@ in
     "acpi_enforce_resources=lax"
   ];
 
-  # Fan curve: silent ≤45°C, linear ramp 50–80°C, full speed ≥80°C
-  # pwm1/2/3 = chassis fans driven by CPU package temp; pwm4 left in BIOS auto
-  hardware.fancontrol.enable = true;
-  hardware.fancontrol.config = ''
-    INTERVAL=5
-    DEVPATH=hwmon2=devices/platform/it87.1840 hwmon6=devices/platform/coretemp.0
-    DEVNAME=hwmon2=it8628 hwmon6=coretemp
-    FCTEMPS=hwmon2/pwm1=hwmon6/temp1_input hwmon2/pwm2=hwmon6/temp1_input hwmon2/pwm3=hwmon6/temp1_input
-    FCFANS=hwmon2/pwm1=hwmon2/fan1_input hwmon2/pwm2=hwmon2/fan2_input hwmon2/pwm3=hwmon2/fan3_input
-    MINTEMP=hwmon2/pwm1=45 hwmon2/pwm2=45 hwmon2/pwm3=45
-    MAXTEMP=hwmon2/pwm1=80 hwmon2/pwm2=80 hwmon2/pwm3=80
-    MINSTART=hwmon2/pwm1=80 hwmon2/pwm2=80 hwmon2/pwm3=80
-    MINSTOP=hwmon2/pwm1=20 hwmon2/pwm2=20 hwmon2/pwm3=20
-    MINPWM=hwmon2/pwm1=20 hwmon2/pwm2=20 hwmon2/pwm3=20
-    MAXPWM=hwmon2/pwm1=255 hwmon2/pwm2=255 hwmon2/pwm3=255
-  '';
+  # Fan curves are managed by CoolerControl (programs.coolercontrol in base.nix)
+  # which also uses hwmon2 (it8628). hardware.fancontrol is intentionally absent —
+  # both services writing to the same PWM channels simultaneously would fight.
 
   # Hardware monitoring tools
   environment.systemPackages = [

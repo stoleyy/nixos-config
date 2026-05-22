@@ -1,4 +1,4 @@
-{ pkgs, lib, ... }:
+{ pkgs, ... }:
 
 {
   networking = {
@@ -44,17 +44,6 @@
       '';
     };
 
-    printing = {
-      enable = true;
-      drivers = with pkgs; [
-        gutenprint
-        gutenprintBin
-        hplip
-      ];
-      browsing = false; # F-22: cupsd Browsing directive off
-      listenAddresses = [ "localhost:631" ]; # F-22: bind only to loopback
-    };
-
     avahi = {
       enable = true;
       nssmdns4 = true;
@@ -62,7 +51,4 @@
     };
   };
 
-  # F-22: disable cups-browsed separately — `browsing = false` only controls cupsd;
-  # cups-browsed is a separate unit (CVE-2024-47175 chain).
-  systemd.services.cups-browsed.enable = lib.mkForce false;
 }

@@ -48,7 +48,6 @@
     nix-output-monitor
 
     # Media
-    vlc
     # F10: easyeffects removed — owned by home-manager services.easyeffects in home/stoleyy.nix
     libreoffice-fresh
 
