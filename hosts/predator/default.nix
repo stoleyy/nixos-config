@@ -1,4 +1,9 @@
-{ pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 {
   imports = [ ./hardware-configuration.nix ];
@@ -77,10 +82,14 @@
   # Tunnel comes up at boot via systemd; kill switch active by default.
   # See docs/protonvpn-wg-setup.md.
   #
-  # Private key lives at /var/lib/protonvpn/privkey (root:root, mode 0400);
-  # not in sops yet — Tier 2.1 in the optimization roadmap.
+  # Private key managed by sops-nix (encrypted in secrets/secrets.yaml).
+  sops.secrets.protonvpn-private-key = {
+    owner = "root";
+    mode = "0400";
+  };
   modules.protonvpn = {
     enable = true;
+    privateKeyFile = config.sops.secrets.protonvpn-private-key.path;
     serverPublicKey = "Rtsl6k9WA9t04Vt+EDUD3TlSr9+YL6YcTFwiSB1qBwA=";
     serverEndpoint = "146.70.84.2:51820";
     # clientAddress defaults to 10.2.0.2/32 (matches Proton's issued tunnel IP)
@@ -99,10 +108,6 @@
   };
 
   # sops-nix: decrypt secrets at activation using the host SSH Ed25519 key.
-  # Currently unused (placeholder yaml). When you populate it (see comment
-  # above sops block below), the natural first migration is moving the
-  # ProtonVPN private key into sops — modules.protonvpn.privateKeyFile then
-  # points at config.sops.secrets.protonvpn_wg_key.path.
   sops = {
     defaultSopsFile = ../../secrets/secrets.yaml;
     defaultSopsFormat = "yaml";
