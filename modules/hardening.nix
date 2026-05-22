@@ -82,6 +82,10 @@
     # KSPP: harden the BPF JIT against Spectre-style speculative-exec attacks
     # targeting JIT'd BPF programs.
     "net.core.bpf_jit_harden" = 2;
+
+    # Prevent auto-loading of TTY line disciplines — kernel exploit vector
+    # (e.g. SLCAN, N_GSM). Lynis KRNL-6000.
+    "dev.tty.ldisc_autoload" = 0;
   };
 
   # F-20: boot params that harden even the stock kernel.
@@ -141,5 +145,28 @@
     "qnx6"
     "sysv"
     "ufs"
+    # TTY line disciplines — CVE-2020-29660/29661, ldisc_autoload=0 blocks
+    # auto-load but explicit modprobe still works without blacklisting
+    "n_gsm"
+    "n_hdlc"
+    # CAN bus — not needed on a desktop
+    "can_raw"
+    # DMA attack vectors via FireWire/Thunderbolt
+    "firewire-ohci"
+    "thunderbolt"
   ];
+
+  # `blacklist` only prevents auto-loading; `install … /bin/true` makes
+  # explicit modprobe a no-op too — truly blocks the module.
+  boot.extraModprobeConfig = ''
+    install dccp /bin/true
+    install sctp /bin/true
+    install rds /bin/true
+    install tipc /bin/true
+    install n_gsm /bin/true
+    install n_hdlc /bin/true
+    install can_raw /bin/true
+    install firewire-ohci /bin/true
+    install thunderbolt /bin/true
+  '';
 }
