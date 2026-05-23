@@ -149,11 +149,16 @@
   # Ensure mount-point directories exist with correct ownership before systemd
   # mounts the filesystems declared in hardware-configuration.nix.
   systemd.tmpfiles.rules = [
-    # Mount-point directories: root:root is correct — these are just mount targets,
-    # the mounted filesystem sets the actual permissions. Using stoleyy:stoleyy here
-    # caused early-boot "Failed to resolve group 'stoleyy'" errors because the user
-    # database may not be fully available when 00-nixos.conf tmpfiles rules run.
-    "d /home/stoleyy/games 0755 root root -"
+    # games mount needs stoleyy:users so game-install (running as stoleyy via
+    # qBittorrent) can create per-game subdirectories. The old comment said
+    # "root:root is correct — the filesystem sets permissions" but that is wrong:
+    # systemd-tmpfiles enforces these on every activation, overriding the filesystem
+    # root inode. The previous failure was "Failed to resolve group 'stoleyy'" —
+    # 'stoleyy' is a user, not a group. 'users' (GID 100) is the correct primary
+    # group for a NixOS isNormalUser account.
+    "d /home/stoleyy/games 0755 stoleyy users -"
+    # /data is a general-purpose partition not directly written by user services;
+    # root:root is correct there.
     "d /data               0755 root root -"
   ];
 
