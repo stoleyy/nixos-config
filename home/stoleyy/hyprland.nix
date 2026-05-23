@@ -246,14 +246,17 @@
           "liner,  1,    1,    1,    1"
         ];
         animation = [
-          "windows,     1, 6, wind,   slide"
-          "windowsIn,   1, 6, winIn,  slide"
-          "windowsOut,  1, 5, winOut, slide"
-          "windowsMove, 1, 5, wind,   slide"
-          "border,      1, 1, liner"
-          "borderangle, 1, 30, liner, once"
-          "fade,        1, 10, default"
-          "workspaces,  1, 5, wind"
+          "windows,        1, 6,  wind,   slide"
+          "windowsIn,      1, 6,  winIn,  slide"
+          "windowsOut,     1, 5,  winOut, slide"
+          "windowsMove,    1, 5,  wind,   slide"
+          "border,         1, 1,  liner"
+          "borderangle,    1, 30, liner,  once"
+          "fade,           1, 10, default"
+          "workspaces,     1, 5,  wind"
+          # Vertical slide for pyprland scratchpads — matches their
+          # "fromTop" animation hint in pyprland.toml.
+          "specialWorkspace, 1, 5, wind, slidevert"
         ];
       };
 
@@ -286,6 +289,10 @@
         # Special (scratchpad) workspaces scale to 80% — gives the dropdown
         # terminal/btop scratchpads a clear visual offset from the desktop.
         special_scale_factor = 0.8;
+        # Deterministic split direction: new windows always go to the right
+        # of the active one, regardless of aspect ratio. Predictable layout.
+        force_split = 2;
+        use_active_for_splits = true;
       };
 
       binds = {
@@ -322,6 +329,26 @@
         # wedged) instead of a silently frozen window.
         enable_anr_dialog = true;
         anr_missed_pings = 15;
+        # Terminal swallowing: when a GUI app is launched from a terminal,
+        # the terminal window is hidden until the GUI exits. Lets `imv pic`
+        # / `evince file.pdf` / `mpv vid` from kitty reuse the same tile.
+        enable_swallow = true;
+        swallow_regex = "^(kitty)$";
+      };
+
+      # Suppress the donation popup and the "new release news" popup that
+      # would otherwise fire on each Hyprland version bump. Both are
+      # Hyprland 0.42+ ecosystem-block settings.
+      ecosystem = {
+        no_donation_nag = true;
+        no_update_news = true;
+      };
+
+      # Explicit off — there is no touchpad on this desktop; default depends
+      # on libinput probing and being explicit avoids surprises if a USB
+      # touchpad is ever plugged in.
+      gestures = {
+        workspace_swipe = false;
       };
 
       # NOTE on render.direct_scanout: JaKooLit (the NVIDIA-focused reference
@@ -494,6 +521,19 @@
         "$mod SHIFT, 9, movetoworkspace, 9"
         "$mod SHIFT, 0, movetoworkspace, 10"
 
+        # movetoworkspacesilent: send the active window to workspace N
+        # without switching to it. Standard "send to background" gesture.
+        "$mod CTRL, 1, movetoworkspacesilent, 1"
+        "$mod CTRL, 2, movetoworkspacesilent, 2"
+        "$mod CTRL, 3, movetoworkspacesilent, 3"
+        "$mod CTRL, 4, movetoworkspacesilent, 4"
+        "$mod CTRL, 5, movetoworkspacesilent, 5"
+        "$mod CTRL, 6, movetoworkspacesilent, 6"
+        "$mod CTRL, 7, movetoworkspacesilent, 7"
+        "$mod CTRL, 8, movetoworkspacesilent, 8"
+        "$mod CTRL, 9, movetoworkspacesilent, 9"
+        "$mod CTRL, 0, movetoworkspacesilent, 10"
+
         "$mod, S,       togglespecialworkspace, magic"
         "$mod SHIFT, S, movetoworkspace, special:magic"
 
@@ -548,6 +588,15 @@
         "float, class:^(scratchterm|scratchbtop)$"
         # Tearing path for Steam game windows — lower input latency.
         "immediate, class:^(steam_app_.*)$"
+
+        # HyDE-style per-class opacity tiers. The `override` flag bypasses
+        # the global decoration.active_opacity/inactive_opacity for these
+        # classes — gives a "depth" gradient: browsers slightly transparent,
+        # productivity tools more so, games fully opaque.
+        "opacity 0.95 override 0.85 override, class:^(firefox|Brave-browser|brave-browser|chromium)$"
+        "opacity 0.90 override 0.80 override, class:^(kitty|ghostty|Code|code-oss|dolphin|org.kde.dolphin)$"
+        "opacity 1.0 override 1.0 override,   class:^(steam_app_.*)$"
+        "opacity 1.0 override 1.0 override,   title:^(.*Picture-in-Picture.*)$"
       ];
     };
   };
