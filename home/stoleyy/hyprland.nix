@@ -218,9 +218,21 @@
         };
       };
 
-      # Blur the waybar for frosted glass effect.
+      # Frosted-glass blur on every floating UI surface — without this,
+      # launchers/notifications sit visually flat on top of the wallpaper
+      # while waybar gets the glass treatment, an inconsistency.
       layerrule = [
         "blur, waybar"
+        "blur, rofi"
+        "blur, walker"
+        "blur, wlogout"
+        "blur, swaync-control-center"
+        "blur, swaync-notification-window"
+        # ignorezero stops the blur pass from sampling fully-transparent
+        # pixels — saves a few ms per frame on the system tray and
+        # eliminates blur "halos" around tray icons.
+        "ignorezero, waybar"
+        "ignorezero, swaync-notification-window"
       ];
 
       # HyDE-inspired animation curves — wind for general, winIn/winOut for
@@ -250,15 +262,38 @@
         follow_mouse = 1;
         sensitivity = 0;
         accel_profile = "flat";
+        # Faster key repeat — 50 cps after 300 ms feels right for terminal +
+        # text editing (default is 25/600). Numlock on by login (matches the
+        # OS-level expectation for a desktop keyboard).
+        repeat_rate = 50;
+        repeat_delay = 300;
+        numlock_by_default = true;
       };
 
       cursor = {
         no_hardware_cursors = true;
+        # Sync cursor theme to gsettings so GNOME-toolkit apps see Bibata
+        # without an explicit GTK setting.
+        sync_gsettings_theme = true;
+        # Warp cursor to the focused window when changing workspaces. Mode 2
+        # = always; 1 = only if cursor would land off-screen.
+        warp_on_change_workspace = 2;
       };
 
       dwindle = {
         pseudotile = true;
         preserve_split = true;
+        # Special (scratchpad) workspaces scale to 80% — gives the dropdown
+        # terminal/btop scratchpads a clear visual offset from the desktop.
+        special_scale_factor = 0.8;
+      };
+
+      binds = {
+        # Pressing Super+<N> while already on workspace N returns to the
+        # previous workspace. Combined with allow_workspace_cycles, this is
+        # the same "back-and-forth" behaviour i3/sway users expect.
+        workspace_back_and_forth = true;
+        allow_workspace_cycles = true;
       };
 
       misc = {
@@ -274,14 +309,26 @@
         # Dark fallback colour shown briefly before the wallpaper engine
         # process renders — avoids a black flash at startup.
         background_color = "rgb(1d2021)";
+        # Disable the X11-era middle-click-pastes-selection behaviour.
+        # Almost always accidental; almost never intended.
+        middle_click_paste = false;
+        # Apps can't steal focus via XDG activation (e.g. firefox download
+        # done, slack DM). They get an urgent border instead.
+        focus_on_activate = false;
+        # hyprlock survives a compositor crash — the lock screen persists
+        # through the restart instead of dropping straight to the desktop.
+        allow_session_lock_restore = true;
+        # App-not-responding popup with a kill button (15 missed pings ≈ 7s
+        # wedged) instead of a silently frozen window.
+        enable_anr_dialog = true;
+        anr_missed_pings = 15;
       };
 
-      # Lower-latency fullscreen on NVIDIA. The compositor bypasses its
-      # own composition pass when a fullscreen client matches the output
-      # mode exactly. Pairs with allow_tearing + the immediate window rule.
-      render = {
-        direct_scanout = true;
-      };
+      # NOTE on render.direct_scanout: JaKooLit (the NVIDIA-focused reference
+      # config) keeps this off, and Hyprland defaults match. allow_tearing
+      # = true (general block) already gives the lower-latency fullscreen
+      # path with fewer NVIDIA side effects (no VRR-negotiation flicker on
+      # partial redraws), so direct_scanout is intentionally absent here.
 
       # 4K HiDPI: prevent XWayland from upscaling legacy X11 apps (which
       # produces blurry text). With zero-scaling, X11 clients render at
@@ -414,6 +461,16 @@
         "$mod SHIFT, right, movewindow, r"
         "$mod SHIFT, up,    movewindow, u"
         "$mod SHIFT, down,  movewindow, d"
+        # swapwindow: non-destructive position swap (preserves tree shape)
+        "$mod ALT, left,  swapwindow, l"
+        "$mod ALT, right, swapwindow, r"
+        "$mod ALT, up,    swapwindow, u"
+        "$mod ALT, down,  swapwindow, d"
+
+        # Tabbed window grouping (i3-style stacked tabs in a single tile)
+        "$mod, G,      togglegroup"
+        "$mod, Tab,        changegroupactive, f"
+        "$mod SHIFT, Tab,  changegroupactive, b"
 
         "$mod, 1, workspace, 1"
         "$mod, 2, workspace, 2"
@@ -475,10 +532,20 @@
         "float, class:^(blueman-manager)$"
         "float, class:^(org.kde.polkit-kde-authentication-agent-1)$"
         "float, class:^(polkit-gnome-authentication-agent-1)$"
+        "float, class:^(hyprpolkitagent)$"
         "float, title:^(Picture-in-Picture)$"
+        "pin,   title:^(Picture-in-Picture)$"
         "keepaspectratio, title:^(Picture-in-Picture)$"
         "float, class:^(xdg-desktop-portal-gtk)$"
         "size 70% 70%, class:^(xdg-desktop-portal-gtk)$"
+        # GTK/Qt file picker dialogs: float, center, 70% of monitor.
+        "float, title:^(Open File|Save As|Save File|Save Image)$"
+        "size 70% 60%, title:^(Open File|Save As|Save File|Save Image)$"
+        "center, title:^(Open File|Save As|Save File|Save Image)$"
+        # Prevent hyprlock during fullscreen video / fullscreen games.
+        "idleinhibit fullscreen, class:.*"
+        # pyprland scratchpad classes: float + no animation on switch.
+        "float, class:^(scratchterm|scratchbtop)$"
         # Tearing path for Steam game windows — lower input latency.
         "immediate, class:^(steam_app_.*)$"
       ];
