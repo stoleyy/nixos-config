@@ -46,7 +46,7 @@ Boot topology (systemd-boot menu entries):
 |---|---|---|
 | **default** | `hyprland` | yes — stoleyy |
 | `plasma` specialisation | `plasma` (Wayland greeter) | no — SDDM greeter shown |
-| `gaming-tuned` specialisation | `steam` (gamescope) | yes — stoleyy |
+| `gaming-tuned` specialisation | `steam` (gamescope via greetd) | yes — stoleyy (no SDDM) |
 | `debug` specialisation | (inherits default) | yes |
 
 - **Hyprland** (`hyprland`) is the deliberate SDDM default
@@ -58,13 +58,19 @@ Boot topology (systemd-boot menu entries):
   shows the greeter and lets you pick the session. To use Plasma as the daily
   driver: flip `defaultSession` in `modules/desktop.nix` back to `"plasmax11"`
   or `"plasma"` and remove the `plasma` specialisation.
-- **Steam Gaming Mode** (`gaming-tuned` specialisation) autologins directly into
-  the gamescope session (`programs.steam.gamescopeSession`, session name `"steam"`
-  registered by NixOS in the SDDM SessionDir). Configured for 4K@240Hz OLED
-  with HDR + VRR. Security monitoring (auditd, AppArmor) and PPD are disabled;
-  CPU governor + EPP pinned to `performance`. See `hosts/predator/default.nix`.
-- **Switching session**: autologin skips the greeter. To reach the SDDM
-  dropdown, log out without rebooting — the greeter then reappears.
+- **Steam Gaming Mode** (`gaming-tuned` specialisation) boots directly into
+  gamescope via **greetd** (SDDM is disabled). greetd is a minimal session
+  launcher — no login screen, no greeter UI, console-like. It creates a
+  PAM + logind session and runs gamescope with `--backend drm`. If gamescope
+  exits or crashes, greetd auto-restarts it. Configured for 4K@240Hz OLED
+  with VRR. HDR disabled (NVIDIA DRM limitation). Security monitoring
+  (auditd, AppArmor) and PPD are disabled; CPU governor + EPP pinned to
+  `performance`. Session stderr is logged to `/tmp/gamescope-session.log`.
+  See `hosts/predator/default.nix`.
+- **Switching session**: in the default/plasma/debug entries, autologin
+  skips the greeter. To reach the SDDM dropdown, log out without
+  rebooting — the greeter then reappears. The gaming-tuned entry uses
+  greetd (no SDDM dropdown) — reboot to switch.
 - Both home-manager profiles (Plasma + Hyprland) ship simultaneously; HM
   imports both stacks.
 
@@ -217,6 +223,16 @@ shellcheck .claude/hooks/*.sh
 - **`rofi-wayland` merged into `rofi`** in nixpkgs 25.11 — use `pkgs.rofi`,
   not `pkgs.rofi-wayland`.
 - **`services.thermald` errors on this hardware** — leave off.
+- **Gamescope standalone session needs `--backend drm`** — the NixOS
+  `programs.steam.gamescopeSession` module does NOT add it. Without it
+  gamescope exits code 1 instantly (no compositor to attach to). Also add
+  `--prefer-output HDMI-A-1` and `--prefer-vk-device 10de:2786`.
+- **Gamescope `--hdr-enabled` crashes on NVIDIA DRM** — driver 580.x does
+  not expose `HDR_OUTPUT_METADATA` atomic property. gamescope #2081
+  (3.16.17). DRM-backend HDR requires NVIDIA's Color Pipeline API (preview
+  only, driver 595+). Leave disabled until NVIDIA ships it.
+- **GameMode defaults to card0 (simpledrm)** — set `gpu.device = 1` in
+  gamemode settings to target card1 (NVIDIA RTX 4070).
 - **Plasma-manager widget keys are camelCase** (`iconTasks`, `systemTray`,
   `digitalClock`), not lowercase. Plain string widgets like
   `"org.kde.plasma.marginsseparator"` work as bare list entries.

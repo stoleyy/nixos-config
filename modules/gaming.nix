@@ -205,6 +205,10 @@ in
         };
         gpu = {
           apply_gpu_optimisations = "accept-responsibility";
+          # card1 = NVIDIA RTX 4070; card0 = simpledrm (no vendor file).
+          # Without this, GameMode tries card0 and logs:
+          # "Couldn't open vendor file at /sys/class/drm/card0/device/vendor"
+          device = 1;
           nv_powermizer_mode = 1; # force NVIDIA powermizer to max-perf while gaming
         };
       };

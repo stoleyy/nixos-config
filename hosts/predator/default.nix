@@ -189,37 +189,126 @@
       ];
     };
 
-    # Pure gaming boot — autologins into Steam Gaming Mode via gamescope.
-    # Used exclusively for fullscreen gaming; boots straight to the Steam
-    # library with no desktop, compositor, or security-monitoring overhead.
-    # Session name "steam" is registered by programs.steam.gamescopeSession
-    # (modules/gaming.nix) and confirmed present in the SDDM SessionDir.
+    # Console-like gaming boot — launches gamescope directly via greetd,
+    # a minimal session launcher. No login screen, no greeter, no display
+    # manager UI. greetd creates a PAM + logind session and runs gamescope,
+    # like a game console powering on. If gamescope exits or crashes,
+    # greetd restarts it automatically.
     gaming-tuned.configuration = {
-      # Boot into Steam Gaming Mode via gamescope-session.
-      services.displayManager.defaultSession = lib.mkForce "steam";
-      services.displayManager.autoLogin = {
-        enable = lib.mkForce true;
-        user = lib.mkForce "stoleyy";
+      # Disable SDDM — greetd replaces it for this boot entry.
+      services.displayManager.sddm.enable = lib.mkForce false;
+
+      # greetd: minimal session launcher with PAM + logind integration.
+      services.greetd = {
+        enable = true;
+        restart = true;
+        settings.default_session = {
+          command = "${pkgs.writeShellScript "gamescope-session" ''
+            # Thorough logging — survives reboots since it's in $HOME.
+            LOG=/home/stoleyy/gamescope-session.log
+            exec > "$LOG" 2>&1
+            set -x
+
+            echo "============================================"
+            echo "gamescope session — $(date)"
+            echo "============================================"
+
+            echo "--- environment ---"
+            env | sort
+
+            echo "--- DRI devices ---"
+            ls -la /dev/dri/ || true
+
+            echo "--- logind session ---"
+            loginctl session-status || true
+
+            echo "--- seat info ---"
+            loginctl seat-status seat0 || true
+
+            echo "--- DRM info ---"
+            for card in /sys/class/drm/card*/; do
+              echo "$card: $(cat "$card/device/vendor" 2>/dev/null) $(cat "$card/device/device" 2>/dev/null)"
+            done
+
+            echo "--- NVIDIA driver ---"
+            cat /proc/driver/nvidia/version 2>/dev/null || true
+
+            echo "--- steam-gamescope wrapper contents ---"
+            cat "$(command -v steam-gamescope)" || true
+
+            echo "--- gamescope version ---"
+            gamescope --help 2>&1 | head -1 || true
+
+            # Xwayland EGL fix: libepoxy does dlopen("libEGL.so.1") at runtime
+            # but has no RPATH. Xwayland's RUNPATH includes libglvnd, but
+            # RUNPATH is NOT inherited by transitive dlopen calls. Prepend
+            # libglvnd + the OpenGL driver dir so the GLVND EGL dispatcher
+            # and NVIDIA vendor ICD are discoverable.
+            export LD_LIBRARY_PATH="${pkgs.libglvnd}/lib:/run/opengl-driver/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
+            echo "============================================"
+            echo "Launching steam-gamescope..."
+            echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+            echo "============================================"
+
+            steam-gamescope
+            RC=$?
+            echo "steam-gamescope exited with code $RC at $(date)"
+            exit $RC
+          ''}";
+          user = "stoleyy";
+        };
       };
 
-      # Gamescope display config: 4K @ 240 Hz OLED + HDR + VRR.
-      # ENABLE_GAMESCOPE_WSI=1 is required for NVIDIA Vulkan WSI.
-      # If --hdr-enabled causes a blank screen on first boot, remove it
-      # and rebuild. DXVK_ASYNC=1 enables async shader compilation.
+      # Gamescope display config: 4K @ 240 Hz OLED + VRR.
+      #
+      # --backend drm is REQUIRED — the NixOS module does not add it.
+      # Without it gamescope cannot find a display when launched as a
+      # standalone session (exits code 1 instantly).
+      #
+      # --prefer-output pins the connector (only HDMI-A-1 is connected).
+      # --prefer-vk-device selects the RTX 4070 (10de:2786) for Vulkan
+      # compositing, skipping the simpledrm device.
+      #
+      # HDR: disabled. NVIDIA DRM driver 580.x does not expose HDR
+      # metadata properties through atomic modesetting on this connector.
+      # gamescope --hdr-enabled crashes immediately during DRM init.
+      # Re-enable after NVIDIA ships DRM HDR support (driver 570+ had
+      # partial; watch for full atomic HDR in 585+/open-gpu-kernel-modules).
+      #
+      # --adaptive-sync: VRR works in Hyprland on this HDMI 2.1 link.
+      # gamescope DRM backend may or may not honour it — left enabled;
+      # if it causes issues remove it (session will still boot).
       programs.steam.gamescopeSession = {
         args = [
-          "--width"
+          "--backend"
+          "drm"
+          "--prefer-output"
+          "HDMI-A-1"
+          "--prefer-vk-device"
+          "10de:2786"
+          "--output-width"
           "3840"
-          "--height"
+          "--output-height"
           "2160"
-          "--refresh"
+          "--nested-refresh"
           "240"
-          "--hdr-enabled"
           "--adaptive-sync"
         ];
         env = {
           ENABLE_GAMESCOPE_WSI = "1";
           DXVK_ASYNC = "1";
+          # Force logind seat backend. gamescope's libseat fallback
+          # chain (seatd → logind → builtin) can fail to acquire DRM
+          # master during session handoff. logind is the correct
+          # backend when systemd-logind manages the session.
+          LIBSEAT_BACKEND = "logind";
+          # GLVND EGL vendor ICD discovery. Without this, libglvnd's
+          # EGL dispatcher can't find libEGL_nvidia.so.0 (or mesa),
+          # so Xwayland's libepoxy aborts with "No provider of
+          # eglGetCurrentContext found". Normal desktop sessions get
+          # this from the display manager; greetd doesn't set it.
+          __EGL_VENDOR_LIBRARY_DIRS = "/run/opengl-driver/share/glvnd/egl_vendor.d";
         };
       };
 
