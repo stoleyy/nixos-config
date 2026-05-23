@@ -14,20 +14,24 @@
     (modulesPath + "/installer/scan/not-detected.nix")
   ];
 
-  boot.initrd.availableKernelModules = [
-    "ahci"
-    "xhci_pci"
-    "nvme"
-    "usbhid"
-  ];
-  # LOAD-BEARING — do NOT remove or move to availableKernelModules. VMD is
-  # disabled in BIOS but the controller persists; the kernel still needs vmd
-  # to find the root NVMe by-UUID, force-loaded here so it inits before
-  # Stage-1 root discovery (6.12+). Removing it = unbootable "cannot find
-  # root" (PR #8 tried -> #13 bricked -> #14 this fix). Regen clobbers it.
-  boot.initrd.kernelModules = [ "vmd" ];
-  boot.kernelModules = [ "kvm-intel" ];
-  boot.extraModulePackages = [ ];
+  boot = {
+    initrd = {
+      availableKernelModules = [
+        "ahci"
+        "xhci_pci"
+        "nvme"
+        "usbhid"
+      ];
+      # LOAD-BEARING — do NOT remove or move to availableKernelModules. VMD is
+      # disabled in BIOS but the controller persists; the kernel still needs vmd
+      # to find the root NVMe by-UUID, force-loaded here so it inits before
+      # Stage-1 root discovery (6.12+). Removing it = unbootable "cannot find
+      # root" (PR #8 tried -> #13 bricked -> #14 this fix). Regen clobbers it.
+      kernelModules = [ "vmd" ];
+    };
+    kernelModules = [ "kvm-intel" ];
+    extraModulePackages = [ ];
+  };
 
   fileSystems."/" = {
     device = "/dev/disk/by-uuid/af8035c3-bfc3-4674-b66d-1a5f0c1e8cce";

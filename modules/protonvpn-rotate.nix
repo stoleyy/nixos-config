@@ -335,68 +335,74 @@ in
   };
 
   config = lib.mkIf (cfg.enable && rotateCfg.enable) {
-    systemd.services.protonvpn-rotate = {
-      description = "ProtonVPN automatic server rotation (latency-based)";
-      after = [ "wg-quick-protonvpn.service" ];
-      requires = [ "wg-quick-protonvpn.service" ];
-      path = with pkgs; [
-        wireguard-tools
-        nftables
-        iputils
-        jq
-        coreutils
-        gawk
-      ];
-      serviceConfig = {
-        Type = "oneshot";
-        ExecStartPre = probeSetupScript;
-        ExecStart = rotateScript;
-      };
-    };
+    systemd = {
+      services = {
+        protonvpn-rotate = {
+          description = "ProtonVPN automatic server rotation (latency-based)";
+          after = [ "wg-quick-protonvpn.service" ];
+          requires = [ "wg-quick-protonvpn.service" ];
+          path = with pkgs; [
+            wireguard-tools
+            nftables
+            iputils
+            jq
+            coreutils
+            gawk
+          ];
+          serviceConfig = {
+            Type = "oneshot";
+            ExecStartPre = probeSetupScript;
+            ExecStart = rotateScript;
+          };
+        };
 
-    systemd.timers.protonvpn-rotate = {
-      description = "Timer for ProtonVPN server rotation";
-      wantedBy = [ "timers.target" ];
-      timerConfig = {
-        OnBootSec = "5min";
-        OnUnitActiveSec = rotateCfg.interval;
-        RandomizedDelaySec = "2min";
+        # Pool refresh: read ProtonVPN GUI's cached server list (no auth needed)
+        protonvpn-refresh-pool = lib.mkIf rotateCfg.refreshPool.enable {
+          description = "Refresh ProtonVPN server pool from GUI cache";
+          after = [ "wg-quick-protonvpn.service" ];
+          path = [ pkgs.python3 ];
+          serviceConfig = {
+            Type = "oneshot";
+            ExecStart =
+              let
+                rcfg = rotateCfg.refreshPool;
+                flags = lib.concatStringsSep " " (
+                  [
+                    "--country ${rcfg.country}"
+                    "--top ${toString rcfg.top}"
+                    "--output ${toString rotateCfg.poolFile}"
+                    "--cache /home/${rcfg.cacheOwner}/.var/app/com.protonvpn.www/cache/Proton/VPN/serverlist.json"
+                  ]
+                  ++ lib.optional rcfg.p2p "--p2p"
+                );
+              in
+              pkgs.writeShellScript "protonvpn-refresh-pool-wrapper" ''
+                exec python3 ${../scripts/protonvpn-fetch-pool.py} ${flags}
+              '';
+          };
+        };
       };
-    };
 
-    # Pool refresh: read ProtonVPN GUI's cached server list (no auth needed)
-    systemd.services.protonvpn-refresh-pool = lib.mkIf rotateCfg.refreshPool.enable {
-      description = "Refresh ProtonVPN server pool from GUI cache";
-      after = [ "wg-quick-protonvpn.service" ];
-      path = [ pkgs.python3 ];
-      serviceConfig = {
-        Type = "oneshot";
-        ExecStart =
-          let
-            rcfg = rotateCfg.refreshPool;
-            flags = lib.concatStringsSep " " (
-              [
-                "--country ${rcfg.country}"
-                "--top ${toString rcfg.top}"
-                "--output ${toString rotateCfg.poolFile}"
-                "--cache /home/${rcfg.cacheOwner}/.var/app/com.protonvpn.www/cache/Proton/VPN/serverlist.json"
-              ]
-              ++ lib.optional rcfg.p2p "--p2p"
-            );
-          in
-          pkgs.writeShellScript "protonvpn-refresh-pool-wrapper" ''
-            exec python3 ${../scripts/protonvpn-fetch-pool.py} ${flags}
-          '';
-      };
-    };
+      timers = {
+        protonvpn-rotate = {
+          description = "Timer for ProtonVPN server rotation";
+          wantedBy = [ "timers.target" ];
+          timerConfig = {
+            OnBootSec = "5min";
+            OnUnitActiveSec = rotateCfg.interval;
+            RandomizedDelaySec = "2min";
+          };
+        };
 
-    systemd.timers.protonvpn-refresh-pool = lib.mkIf rotateCfg.refreshPool.enable {
-      description = "Timer for ProtonVPN server pool refresh";
-      wantedBy = [ "timers.target" ];
-      timerConfig = {
-        OnBootSec = "2min";
-        OnUnitActiveSec = rotateCfg.refreshPool.refreshInterval;
-        RandomizedDelaySec = "5min";
+        protonvpn-refresh-pool = lib.mkIf rotateCfg.refreshPool.enable {
+          description = "Timer for ProtonVPN server pool refresh";
+          wantedBy = [ "timers.target" ];
+          timerConfig = {
+            OnBootSec = "2min";
+            OnUnitActiveSec = rotateCfg.refreshPool.refreshInterval;
+            RandomizedDelaySec = "5min";
+          };
+        };
       };
     };
   };

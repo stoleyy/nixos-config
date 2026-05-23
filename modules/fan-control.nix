@@ -87,27 +87,29 @@ in
   # Out-of-tree it87 driver for ITE IT8637E Super I/O chip (fan PWM control)
   # The IT8637E is not in the upstream kernel driver; we force-load it as IT8628E
   # which is register-compatible (confirmed working on ODROID-H3 with same chip).
-  boot.extraModulePackages = [
-    config.boot.kernelPackages.acpi_call
-    it87
-  ];
-  boot.kernelModules = [
-    "acpi_call"
-    "it87"
-  ];
+  boot = {
+    extraModulePackages = [
+      config.boot.kernelPackages.acpi_call
+      it87
+    ];
+    kernelModules = [
+      "acpi_call"
+      "it87"
+    ];
 
-  # Load it87 with force_id to recognize the IT8637E as IT8628E
-  boot.extraModprobeConfig = ''
-    options it87 force_id=0x8628 ignore_resource_conflict=1
-  '';
+    # Load it87 with force_id to recognize the IT8637E as IT8628E
+    extraModprobeConfig = ''
+      options it87 force_id=0x8628 ignore_resource_conflict=1
+    '';
 
-  # acpi_enforce_resources=lax: let it87 claim I/O ports held by ACPI PNP.
-  # iomem=relaxed was removed: it87 + fancontrol use sysfs (kernel ioport API),
-  # not /dev/mem. The only things that needed iomem=relaxed were the diagnostic
-  # scripts/enable-ften*.sh (manual /dev/mem writes) which are not production config.
-  boot.kernelParams = [
-    "acpi_enforce_resources=lax"
-  ];
+    # acpi_enforce_resources=lax: let it87 claim I/O ports held by ACPI PNP.
+    # iomem=relaxed was removed: it87 + fancontrol use sysfs (kernel ioport API),
+    # not /dev/mem. The only things that needed iomem=relaxed were the diagnostic
+    # scripts/enable-ften*.sh (manual /dev/mem writes) which are not production config.
+    kernelParams = [
+      "acpi_enforce_resources=lax"
+    ];
+  };
 
   # Fan curves are managed by CoolerControl (programs.coolercontrol in base.nix)
   # which also uses hwmon2 (it8628). hardware.fancontrol is intentionally absent —

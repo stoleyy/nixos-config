@@ -69,7 +69,9 @@
       # Local dev/lint harness. Enter with `nix develop`.
       # - Eval + LSP:     nixd, nil
       # - Format/lint:    nixfmt-rfc-style, statix, deadnix
-      # - Closure tools:  nix-tree (deps), nvd (generation diff)
+      # - Closure tools:  nix-tree (deps), nix-diff (drv diff), nvd (generation diff)
+      # - Search:         manix (option lookup)
+      # - Build UX:       nix-output-monitor (pretty build logs)
       # - Security:       vulnix (CVE scan), gitleaks (secrets), shellcheck (hooks)
       devShells.${system}.default = nixpkgs.legacyPackages.${system}.mkShell {
         packages = with nixpkgs.legacyPackages.${system}; [
@@ -79,7 +81,10 @@
           statix
           deadnix
           nix-tree
+          nix-diff
+          nix-output-monitor
           nvd
+          manix
           vulnix
           gitleaks
           shellcheck

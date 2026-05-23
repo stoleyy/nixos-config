@@ -24,319 +24,343 @@
 
 {
   # ---------- shared media group ----------
-  users.groups.media = { };
-
-  # ---------- Jellyfin (media streaming, port 8096) ----------
-  services.jellyfin = {
-    enable = true;
-    openFirewall = false;
-  };
-  # NVIDIA hardware transcoding needs render + video; media for shared dirs
-  users.users.jellyfin.extraGroups = [
-    "render"
-    "video"
-    "media"
-  ];
-
-  # ---------- Sonarr (TV shows, port 8989) ----------
-  services.sonarr = {
-    enable = true;
-    openFirewall = false;
-  };
-  users.users.sonarr.extraGroups = [ "media" ];
-
-  # ---------- Radarr (movies, port 7878) ----------
-  services.radarr = {
-    enable = true;
-    openFirewall = false;
-  };
-  users.users.radarr.extraGroups = [ "media" ];
-
-  # ---------- Prowlarr (indexer proxy, port 9696) ----------
-  services.prowlarr = {
-    enable = true;
-    openFirewall = false;
+  users = {
+    groups.media = { };
+    users = {
+      # NVIDIA hardware transcoding needs render + video; media for shared dirs
+      jellyfin.extraGroups = [
+        "render"
+        "video"
+        "media"
+      ];
+      sonarr.extraGroups = [ "media" ];
+      radarr.extraGroups = [ "media" ];
+      qbittorrent.extraGroups = [ "media" ];
+      bazarr.extraGroups = [ "media" ];
+      # stoleyy needs media group for direct file access
+      stoleyy.extraGroups = [ "media" ];
+    };
   };
 
-  # ---------- qBittorrent (torrent client, WebUI 6881, BT 50000) ----------
-  services.qbittorrent = {
-    enable = true;
-    openFirewall = false;
-    webuiPort = 6881;
-    torrentingPort = 50000;
-    serverConfig = {
-      LegalNotice.Accepted = true;
-      Preferences = {
-        General.Locale = "en";
-        Downloads = {
-          SavePath = "/home/stoleyy/games/media/downloads/complete";
-          TempPath = "/home/stoleyy/games/media/downloads/incomplete";
-          TempPathEnabled = true;
+  services = {
+    # ---------- Jellyfin (media streaming, port 8096) ----------
+    jellyfin = {
+      enable = true;
+      openFirewall = false;
+    };
+
+    # ---------- Sonarr (TV shows, port 8989) ----------
+    sonarr = {
+      enable = true;
+      openFirewall = false;
+    };
+
+    # ---------- Radarr (movies, port 7878) ----------
+    radarr = {
+      enable = true;
+      openFirewall = false;
+    };
+
+    # ---------- Prowlarr (indexer proxy, port 9696) ----------
+    prowlarr = {
+      enable = true;
+      openFirewall = false;
+    };
+
+    # ---------- qBittorrent (torrent client, WebUI 6881, BT 50000) ----------
+    qbittorrent = {
+      enable = true;
+      openFirewall = false;
+      webuiPort = 6881;
+      torrentingPort = 50000;
+      serverConfig = {
+        LegalNotice.Accepted = true;
+        Preferences = {
+          General.Locale = "en";
+          Downloads = {
+            SavePath = "/home/stoleyy/games/media/downloads/complete";
+            TempPath = "/home/stoleyy/games/media/downloads/incomplete";
+            TempPathEnabled = true;
+          };
+          # Bind to VPN interface — no traffic exits without the tunnel
+          Connection = {
+            InterfaceName = "protonvpn";
+            InterfaceAddress = "10.2.0.2";
+          };
         };
-        # Bind to VPN interface — no traffic exits without the tunnel
-        Connection = {
-          InterfaceName = "protonvpn";
+        BitTorrent.Session = {
+          Interface = "protonvpn";
           InterfaceAddress = "10.2.0.2";
+          InterfaceName = "protonvpn";
+          # Disable DHT/PeX/LSD — these leak the real IP outside the tunnel
+          DHT = false;
+          PeX = false;
+          LSD = false;
         };
       };
-      BitTorrent.Session = {
-        Interface = "protonvpn";
-        InterfaceAddress = "10.2.0.2";
-        InterfaceName = "protonvpn";
-        # Disable DHT/PeX/LSD — these leak the real IP outside the tunnel
-        DHT = false;
-        PeX = false;
-        LSD = false;
+    };
+
+    # ---------- Bazarr (subtitles, port 6767) ----------
+    bazarr = {
+      enable = true;
+      openFirewall = false;
+    };
+  };
+
+  # ---------- systemd service hardening + on-demand startup ----------
+  systemd = {
+    services = {
+      # qBittorrent: upstream already has full hardening; we override the three
+      # settings that differ: ProtectHome off (media in /home), ProtectSystem
+      # strict (upstream uses full), PrivateTmp on (upstream disables it).
+      # bindsTo: if VPN dies, qBittorrent stops too — prevents IP leaks.
+      qbittorrent = {
+        bindsTo = [ "wg-quick-protonvpn.service" ];
+        after = [ "wg-quick-protonvpn.service" ];
+        wantedBy = lib.mkForce [ ];
+        serviceConfig = {
+          ProtectHome = lib.mkForce false;
+          ProtectSystem = lib.mkForce "strict";
+          ReadWritePaths = [
+            "/var/lib/qbittorrent"
+            "/home/stoleyy/games/media"
+          ];
+          PrivateTmp = lib.mkForce true;
+          NoNewPrivileges = true;
+          PrivateDevices = true;
+          ProtectKernelModules = true;
+          ProtectKernelTunables = true;
+          ProtectKernelLogs = true;
+          ProtectControlGroups = true;
+          ProtectClock = true;
+          RestrictRealtime = true;
+          RestrictSUIDSGID = true;
+          LockPersonality = true;
+          RestrictNamespaces = true;
+          ProtectHostname = true;
+          ProtectProc = "invisible";
+          ProcSubset = "pid";
+          RestrictAddressFamilies = [
+            "AF_INET"
+            "AF_INET6"
+            "AF_UNIX"
+            "AF_NETLINK"
+          ];
+          CapabilityBoundingSet = "";
+          SystemCallFilter = [ "@system-service" ];
+          SystemCallArchitectures = "native";
+          MemoryDenyWriteExecute = true;
+        };
+      };
+
+      # Jellyfin: upstream has most hardening; add the full sandboxing stack.
+      # PrivateDevices omitted — Jellyfin needs /dev/dri for NVENC GPU transcoding.
+      jellyfin = {
+        wantedBy = lib.mkForce [ ];
+        serviceConfig = {
+          ProtectSystem = "strict";
+          ReadWritePaths = [
+            "/var/lib/jellyfin"
+            "/home/stoleyy/games/media"
+          ];
+          NoNewPrivileges = true;
+          PrivateTmp = true;
+          ProtectKernelModules = true;
+          ProtectKernelTunables = true;
+          ProtectKernelLogs = true;
+          ProtectControlGroups = true;
+          ProtectClock = true;
+          RestrictRealtime = true;
+          RestrictSUIDSGID = true;
+          LockPersonality = true;
+          RestrictNamespaces = true;
+          ProtectHostname = true;
+          ProtectProc = "invisible";
+          ProcSubset = "pid";
+          RestrictAddressFamilies = [
+            "AF_INET"
+            "AF_INET6"
+            "AF_UNIX"
+            "AF_NETLINK"
+          ];
+          CapabilityBoundingSet = "";
+          SystemCallFilter = [ "@system-service" ];
+          SystemCallArchitectures = "native";
+          # MemoryDenyWriteExecute omitted: .NET CoreCLR JIT requires W+X pages
+        };
+      };
+
+      sonarr = {
+        wantedBy = lib.mkForce [ ];
+        serviceConfig = {
+          ProtectSystem = "strict";
+          ReadWritePaths = [
+            "/var/lib/sonarr"
+            "/home/stoleyy/games/media"
+          ];
+          NoNewPrivileges = true;
+          PrivateTmp = true;
+          PrivateDevices = true;
+          ProtectKernelModules = true;
+          ProtectKernelTunables = true;
+          ProtectKernelLogs = true;
+          ProtectControlGroups = true;
+          ProtectClock = true;
+          RestrictRealtime = true;
+          RestrictSUIDSGID = true;
+          LockPersonality = true;
+          RestrictNamespaces = true;
+          ProtectHostname = true;
+          ProtectProc = "invisible";
+          ProcSubset = "pid";
+          RestrictAddressFamilies = [
+            "AF_INET"
+            "AF_INET6"
+            "AF_UNIX"
+          ];
+          CapabilityBoundingSet = "";
+          SystemCallFilter = [ "@system-service" ];
+          SystemCallArchitectures = "native";
+          # MemoryDenyWriteExecute omitted: .NET/Mono JIT requires W+X pages
+        };
+      };
+
+      radarr = {
+        wantedBy = lib.mkForce [ ];
+        serviceConfig = {
+          ProtectSystem = "strict";
+          ReadWritePaths = [
+            "/var/lib/radarr"
+            "/home/stoleyy/games/media"
+          ];
+          NoNewPrivileges = true;
+          PrivateTmp = true;
+          PrivateDevices = true;
+          ProtectKernelModules = true;
+          ProtectKernelTunables = true;
+          ProtectKernelLogs = true;
+          ProtectControlGroups = true;
+          ProtectClock = true;
+          RestrictRealtime = true;
+          RestrictSUIDSGID = true;
+          LockPersonality = true;
+          RestrictNamespaces = true;
+          ProtectHostname = true;
+          ProtectProc = "invisible";
+          ProcSubset = "pid";
+          RestrictAddressFamilies = [
+            "AF_INET"
+            "AF_INET6"
+            "AF_UNIX"
+          ];
+          CapabilityBoundingSet = "";
+          SystemCallFilter = [ "@system-service" ];
+          SystemCallArchitectures = "native";
+          # MemoryDenyWriteExecute omitted: .NET/Mono JIT requires W+X pages
+        };
+      };
+
+      prowlarr = {
+        wantedBy = lib.mkForce [ ];
+        serviceConfig = {
+          ProtectSystem = "strict";
+          ReadWritePaths = [ "/var/lib/prowlarr" ];
+          NoNewPrivileges = true;
+          PrivateTmp = true;
+          PrivateDevices = true;
+          ProtectKernelModules = true;
+          ProtectKernelTunables = true;
+          ProtectKernelLogs = true;
+          ProtectControlGroups = true;
+          ProtectClock = true;
+          RestrictRealtime = true;
+          RestrictSUIDSGID = true;
+          LockPersonality = true;
+          RestrictNamespaces = true;
+          ProtectHostname = true;
+          ProtectProc = "invisible";
+          ProcSubset = "pid";
+          RestrictAddressFamilies = [
+            "AF_INET"
+            "AF_INET6"
+            "AF_UNIX"
+          ];
+          CapabilityBoundingSet = "";
+          SystemCallFilter = [ "@system-service" ];
+          SystemCallArchitectures = "native";
+          # MemoryDenyWriteExecute omitted: .NET/Mono JIT requires W+X pages
+        };
+      };
+
+      bazarr = {
+        wantedBy = lib.mkForce [ ];
+        serviceConfig = {
+          ProtectSystem = "strict";
+          ReadWritePaths = [
+            "/var/lib/bazarr"
+            "/home/stoleyy/games/media"
+          ];
+          NoNewPrivileges = true;
+          PrivateTmp = true;
+          PrivateDevices = true;
+          ProtectKernelModules = true;
+          ProtectKernelTunables = true;
+          ProtectKernelLogs = true;
+          ProtectControlGroups = true;
+          ProtectClock = true;
+          RestrictRealtime = true;
+          RestrictSUIDSGID = true;
+          LockPersonality = true;
+          RestrictNamespaces = true;
+          ProtectHostname = true;
+          ProtectProc = "invisible";
+          ProcSubset = "pid";
+          RestrictAddressFamilies = [
+            "AF_INET"
+            "AF_INET6"
+            "AF_UNIX"
+          ];
+          CapabilityBoundingSet = "";
+          SystemCallFilter = [ "@system-service" ];
+          SystemCallArchitectures = "native";
+          MemoryDenyWriteExecute = true;
+        };
       };
     };
-  };
-  users.users.qbittorrent.extraGroups = [ "media" ];
 
-  # qBittorrent: upstream already has full hardening; we override the three
-  # settings that differ: ProtectHome off (media in /home), ProtectSystem
-  # strict (upstream uses full), PrivateTmp on (upstream disables it).
-  # bindsTo: if VPN dies, qBittorrent stops too — prevents IP leaks.
-  systemd.services.qbittorrent = {
-    bindsTo = [ "wg-quick-protonvpn.service" ];
-    after = [ "wg-quick-protonvpn.service" ];
-    serviceConfig = {
-      ProtectHome = lib.mkForce false;
-      ProtectSystem = lib.mkForce "strict";
-      ReadWritePaths = [
-        "/var/lib/qbittorrent"
-        "/home/stoleyy/games/media"
+    # ---------- media directory tree ----------
+    tmpfiles.rules = [
+      "d /home/stoleyy/games/media                       0775 stoleyy media -"
+      "d /home/stoleyy/games/media/movies                0775 stoleyy media -"
+      "d /home/stoleyy/games/media/tv                    0775 stoleyy media -"
+      "d /home/stoleyy/games/media/downloads             0775 stoleyy media -"
+      "d /home/stoleyy/games/media/downloads/complete    0775 stoleyy media -"
+      "d /home/stoleyy/games/media/downloads/incomplete  0775 stoleyy media -"
+    ];
+
+    # ---------- on-demand startup ----------
+    # Don't start any media service at boot; use `sudo systemctl start media-stack.target`
+    targets.media-stack = {
+      description = "Media Server Stack (Jellyfin + arr + qBittorrent)";
+      wants = [
+        "network-online.target"
+        "jellyfin.service"
+        "sonarr.service"
+        "radarr.service"
+        "prowlarr.service"
+        "qbittorrent.service"
+        "bazarr.service"
       ];
-      PrivateTmp = lib.mkForce true;
-      NoNewPrivileges = true;
-      PrivateDevices = true;
-      ProtectKernelModules = true;
-      ProtectKernelTunables = true;
-      ProtectKernelLogs = true;
-      ProtectControlGroups = true;
-      ProtectClock = true;
-      RestrictRealtime = true;
-      RestrictSUIDSGID = true;
-      LockPersonality = true;
-      RestrictNamespaces = true;
-      ProtectHostname = true;
-      ProtectProc = "invisible";
-      ProcSubset = "pid";
-      RestrictAddressFamilies = [
-        "AF_INET"
-        "AF_INET6"
-        "AF_UNIX"
-        "AF_NETLINK"
+      after = [
+        "network-online.target"
       ];
-      CapabilityBoundingSet = "";
-      SystemCallFilter = [ "@system-service" ];
-      SystemCallArchitectures = "native";
-      MemoryDenyWriteExecute = true;
     };
-  };
-
-  # ---------- systemd service hardening ----------
-  # Jellyfin: upstream has most hardening; add the full sandboxing stack.
-  # PrivateDevices omitted — Jellyfin needs /dev/dri for NVENC GPU transcoding.
-  systemd.services.jellyfin.serviceConfig = {
-    ProtectSystem = "strict";
-    ReadWritePaths = [
-      "/var/lib/jellyfin"
-      "/home/stoleyy/games/media"
-    ];
-    NoNewPrivileges = true;
-    PrivateTmp = true;
-    ProtectKernelModules = true;
-    ProtectKernelTunables = true;
-    ProtectKernelLogs = true;
-    ProtectControlGroups = true;
-    ProtectClock = true;
-    RestrictRealtime = true;
-    RestrictSUIDSGID = true;
-    LockPersonality = true;
-    RestrictNamespaces = true;
-    ProtectHostname = true;
-    ProtectProc = "invisible";
-    ProcSubset = "pid";
-    RestrictAddressFamilies = [
-      "AF_INET"
-      "AF_INET6"
-      "AF_UNIX"
-      "AF_NETLINK"
-    ];
-    CapabilityBoundingSet = "";
-    SystemCallFilter = [ "@system-service" ];
-    SystemCallArchitectures = "native";
-    # MemoryDenyWriteExecute omitted: .NET CoreCLR JIT requires W+X pages
-  };
-  systemd.services.sonarr.serviceConfig = {
-    ProtectSystem = "strict";
-    ReadWritePaths = [
-      "/var/lib/sonarr"
-      "/home/stoleyy/games/media"
-    ];
-    NoNewPrivileges = true;
-    PrivateTmp = true;
-    PrivateDevices = true;
-    ProtectKernelModules = true;
-    ProtectKernelTunables = true;
-    ProtectKernelLogs = true;
-    ProtectControlGroups = true;
-    ProtectClock = true;
-    RestrictRealtime = true;
-    RestrictSUIDSGID = true;
-    LockPersonality = true;
-    RestrictNamespaces = true;
-    ProtectHostname = true;
-    ProtectProc = "invisible";
-    ProcSubset = "pid";
-    RestrictAddressFamilies = [
-      "AF_INET"
-      "AF_INET6"
-      "AF_UNIX"
-    ];
-    CapabilityBoundingSet = "";
-    SystemCallFilter = [ "@system-service" ];
-    SystemCallArchitectures = "native";
-    # MemoryDenyWriteExecute omitted: .NET/Mono JIT requires W+X pages
-  };
-  systemd.services.radarr.serviceConfig = {
-    ProtectSystem = "strict";
-    ReadWritePaths = [
-      "/var/lib/radarr"
-      "/home/stoleyy/games/media"
-    ];
-    NoNewPrivileges = true;
-    PrivateTmp = true;
-    PrivateDevices = true;
-    ProtectKernelModules = true;
-    ProtectKernelTunables = true;
-    ProtectKernelLogs = true;
-    ProtectControlGroups = true;
-    ProtectClock = true;
-    RestrictRealtime = true;
-    RestrictSUIDSGID = true;
-    LockPersonality = true;
-    RestrictNamespaces = true;
-    ProtectHostname = true;
-    ProtectProc = "invisible";
-    ProcSubset = "pid";
-    RestrictAddressFamilies = [
-      "AF_INET"
-      "AF_INET6"
-      "AF_UNIX"
-    ];
-    CapabilityBoundingSet = "";
-    SystemCallFilter = [ "@system-service" ];
-    SystemCallArchitectures = "native";
-    # MemoryDenyWriteExecute omitted: .NET/Mono JIT requires W+X pages
-  };
-  systemd.services.prowlarr.serviceConfig = {
-    ProtectSystem = "strict";
-    ReadWritePaths = [ "/var/lib/prowlarr" ];
-    NoNewPrivileges = true;
-    PrivateTmp = true;
-    PrivateDevices = true;
-    ProtectKernelModules = true;
-    ProtectKernelTunables = true;
-    ProtectKernelLogs = true;
-    ProtectControlGroups = true;
-    ProtectClock = true;
-    RestrictRealtime = true;
-    RestrictSUIDSGID = true;
-    LockPersonality = true;
-    RestrictNamespaces = true;
-    ProtectHostname = true;
-    ProtectProc = "invisible";
-    ProcSubset = "pid";
-    RestrictAddressFamilies = [
-      "AF_INET"
-      "AF_INET6"
-      "AF_UNIX"
-    ];
-    CapabilityBoundingSet = "";
-    SystemCallFilter = [ "@system-service" ];
-    SystemCallArchitectures = "native";
-    # MemoryDenyWriteExecute omitted: .NET/Mono JIT requires W+X pages
-  };
-  systemd.services.bazarr.serviceConfig = {
-    ProtectSystem = "strict";
-    ReadWritePaths = [
-      "/var/lib/bazarr"
-      "/home/stoleyy/games/media"
-    ];
-    NoNewPrivileges = true;
-    PrivateTmp = true;
-    PrivateDevices = true;
-    ProtectKernelModules = true;
-    ProtectKernelTunables = true;
-    ProtectKernelLogs = true;
-    ProtectControlGroups = true;
-    ProtectClock = true;
-    RestrictRealtime = true;
-    RestrictSUIDSGID = true;
-    LockPersonality = true;
-    RestrictNamespaces = true;
-    ProtectHostname = true;
-    ProtectProc = "invisible";
-    ProcSubset = "pid";
-    RestrictAddressFamilies = [
-      "AF_INET"
-      "AF_INET6"
-      "AF_UNIX"
-    ];
-    CapabilityBoundingSet = "";
-    SystemCallFilter = [ "@system-service" ];
-    SystemCallArchitectures = "native";
-    MemoryDenyWriteExecute = true;
   };
 
   # Torrenting port (TCP+UDP) — needed for incoming peer connections.
   # qBittorrent is interface-bound to protonvpn, so this only matters on the tunnel.
-  networking.firewall.allowedTCPPorts = [ 50000 ];
-  networking.firewall.allowedUDPPorts = [ 50000 ];
-
-  # ---------- Bazarr (subtitles, port 6767) ----------
-  services.bazarr = {
-    enable = true;
-    openFirewall = false;
-  };
-  users.users.bazarr.extraGroups = [ "media" ];
-
-  # ---------- media directory tree ----------
-  systemd.tmpfiles.rules = [
-    "d /home/stoleyy/games/media                       0775 stoleyy media -"
-    "d /home/stoleyy/games/media/movies                0775 stoleyy media -"
-    "d /home/stoleyy/games/media/tv                    0775 stoleyy media -"
-    "d /home/stoleyy/games/media/downloads             0775 stoleyy media -"
-    "d /home/stoleyy/games/media/downloads/complete    0775 stoleyy media -"
-    "d /home/stoleyy/games/media/downloads/incomplete  0775 stoleyy media -"
-  ];
-
-  # stoleyy needs media group for direct file access
-  users.users.stoleyy.extraGroups = [ "media" ];
-
-  # ---------- on-demand startup ----------
-  # Don't start any media service at boot; use `sudo systemctl start media-stack.target`
-  systemd.services.jellyfin.wantedBy = lib.mkForce [ ];
-  systemd.services.sonarr.wantedBy = lib.mkForce [ ];
-  systemd.services.radarr.wantedBy = lib.mkForce [ ];
-  systemd.services.prowlarr.wantedBy = lib.mkForce [ ];
-  systemd.services.qbittorrent.wantedBy = lib.mkForce [ ];
-  systemd.services.bazarr.wantedBy = lib.mkForce [ ];
-
-  systemd.targets.media-stack = {
-    description = "Media Server Stack (Jellyfin + arr + qBittorrent)";
-    wants = [
-      "network-online.target"
-      "jellyfin.service"
-      "sonarr.service"
-      "radarr.service"
-      "prowlarr.service"
-      "qbittorrent.service"
-      "bazarr.service"
-    ];
-    after = [
-      "network-online.target"
-    ];
+  networking.firewall = {
+    allowedTCPPorts = [ 50000 ];
+    allowedUDPPorts = [ 50000 ];
   };
 }

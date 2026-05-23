@@ -40,58 +40,85 @@ let
 in
 {
   # --- 0. Secrets (sops-nix) — passwords decrypted at activation, never in /nix/store.
-  sops.secrets.wazuh-indexer-password = {
-    owner = "root";
-    mode = "0400";
-  };
-  sops.secrets.wazuh-api-password = {
-    owner = "root";
-    mode = "0400";
-  };
-  sops.secrets.wazuh-dashboard-password = {
-    owner = "root";
-    mode = "0400";
-  };
-
-  # --- 1. State directories owned by the container UIDs (Wazuh's images run as
-  #        root inside the container; bind-mount perms 0700 root:root). The
-  #        certs dir needs world-read for the dashboard to mount it as
-  #        a different image's UID — Wazuh's docs recommend chmod 750 on certs.
-
-  systemd.tmpfiles.rules = [
-    "d ${stateDir}   0750 root root - -"
-    "d ${managerDir} 0750 root root - -"
-    "d ${indexerDir} 0750 root root - -"
-    "d ${dashDir}    0750 root root - -"
-    "d ${certsDir}   0750 root root - -"
-    "d ${stateDir}/agent-predator 0750 root root - -"
-  ];
-
-  # --- 2. Podman network for inter-container service discovery by hostname.
-  #     The oci-containers backend doesn't expose a clean "create network" hook,
-  #     so we do it via a systemd one-shot before any container starts.
-
-  systemd.services.podman-network-wazuh = {
-    description = "Create podman network 'wazuh' for the manager stack";
-    after = [ "podman.service" ];
-    wants = [ "podman.service" ];
-    before = [
-      "podman-wazuh-manager.service"
-      "podman-wazuh-indexer.service"
-      "podman-wazuh-dashboard.service"
-      "podman-wazuh-agent-predator.service"
-    ];
-    wantedBy = [ "multi-user.target" ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      ExecStart = "${pkgs.podman}/bin/podman network create --ignore wazuh";
-      ExecStop = "${pkgs.podman}/bin/podman network rm --force wazuh";
+  sops.secrets = {
+    wazuh-indexer-password = {
+      owner = "root";
+      mode = "0400";
+    };
+    wazuh-api-password = {
+      owner = "root";
+      mode = "0400";
+    };
+    wazuh-dashboard-password = {
+      owner = "root";
+      mode = "0400";
     };
   };
 
-  # --- 3. The three containers.
+  # --- 1. State directories + systemd services
+  systemd = {
+    # State directories owned by the container UIDs (Wazuh's images run as
+    # root inside the container; bind-mount perms 0700 root:root). The
+    # certs dir needs world-read for the dashboard to mount it as
+    # a different image's UID — Wazuh's docs recommend chmod 750 on certs.
+    tmpfiles.rules = [
+      "d ${stateDir}   0750 root root - -"
+      "d ${managerDir} 0750 root root - -"
+      "d ${indexerDir} 0750 root root - -"
+      "d ${dashDir}    0750 root root - -"
+      "d ${certsDir}   0750 root root - -"
+      "d ${stateDir}/agent-predator 0750 root root - -"
+    ];
 
+    services = {
+      # --- 2. Podman network for inter-container service discovery by hostname.
+      #     The oci-containers backend doesn't expose a clean "create network" hook,
+      #     so we do it via a systemd one-shot before any container starts.
+      podman-network-wazuh = {
+        description = "Create podman network 'wazuh' for the manager stack";
+        after = [ "podman.service" ];
+        wants = [ "podman.service" ];
+        before = [
+          "podman-wazuh-manager.service"
+          "podman-wazuh-indexer.service"
+          "podman-wazuh-dashboard.service"
+          "podman-wazuh-agent-predator.service"
+        ];
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          ExecStart = "${pkgs.podman}/bin/podman network create --ignore wazuh";
+          ExecStop = "${pkgs.podman}/bin/podman network rm --force wazuh";
+        };
+      };
+
+      # --- 4. Inject sops-nix secrets into container environments at runtime.
+      #     Podman's --env-file reads key=value lines from a file on the host.
+      #     sops-nix decrypts to /run/secrets/<name> (root:root 0400) at activation.
+      #     The systemd unit's ExecStartPre generates the env file from the secret.
+      podman-wazuh-manager.serviceConfig.ExecStartPre = lib.mkAfter [
+        (pkgs.writeShellScript "inject-wazuh-manager-secrets" ''
+          f=/run/wazuh-manager-env
+          printf 'INDEXER_PASSWORD=%s\nAPI_PASSWORD=%s\n' \
+            "$(cat ${config.sops.secrets.wazuh-indexer-password.path})" \
+            "$(cat ${config.sops.secrets.wazuh-api-password.path})" > "$f"
+          chmod 0400 "$f"
+        '')
+      ];
+      podman-wazuh-dashboard.serviceConfig.ExecStartPre = lib.mkAfter [
+        (pkgs.writeShellScript "inject-wazuh-dashboard-secrets" ''
+          f=/run/wazuh-dashboard-env
+          printf 'DASHBOARD_PASSWORD=%s\nAPI_PASSWORD=%s\n' \
+            "$(cat ${config.sops.secrets.wazuh-dashboard-password.path})" \
+            "$(cat ${config.sops.secrets.wazuh-api-password.path})" > "$f"
+          chmod 0400 "$f"
+        '')
+      ];
+    };
+  };
+
+  # --- 3. The three containers + env file pass-through.
   virtualisation.oci-containers.containers = {
 
     wazuh-indexer = {
@@ -123,13 +150,13 @@ in
       environment = {
         "INDEXER_URL" = "https://wazuh-indexer:9200";
         "INDEXER_USERNAME" = "admin";
-        # INDEXER_PASSWORD injected via sops-nix (see systemd override below)
+        # INDEXER_PASSWORD injected via sops-nix (see systemd override above)
         "FILEBEAT_SSL_VERIFICATION_MODE" = "full";
         "SSL_CERTIFICATE_AUTHORITIES" = "/etc/ssl/root-ca.pem";
         "SSL_CERTIFICATE" = "/etc/ssl/filebeat.pem";
         "SSL_KEY" = "/etc/ssl/filebeat.key";
         "API_USERNAME" = "wazuh-wui";
-        # API_PASSWORD injected via sops-nix (see systemd override below)
+        # API_PASSWORD injected via sops-nix (see systemd override above)
       };
       ports = [
         "1514:1514/udp" # agent logs
@@ -152,7 +179,10 @@ in
         "${certsDir}/wazuh.manager.pem:/etc/ssl/filebeat.pem:ro"
         "${certsDir}/wazuh.manager-key.pem:/etc/ssl/filebeat.key:ro"
       ];
-      extraOptions = [ "--network=wazuh" ];
+      extraOptions = [
+        "--network=wazuh"
+        "--env-file=/run/wazuh-manager-env"
+      ];
     };
 
     # Predator's own Wazuh agent. Containerized for symmetry with the rest of
@@ -193,7 +223,7 @@ in
         "OPENSEARCH_HOSTS" = ''["https://wazuh-indexer:9200"]'';
         "WAZUH_API_URL" = "https://wazuh-manager";
         "DASHBOARD_USERNAME" = "kibanaserver";
-        # DASHBOARD_PASSWORD, API_PASSWORD injected via sops-nix (see systemd override below)
+        # DASHBOARD_PASSWORD, API_PASSWORD injected via sops-nix (see systemd override above)
         "API_USERNAME" = "wazuh-wui";
       };
       ports = [
@@ -206,41 +236,13 @@ in
         "${dashDir}/config:/usr/share/wazuh-dashboard/data/wazuh/config"
         "${dashDir}/custom:/usr/share/wazuh-dashboard/plugins/wazuh/public/assets/custom"
       ];
-      extraOptions = [ "--network=wazuh" ];
+      extraOptions = [
+        "--network=wazuh"
+        "--env-file=/run/wazuh-dashboard-env"
+      ];
     };
 
   };
-
-  # --- 4. Inject sops-nix secrets into container environments at runtime.
-  #     Podman's --env-file reads key=value lines from a file on the host.
-  #     sops-nix decrypts to /run/secrets/<name> (root:root 0400) at activation.
-  #     The systemd unit's ExecStartPre generates the env file from the secret.
-  systemd.services.podman-wazuh-manager.serviceConfig.ExecStartPre = lib.mkAfter [
-    (pkgs.writeShellScript "inject-wazuh-manager-secrets" ''
-      f=/run/wazuh-manager-env
-      printf 'INDEXER_PASSWORD=%s\nAPI_PASSWORD=%s\n' \
-        "$(cat ${config.sops.secrets.wazuh-indexer-password.path})" \
-        "$(cat ${config.sops.secrets.wazuh-api-password.path})" > "$f"
-      chmod 0400 "$f"
-    '')
-  ];
-  systemd.services.podman-wazuh-dashboard.serviceConfig.ExecStartPre = lib.mkAfter [
-    (pkgs.writeShellScript "inject-wazuh-dashboard-secrets" ''
-      f=/run/wazuh-dashboard-env
-      printf 'DASHBOARD_PASSWORD=%s\nAPI_PASSWORD=%s\n' \
-        "$(cat ${config.sops.secrets.wazuh-dashboard-password.path})" \
-        "$(cat ${config.sops.secrets.wazuh-api-password.path})" > "$f"
-      chmod 0400 "$f"
-    '')
-  ];
-
-  # Pass the env files to the containers
-  virtualisation.oci-containers.containers.wazuh-manager.extraOptions = lib.mkAfter [
-    "--env-file=/run/wazuh-manager-env"
-  ];
-  virtualisation.oci-containers.containers.wazuh-dashboard.extraOptions = lib.mkAfter [
-    "--env-file=/run/wazuh-dashboard-env"
-  ];
 
   # --- 5. First-time setup notes (intentionally NOT automated — these are
   #     manual one-time steps; the alternative is a complex Nix-side cert

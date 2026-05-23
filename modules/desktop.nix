@@ -4,30 +4,32 @@
   services = {
     xserver.enable = true;
     desktopManager.plasma6.enable = true;
-    displayManager.sddm = {
-      enable = true;
-      # SDDM Wayland greeter: now retesting with open=true + fbdev=1.
-      # Previously crashed on open module without fbdev=1 (reverted 59af7a7).
-      # If it regresses (greeter flashes → text login), revert to false.
-      wayland.enable = true;
-    };
+    displayManager = {
+      sddm = {
+        enable = true;
+        # SDDM Wayland greeter: now retesting with open=true + fbdev=1.
+        # Previously crashed on open module without fbdev=1 (reverted 59af7a7).
+        # If it regresses (greeter flashes → text login), revert to false.
+        wayland.enable = true;
+      };
 
-    # Hyprland is the default session. To switch: boot the "plasma"
-    # specialisation from the systemd-boot menu (no autologin → SDDM greeter).
-    displayManager.defaultSession = "hyprland";
+      # Hyprland is the default session. To switch: boot the "plasma"
+      # specialisation from the systemd-boot menu (no autologin → SDDM greeter).
+      defaultSession = "hyprland";
 
-    # Autologin into the default session. SDDM stamps the last-used session
-    # into the $HOME-shared ~/.local/share/sddm/state.conf on every login —
-    # autologin included — and prefers that cache over defaultSession at the
-    # greeter. $HOME is shared across specialisations, so without autologin
-    # one specialisation's session choice would poison the cache for others.
-    # Autologin skips the greeter and uses the configured Autologin.Session
-    # (= defaultSession), making each boot entry deterministic regardless of
-    # the cache: default → hyprland; plasma spec mkForce → plasma (greeter);
-    # gaming-tuned spec mkForce → steam (gamescope).
-    displayManager.autoLogin = {
-      enable = true;
-      user = "stoleyy";
+      # Autologin into the default session. SDDM stamps the last-used session
+      # into the $HOME-shared ~/.local/share/sddm/state.conf on every login —
+      # autologin included — and prefers that cache over defaultSession at the
+      # greeter. $HOME is shared across specialisations, so without autologin
+      # one specialisation's session choice would poison the cache for others.
+      # Autologin skips the greeter and uses the configured Autologin.Session
+      # (= defaultSession), making each boot entry deterministic regardless of
+      # the cache: default → hyprland; plasma spec mkForce → plasma (greeter);
+      # gaming-tuned spec mkForce → steam (gamescope).
+      autoLogin = {
+        enable = true;
+        user = "stoleyy";
+      };
     };
   };
 

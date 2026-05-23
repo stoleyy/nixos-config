@@ -195,69 +195,75 @@
     # like a game console powering on. If gamescope exits or crashes,
     # greetd restarts it automatically.
     gaming-tuned.configuration = {
-      # Disable SDDM — greetd replaces it for this boot entry.
-      services.displayManager.sddm.enable = lib.mkForce false;
+      services = {
+        # Disable SDDM — greetd replaces it for this boot entry.
+        displayManager.sddm.enable = lib.mkForce false;
 
-      # greetd: minimal session launcher with PAM + logind integration.
-      services.greetd = {
-        enable = true;
-        restart = true;
-        settings.default_session = {
-          command = "${pkgs.writeShellScript "gamescope-session" ''
-            # Thorough logging — survives reboots since it's in $HOME.
-            LOG=/home/stoleyy/gamescope-session.log
-            exec > "$LOG" 2>&1
-            set -x
+        # greetd: minimal session launcher with PAM + logind integration.
+        greetd = {
+          enable = true;
+          restart = true;
+          settings.default_session = {
+            command = "${pkgs.writeShellScript "gamescope-session" ''
+              # Thorough logging — survives reboots since it's in $HOME.
+              LOG=/home/stoleyy/gamescope-session.log
+              exec > "$LOG" 2>&1
+              set -x
 
-            echo "============================================"
-            echo "gamescope session — $(date)"
-            echo "============================================"
+              echo "============================================"
+              echo "gamescope session — $(date)"
+              echo "============================================"
 
-            echo "--- environment ---"
-            env | sort
+              echo "--- environment ---"
+              env | sort
 
-            echo "--- DRI devices ---"
-            ls -la /dev/dri/ || true
+              echo "--- DRI devices ---"
+              ls -la /dev/dri/ || true
 
-            echo "--- logind session ---"
-            loginctl session-status || true
+              echo "--- logind session ---"
+              loginctl session-status || true
 
-            echo "--- seat info ---"
-            loginctl seat-status seat0 || true
+              echo "--- seat info ---"
+              loginctl seat-status seat0 || true
 
-            echo "--- DRM info ---"
-            for card in /sys/class/drm/card*/; do
-              echo "$card: $(cat "$card/device/vendor" 2>/dev/null) $(cat "$card/device/device" 2>/dev/null)"
-            done
+              echo "--- DRM info ---"
+              for card in /sys/class/drm/card*/; do
+                echo "$card: $(cat "$card/device/vendor" 2>/dev/null) $(cat "$card/device/device" 2>/dev/null)"
+              done
 
-            echo "--- NVIDIA driver ---"
-            cat /proc/driver/nvidia/version 2>/dev/null || true
+              echo "--- NVIDIA driver ---"
+              cat /proc/driver/nvidia/version 2>/dev/null || true
 
-            echo "--- steam-gamescope wrapper contents ---"
-            cat "$(command -v steam-gamescope)" || true
+              echo "--- steam-gamescope wrapper contents ---"
+              cat "$(command -v steam-gamescope)" || true
 
-            echo "--- gamescope version ---"
-            gamescope --help 2>&1 | head -1 || true
+              echo "--- gamescope version ---"
+              gamescope --help 2>&1 | head -1 || true
 
-            # Xwayland EGL fix: libepoxy does dlopen("libEGL.so.1") at runtime
-            # but has no RPATH. Xwayland's RUNPATH includes libglvnd, but
-            # RUNPATH is NOT inherited by transitive dlopen calls. Prepend
-            # libglvnd + the OpenGL driver dir so the GLVND EGL dispatcher
-            # and NVIDIA vendor ICD are discoverable.
-            export LD_LIBRARY_PATH="${pkgs.libglvnd}/lib:/run/opengl-driver/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+              # Xwayland EGL fix: libepoxy does dlopen("libEGL.so.1") at runtime
+              # but has no RPATH. Xwayland's RUNPATH includes libglvnd, but
+              # RUNPATH is NOT inherited by transitive dlopen calls. Prepend
+              # libglvnd + the OpenGL driver dir so the GLVND EGL dispatcher
+              # and NVIDIA vendor ICD are discoverable.
+              export LD_LIBRARY_PATH="${pkgs.libglvnd}/lib:/run/opengl-driver/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
-            echo "============================================"
-            echo "Launching steam-gamescope..."
-            echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
-            echo "============================================"
+              echo "============================================"
+              echo "Launching steam-gamescope..."
+              echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+              echo "============================================"
 
-            steam-gamescope
-            RC=$?
-            echo "steam-gamescope exited with code $RC at $(date)"
-            exit $RC
-          ''}";
-          user = "stoleyy";
+              steam-gamescope
+              RC=$?
+              echo "steam-gamescope exited with code $RC at $(date)"
+              exit $RC
+            ''}";
+            user = "stoleyy";
+          };
         };
+
+        # Disable PPD — pulled in by plasma6, conflicts with the explicit
+        # governor service below. Without this, both fight over sysfs writes.
+        power-profiles-daemon.enable = lib.mkForce false;
       };
 
       # Gamescope display config: 4K @ 240 Hz OLED + VRR.
@@ -312,10 +318,6 @@
         };
       };
 
-      # Disable PPD — pulled in by plasma6, conflicts with the explicit
-      # governor service below. Without this, both fight over sysfs writes.
-      services.power-profiles-daemon.enable = lib.mkForce false;
-
       # Pin governor to performance for the entire gaming session.
       powerManagement.cpuFreqGovernor = lib.mkForce "performance";
 
@@ -330,9 +332,11 @@
 
       # Shed security monitoring overhead. This boot entry is exclusively
       # used for fullscreen gaming — no network-facing interactive services.
-      security.auditd.enable = lib.mkForce false;
-      security.audit.enable = lib.mkForce false;
-      security.apparmor.enable = lib.mkForce false;
+      security = {
+        auditd.enable = lib.mkForce false;
+        audit.enable = lib.mkForce false;
+        apparmor.enable = lib.mkForce false;
+      };
 
       # Performance kernel params. Appended to the base list; Linux
       # last-param-wins means init_on_alloc=0 overrides hardening.nix's =1.
