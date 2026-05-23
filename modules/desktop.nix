@@ -12,21 +12,19 @@
       wayland.enable = true;
     };
 
-    # Plasma 6 Wayland session. Retesting with open=true + fbdev=1
-    # (previously crash-looped without fbdev=1, reverted in 59af7a7).
-    # If it regresses, revert to "plasmax11".
+    # Hyprland is the default session. To switch: boot the "plasma"
+    # specialisation from the systemd-boot menu (no autologin → SDDM greeter).
     displayManager.defaultSession = "hyprland";
 
     # Autologin into the default session. SDDM stamps the last-used session
     # into the $HOME-shared ~/.local/share/sddm/state.conf on every login —
     # autologin included — and prefers that cache over defaultSession at the
-    # greeter. $HOME is shared across specialisations, so the hyprland
-    # specialisation's autologin poisoned the cache and the default Plasma
-    # entry's greeter then pre-selected Hyprland too (both boot entries
-    # landed in Hyprland). Autologin here skips the greeter and uses the
-    # configured Autologin.Session (= defaultSession), making each boot entry
-    # deterministic: default -> plasmax11; the hyprland specialisation
-    # mkForce-overrides defaultSession so it -> hyprland.
+    # greeter. $HOME is shared across specialisations, so without autologin
+    # one specialisation's session choice would poison the cache for others.
+    # Autologin skips the greeter and uses the configured Autologin.Session
+    # (= defaultSession), making each boot entry deterministic regardless of
+    # the cache: default → hyprland; plasma spec mkForce → plasma (greeter);
+    # gaming-tuned spec mkForce → steam (gamescope).
     displayManager.autoLogin = {
       enable = true;
       user = "stoleyy";
