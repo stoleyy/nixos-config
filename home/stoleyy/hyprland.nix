@@ -38,7 +38,8 @@
     wl-screenrec
 
     # Sidecar daily-driver tools
-    yazi # TUI file manager (Kitty graphics-protocol previews)
+    # yazi: managed by programs.yazi in ./yazi.nix (gives us the Gruvbox theme)
+    # walker: themed via xdg.configFile in ./walker.nix
     walker # Unified launcher (apps + clipboard + emoji + calc + window switch)
     rofi-bluetooth # OLED-friendly keyboard-only BT pairing
     nwg-look # Wayland-native GTK theme verifier
@@ -545,6 +546,10 @@
 
         # hyprexpo overview — Super + grave (backtick) toggles workspace grid.
         "$mod, grave, hyprexpo:expo, toggle"
+
+        # Session submap entry — see the submap block in extraConfig below.
+        "$mod, Escape, submap, session"
+        ''$mod, Escape, exec, notify-send -t 4000 -u low " Session" "L lock  E exit  R reboot  S shutdown  U suspend\nEsc cancel"''
       ];
 
       bindm = [
@@ -566,6 +571,11 @@
         ",XF86AudioPrev, exec, playerctl previous"
       ];
 
+      # Session submap: $mod + Escape opens an inline modal where single
+      # keys trigger lock/exit/reboot/shutdown/suspend. Action keys also
+      # reset the submap (each is two binds — exec + submap reset).
+      # Bound here in settings.bind; the submap definition itself is in
+      # extraConfig below (submap blocks need raw, ordered config).
       windowrulev2 = [
         "float, class:^(pavucontrol)$"
         "float, class:^(nm-connection-editor)$"
@@ -599,6 +609,27 @@
         "opacity 1.0 override 1.0 override,   title:^(.*Picture-in-Picture.*)$"
       ];
     };
+
+    # Session-mode submap: declared as raw text because Hyprland's submap
+    # blocks are sequential (each `submap = name` line scopes the binds
+    # that follow it) and the HM Nix attrset doesn't preserve insertion
+    # order. Each action key fires its command AND resets the submap, so
+    # one keypress = one outcome + return-to-normal.
+    extraConfig = ''
+      submap = session
+      bind = , L, exec, hyprlock
+      bind = , L, submap, reset
+      bind = , E, exec, loginctl terminate-user $USER
+      bind = , E, submap, reset
+      bind = , R, exec, systemctl reboot
+      bind = , R, submap, reset
+      bind = , S, exec, systemctl poweroff
+      bind = , S, submap, reset
+      bind = , U, exec, systemctl suspend
+      bind = , U, submap, reset
+      bind = , escape, submap, reset
+      submap = reset
+    '';
   };
 
   # HyDE-inspired hyprlock layout — time top-right, greeting center, input bottom.
@@ -648,6 +679,18 @@
           font_size = 18;
           font_family = "JetBrainsMono Nerd Font";
           text = ''cmd[update:60000] echo "Good $(date +%H | awk '{if ($1 < 12) print "Morning"; else if ($1 < 18) print "Afternoon"; else print "Evening"}'), $USER"'';
+        }
+        # Now-playing — bottom. playerctl prints "title — artist" while
+        # something is playing; the `|| echo` falls through to an empty
+        # string when no MPRIS sender exists, hiding the label entirely.
+        {
+          position = "0, 80";
+          halign = "center";
+          valign = "bottom";
+          color = "rgb(d5c4a1)";
+          font_size = 14;
+          font_family = "JetBrainsMono Nerd Font";
+          text = "cmd[update:1000] playerctl --no-messages metadata --format ' {{title}} — {{artist}}' 2>/dev/null || echo";
         }
       ];
       input-field = [
