@@ -32,11 +32,8 @@ in
       name = "Tela-circle-black-dark";
       package = pkgs.tela-circle-icon-theme.override { colorVariants = [ "black" ]; };
     };
-    cursorTheme = {
-      name = "Bibata-Modern-Classic";
-      package = pkgs.bibata-cursors;
-      size = 24;
-    };
+    # cursorTheme intentionally absent — home.pointerCursor (declared in
+    # home/stoleyy/hyprland.nix) sets gtk + hyprcursor + XCursor in one place.
     gtk3.extraConfig.gtk-application-prefer-dark-theme = 1;
     gtk3.extraCss = gruvboxCss;
     gtk4.extraConfig.gtk-application-prefer-dark-theme = 1;
