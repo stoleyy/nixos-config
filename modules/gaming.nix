@@ -214,7 +214,13 @@ in
       };
     };
 
-    gamescope.enable = true;
+    gamescope = {
+      enable = true;
+      # Grant CAP_SYS_NICE so gamescope can renice its threads for realtime
+      # scheduling. Without this, the gaming-tuned greetd session logs
+      # "No CAP_SYS_NICE, falling back to regular-priority compute and threads."
+      capSysNice = true;
+    };
 
     steam = {
       enable = true;

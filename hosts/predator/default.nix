@@ -315,6 +315,12 @@
           # eglGetCurrentContext found". Normal desktop sessions get
           # this from the display manager; greetd doesn't set it.
           __EGL_VENDOR_LIBRARY_DIRS = "/run/opengl-driver/share/glvnd/egl_vendor.d";
+          # Disable glamor (GPU-accelerated 2D) inside gamescope's Xwayland.
+          # Same libepoxy 1.5.10 + NVIDIA 580.x crash as the Hyprland session
+          # (modules/hyprland.nix wraps the system Xwayland with -glamor off,
+          # but gamescope spawns its own from its closure). XWAYLAND_NO_GLAMOR
+          # is the env-var equivalent. 3D/Vulkan games are unaffected.
+          XWAYLAND_NO_GLAMOR = "1";
         };
       };
 
