@@ -38,8 +38,10 @@
     wl-screenrec
 
     # Sidecar daily-driver tools
-    # yazi: managed by programs.yazi in ./yazi.nix (gives us the Gruvbox theme)
-    # walker: themed via xdg.configFile in ./walker.nix
+    # yazi: managed by programs.yazi in ./yazi.nix (gives us the Gruvbox theme).
+    # walker: installed with defaults — the 0.13.x config schema differs
+    # from current docs and shipping a wrong config.toml causes more
+    # confusion than no config; theme via ~/.config/walker once on-box.
     walker # Unified launcher (apps + clipboard + emoji + calc + window switch)
     rofi-bluetooth # OLED-friendly keyboard-only BT pairing
     nwg-look # Wayland-native GTK theme verifier
@@ -386,7 +388,6 @@
           threshold = 2;
           shake = {
             enabled = true;
-            nearest = true;
             threshold = 6.0;
             base = 4.0;
             speed = 4.0;

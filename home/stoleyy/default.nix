@@ -15,7 +15,6 @@
     ./hyprland.nix
     ./waybar.nix
     ./rofi.nix
-    ./walker.nix
     ./swaync.nix
     ./wlogout.nix
     ./gtk.nix
