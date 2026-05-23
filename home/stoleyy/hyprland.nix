@@ -24,6 +24,8 @@
     kitty
     imv
     hypridle
+    hyprshade
+    satty
     kdePackages.kwallet
     kdePackages.kwallet-pam
   ];
@@ -58,6 +60,13 @@
     package = null;
     portalPackage = null;
 
+    # Plugins matched to the system hyprland by virtue of being drawn from the
+    # same nixpkgs pin (no separate hyprland-plugins flake input → no version
+    # skew). hyprexpo provides Mission Control–style workspace overview.
+    plugins = with pkgs.hyprlandPlugins; [
+      hyprexpo
+    ];
+
     settings = {
       env = [
         "LIBVA_DRIVER_NAME,nvidia"
@@ -73,6 +82,11 @@
         # Reuse Plasma 6's Qt platform theme so Qt apps render Breeze under
         # Hyprland (matches their KDE appearance; no qt6ct/kvantum stack).
         "QT_QPA_PLATFORMTHEME,kde"
+        # 4K HiDPI cursor — default 24 px is too small on the 32" G80SD.
+        "XCURSOR_SIZE,32"
+        # Belt-and-suspenders Qt scaling for non-Plasma Qt tools where
+        # PLATFORMTHEME=kde doesn't carry Plasma's auto-scale heuristics.
+        "QT_AUTO_SCREEN_SCALE_FACTOR,1"
       ];
 
       exec-once = [
@@ -91,6 +105,11 @@
         "kdeconnect-indicator"
         "kwalletd6"
         "hypridle"
+        # OLED-friendly night colour temperature via Hyprland's own shader
+        # pipeline (cleaner than a CRTC color matrix). `hyprshade auto`
+        # applies the schedule defined in ~/.config/hypr/hyprshade.toml
+        # (defaults to a sunset-based blue-light filter if the file is absent).
+        "hyprshade auto"
         "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1"
       ];
 
@@ -124,10 +143,14 @@
         fullscreen_opacity = 1;
         dim_inactive = false;
         dim_special = 0.3;
+        # Blur cost scales with output area; at 4K, passes=3/size=6 burns
+        # 4-6 ms/frame of the 240 Hz budget and produces visible stutter
+        # on heavy multitasking. passes=2/size=4 is imperceptibly different
+        # on the frosted waybar but recovers the frame budget.
         blur = {
           enabled = true;
-          size = 6;
-          passes = 3;
+          size = 4;
+          passes = 2;
           new_optimizations = true;
           ignore_opacity = true;
           xray = false;
@@ -187,11 +210,39 @@
         disable_splash_rendering = true;
         mouse_move_enables_dpms = true;
         key_press_enables_dpms = true;
-        # Adaptive Sync / VRR — pairs with __GL_VRR_ALLOWED=1 in env.
-        vrr = 1;
+        # Adaptive Sync / VRR mode 2 = fullscreen-only. mode 1 enables VRR
+        # on every surface and can dim / flicker on partial OLED redraws;
+        # mode 2 keeps the gaming benefit and pins the desktop at 240 Hz.
+        vrr = 2;
         # Dark fallback colour shown briefly before the wallpaper engine
         # process renders — avoids a black flash at startup.
         background_color = "rgb(1d2021)";
+      };
+
+      # Lower-latency fullscreen on NVIDIA. The compositor bypasses its
+      # own composition pass when a fullscreen client matches the output
+      # mode exactly. Pairs with allow_tearing + the immediate window rule.
+      render = {
+        direct_scanout = true;
+      };
+
+      # 4K HiDPI: prevent XWayland from upscaling legacy X11 apps (which
+      # produces blurry text). With zero-scaling, X11 clients render at
+      # native pixel resolution.
+      xwayland = {
+        force_zero_scaling = true;
+      };
+
+      # Mission Control–style workspace overview (hyprexpo plugin).
+      # Bound to $mod + grave (backtick, top-left of keyboard) below.
+      plugin = {
+        hyprexpo = {
+          columns = 3;
+          gap_size = 5;
+          bg_col = "rgb(1d2021)";
+          workspace_method = "center current";
+          enable_gesture = false; # desktop has no touchpad
+        };
       };
 
       # Hyprland 0.46+ removed `render.explicit_sync` — it's automatic now,
@@ -264,6 +315,11 @@
         ",      Print, exec, grimblast --notify copy area"
         "$mod,  Print, exec, grimblast --notify copy screen"
         "SHIFT, Print, exec, grimblast --notify copy output"
+        # Annotated area capture: grimblast → satty editor → wl-copy on save.
+        "$mod SHIFT, Print, exec, grimblast save area - | satty -f - --early-exit --copy-command wl-copy"
+
+        # hyprexpo overview — Super + grave (backtick) toggles workspace grid.
+        "$mod, grave, hyprexpo:expo, toggle"
       ];
 
       bindm = [

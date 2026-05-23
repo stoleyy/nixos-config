@@ -71,7 +71,10 @@
         mpris = {
           format = "{player_icon} {dynamic}";
           format-paused = "{player_icon} <i>{dynamic}</i>";
-          dynamic-order = [ "title" "artist" ];
+          dynamic-order = [
+            "title"
+            "artist"
+          ];
           dynamic-len = 25;
           player-icons = {
             default = "▶";
@@ -79,7 +82,9 @@
             firefox = "";
             brave = "󰖟";
           };
-          status-icons = { paused = ""; };
+          status-icons = {
+            paused = "";
+          };
         };
 
         cpu = {
@@ -98,7 +103,11 @@
           format-muted = "  muted";
           format-icons = {
             headphone = "";
-            default = [ "" "" "" ];
+            default = [
+              ""
+              ""
+              ""
+            ];
           };
           on-click = "pavucontrol";
           scroll-step = 5;
@@ -155,7 +164,7 @@
       @define-color bar-bg    rgba(29, 32, 33, 0.01);
       @define-color main-bg   rgba(29, 32, 33, 0.80);
       @define-color main-fg   ${colors.fg0};
-      @define-color wb-act-bg rgba(152, 151, 26, 0.40);
+      @define-color wb-act-bg rgba(152, 151, 26, 0.35);
       @define-color wb-act-fg ${colors.fg0};
       @define-color wb-hvr-bg rgba(215, 153, 33, 0.40);
       @define-color wb-hvr-fg ${colors.fg0};
