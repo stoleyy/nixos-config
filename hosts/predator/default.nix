@@ -158,22 +158,19 @@
   ];
 
   specialisation = {
-    # Boot with Hyprland as the default session instead of Plasma.
-    # Select "hyprland" from the systemd-boot menu.
-    hyprland.configuration = {
-      services.displayManager = {
-        defaultSession = lib.mkForce "hyprland";
-        autoLogin = {
-          enable = true;
-          user = "stoleyy";
-        };
-      };
+    # On-demand Plasma boot — boots to the SDDM greeter (no autologin) so
+    # the session can be chosen from the dropdown. When the user returns to
+    # Plasma as their daily driver, flip defaultSession in modules/desktop.nix
+    # and remove this specialisation.
+    plasma.configuration = {
+      services.displayManager.defaultSession = lib.mkForce "plasma";
+      services.displayManager.autoLogin.enable = lib.mkForce false;
     };
 
     # Verbose boot + tracing tools for diagnosing kernel/driver issues.
     # Select "debug" from the systemd-boot menu.
-    # nomodeset disables KMS/DRM so Stage 1 errors print to the plain VGA console
-    # instead of being swallowed by the NVIDIA framebuffer.
+    # nomodeset disables KMS/DRM so Stage 1 errors print to the plain VGA
+    # console instead of being swallowed by the NVIDIA framebuffer.
     debug.configuration = {
       boot.kernelParams = [
         "loglevel=7"
@@ -187,31 +184,79 @@
       ];
     };
 
-    # Opt-in maximum-performance boot. Select "gaming-tuned" from the
-    # systemd-boot menu for dedicated gaming sessions; the DEFAULT boot stays
-    # secure (mitigations on — this box runs Wazuh/auditd/hardening). Trades
-    # Spectre-class mitigations for the last ~5-15% CPU-bound headroom in
-    # Proton/DXVK. kernelParams append to the parent's (preempt=full is
-    # already inherited from base). power-profiles-daemon (Plasma 6) manages
-    # the governor; mkForce pins it to performance for this boot entry.
+    # Pure gaming boot — autologins into Steam Gaming Mode via gamescope.
+    # Used exclusively for fullscreen gaming; boots straight to the Steam
+    # library with no desktop, compositor, or security-monitoring overhead.
+    # Session name "steam" is registered by programs.steam.gamescopeSession
+    # (modules/gaming.nix) and confirmed present in the SDDM SessionDir.
     gaming-tuned.configuration = {
+      # Boot into Steam Gaming Mode via gamescope-session.
+      services.displayManager.defaultSession = lib.mkForce "steam";
+      services.displayManager.autoLogin = {
+        enable = lib.mkForce true;
+        user = lib.mkForce "stoleyy";
+      };
+
+      # Gamescope display config: 4K @ 240 Hz OLED + HDR + VRR.
+      # ENABLE_GAMESCOPE_WSI=1 is required for NVIDIA Vulkan WSI.
+      # If --hdr-enabled causes a blank screen on first boot, remove it
+      # and rebuild. DXVK_ASYNC=1 enables async shader compilation.
+      programs.steam.gamescopeSession = {
+        args = [
+          "--width"
+          "3840"
+          "--height"
+          "2160"
+          "--refresh"
+          "240"
+          "--hdr-enabled"
+          "--adaptive-sync"
+        ];
+        env = {
+          ENABLE_GAMESCOPE_WSI = "1";
+          DXVK_ASYNC = "1";
+        };
+      };
+
+      # Disable PPD — pulled in by plasma6, conflicts with the explicit
+      # governor service below. Without this, both fight over sysfs writes.
+      services.power-profiles-daemon.enable = lib.mkForce false;
+
+      # Pin governor to performance for the entire gaming session.
+      powerManagement.cpuFreqGovernor = lib.mkForce "performance";
+
+      # Override EPP from base.nix's balance_performance to performance.
+      # performance EPP + performance governor = maximum sustained boost.
+      systemd.services.cpu-power-tuning.script = lib.mkForce ''
+        for f in /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference; do
+          echo performance > "$f" || true
+        done
+        echo 1 > /sys/devices/system/cpu/intel_pstate/hwp_dynamic_boost || true
+      '';
+
+      # Shed security monitoring overhead. This boot entry is exclusively
+      # used for fullscreen gaming — no network-facing interactive services.
+      security.auditd.enable = lib.mkForce false;
+      security.audit.enable = lib.mkForce false;
+      security.apparmor.enable = lib.mkForce false;
+
+      # Performance kernel params. Appended to the base list; Linux
+      # last-param-wins means init_on_alloc=0 overrides hardening.nix's =1.
       boot.kernelParams = [
         "mitigations=off"
         "nowatchdog"
-        # Remove page-zeroing overhead — init_on_free is the costly half
-        # (doubles zeroing work). ~1-7% CPU savings in allocation-heavy games.
+        # Remove page-zeroing overhead. ~1-7% CPU savings in
+        # allocation-heavy games. Last-param-wins overrides hardening.nix.
         "init_on_alloc=0"
         "init_on_free=0"
         # Reduce timer interrupt lock contention across cores.
         "skew_tick=1"
-        # workqueue.power_efficient=0 is now in the default boot (base.nix)
-        # Eliminate PCIe Active State Power Management link transition latency.
+        # Eliminate PCIe ASPM link transition latency.
         # Increases idle power draw — acceptable for a dedicated gaming boot.
         "pcie_aspm=off"
         # Make hard IRQs preemptible — lowers worst-case interrupt latency.
         "threadirqs"
       ];
-      powerManagement.cpuFreqGovernor = lib.mkForce "performance";
     };
   };
 }
