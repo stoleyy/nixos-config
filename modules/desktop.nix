@@ -15,7 +15,7 @@
     # Plasma 6 Wayland session. Retesting with open=true + fbdev=1
     # (previously crash-looped without fbdev=1, reverted in 59af7a7).
     # If it regresses, revert to "plasmax11".
-    displayManager.defaultSession = "plasma";
+    displayManager.defaultSession = "hyprland";
 
     # Autologin into the default session. SDDM stamps the last-used session
     # into the $HOME-shared ~/.local/share/sddm/state.conf on every login —
