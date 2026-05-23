@@ -32,6 +32,7 @@
     file.".local/share/color-schemes/GruvboxDarkHard.colors".source = ./gruvbox-dark-hard.colors;
 
     packages = with pkgs; [
+      qbittorrent
       keepassxc
       proton-pass
       tor-browser
