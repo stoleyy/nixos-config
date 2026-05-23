@@ -40,32 +40,47 @@ is `/etc/nixos`, not this clone.**
 
 ## Sessions
 
-- **Plasma 6 X11** (`plasmax11`) is the deliberate SDDM default
-  (`services.displayManager.defaultSession = "plasmax11"`, SDDM greeter on
-  Xorg — `modules/desktop.nix`). The Plasma **Wayland** session crash-loops
-  on this RTX 4070 + open kernel module (login → ~1 s flash → SDDM); it was
-  reverted X11 in `59af7a7` (NOT the stale state CLAUDE.md once claimed for
-  `76d8d69`). A Wayland fix is in progress (`nvidia-drm.fbdev=1` in
-  `modules/nvidia.nix`); X11 stays default until an on-box
-  `nixos-rebuild test` proves the Wayland session stays up.
-- **Autologin is enabled** (`services.displayManager.autoLogin`, user
-  `stoleyy` — `modules/desktop.nix`) so every boot entry is deterministic
-  and does NOT consult SDDM's mutable, `$HOME`-shared
-  `~/.local/share/sddm/state.conf` last-session cache: the default entry
-  autologins into `plasmax11`; the **hyprland** specialisation
-  `mkForce`-overrides `defaultSession` and autologins into `hyprland`.
-  Without this the specialisation's autologin poisoned the shared cache and
-  the Plasma entry's greeter then pre-selected Hyprland too — both boot
-  entries landed in Hyprland (see Pitfalls).
-- **Switching session / retesting Plasma Wayland**: autologin skips the
-  greeter at boot. To reach the SDDM session dropdown (e.g. to retest Plasma
-  Wayland after a driver bump) **log out without rebooting** — the greeter
-  then reappears — or boot the relevant specialisation entry.
-- **Hyprland** is reached via its boot specialisation entry (deterministic
-  autologin). Plasma Wayland is still installed and dropdown-selectable
-  after a logout as above.
+Boot topology (systemd-boot menu entries):
+
+| Entry | Session | Autologin |
+|---|---|---|
+| **default** | `hyprland` | yes — stoleyy |
+| `plasma` specialisation | `plasma` (Wayland greeter) | no — SDDM greeter shown |
+| `gaming-tuned` specialisation | `steam` (gamescope) | yes — stoleyy |
+| `debug` specialisation | (inherits default) | yes |
+
+- **Hyprland** (`hyprland`) is the deliberate SDDM default
+  (`services.displayManager.defaultSession = "hyprland"` — `modules/desktop.nix`).
+  Autologin is enabled so the default boot entry is deterministic and does NOT
+  consult SDDM's mutable `~/.local/share/sddm/state.conf` cache.
+- **Plasma** is available via the `plasma` specialisation. It sets
+  `defaultSession = lib.mkForce "plasma"` and disables autologin, so SDDM
+  shows the greeter and lets you pick the session. To use Plasma as the daily
+  driver: flip `defaultSession` in `modules/desktop.nix` back to `"plasmax11"`
+  or `"plasma"` and remove the `plasma` specialisation.
+- **Steam Gaming Mode** (`gaming-tuned` specialisation) autologins directly into
+  the gamescope session (`programs.steam.gamescopeSession`, session name `"steam"`
+  registered by NixOS in the SDDM SessionDir). Configured for 4K@240Hz OLED
+  with HDR + VRR. Security monitoring (auditd, AppArmor) and PPD are disabled;
+  CPU governor + EPP pinned to `performance`. See `hosts/predator/default.nix`.
+- **Switching session**: autologin skips the greeter. To reach the SDDM
+  dropdown, log out without rebooting — the greeter then reappears.
 - Both home-manager profiles (Plasma + Hyprland) ship simultaneously; HM
   imports both stacks.
+
+## Game pipeline
+
+`game-install <save_path> <torrent_name>` — installed to PATH via `modules/gaming.nix`.
+Called automatically by qBittorrent on torrent completion (one-time setup:
+Tools → Preferences → Downloads → "Run external program": `game-install "%F" "%N"`).
+
+- **Repacks** (FitGirl/DODI — contains `setup.exe`): runs Wine silent installer
+  → installs to `/home/stoleyy/games/<GameName>/`
+- **Pre-extracted**: rsync → `/home/stoleyy/games/<GameName>/`
+- Auto-detects main `.exe`, writes `~/.local/share/Steam/userdata/<id>/config/shortcuts.vdf`
+  so the game appears in Steam Gaming Mode under Non-Steam Games.
+- Achievements: most FitGirl/DODI cracks bundle Goldberg/CODEX Steam API
+  emulator — local achievement tracking works with no extra config.
 
 ## Rebuilding
 
