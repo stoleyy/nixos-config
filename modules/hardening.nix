@@ -90,9 +90,12 @@
     };
 
     # F-20: boot params that harden even the stock kernel.
+    # init_on_free=1 REMOVED: 5-8% wall-time overhead (24% system-time in
+    # kernel compilation benchmarks — Kees Cook). With init_on_alloc=1 already
+    # zeroing pages on allocation, init_on_free provides marginal use-after-free
+    # defense at disproportionate cost. Amazon AL2023 enables alloc but not free.
     kernelParams = [
       "init_on_alloc=1"
-      "init_on_free=1"
       "page_alloc.shuffle=1"
       "randomize_kstack_offset=on"
       "vsyscall=none"

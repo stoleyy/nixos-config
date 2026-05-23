@@ -340,19 +340,24 @@
 
       # Performance kernel params. Appended to the base list; Linux
       # last-param-wins means init_on_alloc=0 overrides hardening.nix's =1.
+      #
+      # REMOVED (evidence-based audit):
+      # - mitigations=off: Zero benefit on Raptor Lake — Phoronix tested 198
+      #   benchmarks on i9-13900K, geometric mean unchanged. Hardware mitigates
+      #   in silicon. High security cost for no gain.
+      # - pcie_aspm=off: 16-64µs L1 exit latency is irrelevant at 240Hz
+      #   (4.17ms frames). PCIe stays in L0 during sustained gaming. Wastes
+      #   20-30W idle power for zero measurable benefit.
       boot.kernelParams = [
-        "mitigations=off"
         "nowatchdog"
         # Remove page-zeroing overhead. ~1-7% CPU savings in
         # allocation-heavy games. Last-param-wins overrides hardening.nix.
         "init_on_alloc=0"
         "init_on_free=0"
-        # Reduce timer interrupt lock contention across cores.
+        # skew_tick: marginal on 24-thread CPU (microsecond jitter reduction)
+        # but not harmful. threadirqs: pairs with preempt=full for lower
+        # worst-case IRQ latency. Both are low-impact but theoretically sound.
         "skew_tick=1"
-        # Eliminate PCIe ASPM link transition latency.
-        # Increases idle power draw — acceptable for a dedicated gaming boot.
-        "pcie_aspm=off"
-        # Make hard IRQs preemptible — lowers worst-case interrupt latency.
         "threadirqs"
       ];
     };

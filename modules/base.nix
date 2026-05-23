@@ -190,21 +190,19 @@
 
     # Stop Linux throttling Proton games that trip split-lock atomics.
     # Merges with the NVIDIA DRM params declared in modules/nvidia.nix.
-    # transparent_hugepage=madvise: kernel default is "always" which
-    # background-promotes 2 MB pages and can cause latency spikes during
-    # heavy NVMe writes (Nix builds, shader compiles). madvise gives the
-    # same JVM/database benefits without surprise stalls.
+    # split_lock_mitigate=0 is handled by nix-gaming's platformOptimizations
+    # sysctl (keeps the detector + dmesg warning, removes the 10ms penalty).
+    #
+    # transparent_hugepage=always: Wine/Proton do NOT call madvise(MADV_HUGEPAGE)
+    # (Valve Proton #5816), so `madvise` gives games zero THP benefit. `always`
+    # with defrag=defer+madvise (tmpfiles rule below) provides 2-7% FPS gains
+    # (Phoronix THP benchmarks) without synchronous compaction stalls.
+    #
+    # preempt=full: PREEMPT_DYNAMIC (6.12) makes this zero-cost. Lower
+    # frame-time variance + snappier UI. Liquorix/gaming distro default.
     kernelParams = [
-      "split_lock_detect=off"
-      "transparent_hugepage=madvise"
-      # PREEMPT_DYNAMIC (6.12) → reversible boot param, no rebuild. Lower input
-      # latency + steadier frametimes (gaming) and snappier UI (desktop) for a
-      # negligible throughput cost. The low-latency model gaming distros ship.
+      "transparent_hugepage=always"
       "preempt=full"
-      # Prevent workqueue migration to cache-cold CPUs. Negligible power
-      # savings on a plugged-in desktop tower; real cache-miss cost. Promoted
-      # from gaming-tuned specialisation since it's always beneficial here.
-      "workqueue.power_efficient=0"
     ];
 
     # === Memory (64 GB) ===
@@ -215,19 +213,20 @@
     tmp.tmpfsSize = "16G";
 
     kernel.sysctl = {
-      # zram (zramSwap.enable) is compressed-RAM swap — far faster than NVMe
-      # filesystem IO, so the kernel should PREFER swapping cold pages over
-      # evicting hot page-cache. Low swappiness does the opposite and starves
-      # the cache under exactly the Brave+Steam+game pressure systemd-oomd
-      # below is the safety net for. Kernel docs sanction >100 for in-memory
-      # swap; 180 + page-cluster=0 (no readahead — pointless for random-access
-      # compressed RAM) is the Fedora/Pop!_OS/CachyOS reference.
+      # With zram, swapping is in-memory — faster than NVMe filesystem I/O.
+      # Kernel docs (5.8+, 0–200 range): values >100 weight anonymous-page
+      # reclaim higher than file-cache eviction, which is correct when swap is
+      # RAM-backed. 180 proactively compresses cold anonymous pages (idle
+      # browser tabs, backgrounded game allocations) into zram, keeping page
+      # cache warm for active I/O. Validated by Arch Wiki, Pop!_OS, Fedora,
+      # and kernel vm.txt. page-cluster=0 disables swap readahead — pointless
+      # for random-access compressed RAM (Pop!_OS/Android/ChromeOS default).
       "vm.swappiness" = 180;
       "vm.page-cluster" = 0;
       "vm.vfs_cache_pressure" = 50; # Keep dentry/inode cache around longer
       "net.core.default_qdisc" = "fq"; # Pair with BBR
       "net.ipv4.tcp_congestion_control" = "bbr";
-      "net.ipv4.tcp_fastopen" = 3; # TFO saves an RTT per TCP connection
+      "net.ipv4.tcp_fastopen" = 1; # TFO client-only; server bit is dead weight on a desktop
       # Preserve cwnd across idle periods (RFC 2861). Without this, every
       # connection that idles for one RTO resets to initial window. fq qdisc
       # already paces packets, mitigating the theoretical burst concern.
@@ -247,9 +246,10 @@
       "net.core.wmem_max" = 16777216;
       "net.ipv4.tcp_rmem" = "4096 131072 16777216";
       "net.ipv4.tcp_wmem" = "4096 65536 16777216";
-      # Per-CPU packet receive queue. Default 1000 overflows on gigabit bursts
-      # (Steam downloads while gaming). ~64 KB per CPU, negligible.
-      "net.core.netdev_max_backlog" = 16384;
+      # Per-CPU packet receive queue. Default 1000 can overflow on gigabit
+      # bursts. 4096 is the CachyOS/standard recommendation for 1Gbps; 16384
+      # is 10GbE-level overkill. Check /proc/net/softnet_stat col 2 for drops.
+      "net.core.netdev_max_backlog" = 4096;
 
       # === Dirty page writeback (gaming / repack installs) ===
       # Kernel defaults (~20% of RAM = ~12.8 GB dirty ceiling on 64 GB) let
@@ -265,8 +265,9 @@
       "vm.compaction_proactiveness" = 0;
       # Minimize watermark boosting — reduces unnecessary page reclaim.
       "vm.watermark_boost_factor" = 1;
-      # Reduce lock contention on hot pages.
-      "vm.page_lock_unfairness" = 1;
+      # Page lock fairness. Kernel default of 5 was chosen via Phoronix
+      # benchmarks (Linux 5.9); values 4-5 outperformed both 1 and 1000.
+      "vm.page_lock_unfairness" = 5;
       # Writeback thread wake interval. With explicit dirty_bytes thresholds,
       # the threads don't need to wake every 5 s (default 500). 15 s reduces
       # unnecessary NVMe write wakeups. CachyOS default.
@@ -336,8 +337,26 @@
     steam-hardware.enable = true;
   };
 
-  # Compressed-RAM swap. Free responsiveness win; complements the on-disk swapfile.
-  zramSwap.enable = true;
+  # Compressed-RAM swap (64 GB box).
+  #
+  # Algorithm: lz4 — 3× the throughput (7,943 vs 2,612 MiB/s) and 3× lower
+  # latency (1,708 vs 5,714 ns) than zstd, at the cost of ~28% less compression
+  # (2.63× vs 3.37×). On 64 GB, the extra compression is worthless — the system
+  # rarely fills even 16 GB of swap. lz4's lower CPU cost matters more for
+  # gaming under memory pressure (benchmarks: xeome.dev/notes/Zram).
+  #
+  # Size: 25% of 64 GB = 16 GB zram. At lz4's 2.63× ratio that's ~42 GB
+  # effective. Arch Wiki + systemd-zram-generator default to 50% but cap at
+  # 4–8 GB; Fedora caps at 8 GB. 32 GB (50%) on a 64 GB box wastes metadata
+  # memory for capacity that will never be touched. 16 GB is generous headroom.
+  #
+  # The 8 GB on-disk swapfile (hosts/predator/default.nix) is the overflow
+  # safety net — zram's priority (default 100) ensures it's always preferred.
+  zramSwap = {
+    enable = true;
+    algorithm = "lz4";
+    memoryPercent = 25;
+  };
 
   systemd = {
     # systemd-oomd watches cgroup memory pressure (PSI) and kills the worst
@@ -353,10 +372,12 @@
       settings.OOM.DefaultMemoryPressureDurationSec = "20s";
     };
 
-    # Pre-empt the rare "Too many open files" crash in Steam/Wine prefixes on
-    # big games + mod managers. Default ceiling is 1024 (soft) / 524288 (hard);
-    # bumping the soft limit to ~1M avoids hitting it.
-    settings.Manager.DefaultLimitNOFILE = "1048576";
+    # File descriptor limits. systemd upstream default: 1024 soft / 524288 hard.
+    # The old pattern of setting both to 1048576 was abandoned by Docker/Containerd
+    # because programs iterating over all possible fds before fork/exec loop 1M
+    # times (6.2s delay per subprocess in Python <3.10). 1024 soft also preserves
+    # select() compatibility; apps that need more raise it themselves.
+    settings.Manager.DefaultLimitNOFILE = "1024:524288";
 
     coredump.enable = false;
 

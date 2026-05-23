@@ -2,7 +2,7 @@
 
 {
   home.packages = with pkgs; [
-    swaynotificationcenter
+
     linux-wallpaperengine
     wl-clip-persist
     hyprpicker
@@ -84,19 +84,7 @@
   # below means no HM systemd service for it).
   xdg.configFile."hypr/hypridle.conf".text = ''
     general {
-        lock_cmd        = hyprlock
         after_sleep_cmd = hyprctl dispatch dpms on
-    }
-
-    listener {
-        timeout    = 300
-        on-timeout = hyprlock
-    }
-
-    listener {
-        timeout    = 600
-        on-timeout = hyprctl dispatch dpms off
-        on-resume  = hyprctl dispatch dpms on
     }
   '';
 
