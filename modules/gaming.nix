@@ -78,17 +78,19 @@ let
         mkdir -p "$INSTALL_DIR"
         wine "$SETUP_EXE" /SILENT /SUPPRESSMSGBOXES /NORESTART /NOICONS \
              /DIR="$INSTALL_DIR" &
+        WINE_PID=$!
 
         ELAPSED=0
-        while pgrep -u "$USER" -x wine    >/dev/null 2>&1 \
-           || pgrep -u "$USER" -x wineserver >/dev/null 2>&1; do
+        while kill -0 "$WINE_PID" 2>/dev/null; do
           sleep 5
           ELAPSED=$((ELAPSED + 5))
           if [ "$ELAPSED" -ge 1800 ]; then
+            kill "$WINE_PID" 2>/dev/null || true
             systemd-cat -t game-install -p err echo "Installer timeout: $GAME_NAME"
             exit 1
           fi
         done
+        wait "$WINE_PID" || true
       else
         # --- Step 3b: Pre-extracted — rsync into games directory ---
         systemd-cat -t game-install -p info echo "Pre-extracted, moving to $INSTALL_DIR"
@@ -130,7 +132,7 @@ let
       install_dir    = os.environ["INSTALL_DIR_ENV"]
 
       # AppID formula matching Steam's internal non-Steam game calculation.
-      crc   = binascii.crc32((exe_path + game_name).encode("utf-8")) & 0xFFFFFFFF
+      crc   = binascii.crc32(f'"{exe_path}"{game_name}'.encode("utf-8")) & 0xFFFFFFFF
       appid = ctypes.c_int32(crc | 0x80000000).value
 
       if os.path.exists(shortcuts_path):
