@@ -1,5 +1,5 @@
 # Hyprland session — selectable from SDDM; Plasma 6 is the default.
-{ pkgs, lib, ... }:
+{ pkgs, ... }:
 
 {
   programs.hyprland = {

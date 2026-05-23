@@ -63,7 +63,7 @@
     .notification-row .notification-background {
       background:    rgba(29, 32, 33, 0.95);
       color:         ${colors.fg0};
-      border:        1px solid rgba(152, 151, 26, 0.3);
+      border:        1px solid rgba(152, 151, 26, 0.35);
       border-radius: 14px;
     }
 
@@ -131,7 +131,7 @@
     }
 
     .close-button {
-      background:    rgba(214, 93, 14, 0.7);
+      background:    rgba(152, 151, 26, 0.5);
       color:         ${colors.fg0};
       border:        none;
       border-radius: 6px;
@@ -139,7 +139,7 @@
     }
 
     .close-button:hover {
-      background: ${colors.orange};
+      background: ${colors.green};
     }
   '';
 }

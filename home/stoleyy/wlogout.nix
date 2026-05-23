@@ -64,7 +64,7 @@ _:
       button:focus,
       button:active,
       button:hover {
-        background-color: rgba(152, 151, 26, 0.25);
+        background-color: rgba(152, 151, 26, 0.35);
         border-color:     #98971a;
         outline-style:    none;
       }

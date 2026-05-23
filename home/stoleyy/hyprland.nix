@@ -20,13 +20,65 @@
     pavucontrol
     blueman
     networkmanagerapplet
-    polkit_gnome
     kitty
     imv
     hypridle
+
+    # First-party hyprwm tools (replacements for older choices)
+    hyprpolkitagent # Wayland-native polkit (replaces polkit_gnome)
+    hyprsunset # Pre-shader blue-light filter (supersedes hyprshade)
+    hyprcursor # SVG cursor runtime; pairs with hypr-dynamic-cursors
+    hyprprop # Click-to-dump window props (hyprwm/contrib)
+
+    # Scratchpads daemon (Quake-style dropdowns; config in xdg.configFile below)
+    pyprland
+
+    # Screenshot annotation + screen record
+    satty
+    wl-screenrec
+
+    # Sidecar daily-driver tools
+    yazi # TUI file manager (Kitty graphics-protocol previews)
+    walker # Unified launcher (apps + clipboard + emoji + calc + window switch)
+    rofi-bluetooth # OLED-friendly keyboard-only BT pairing
+    nwg-look # Wayland-native GTK theme verifier
+
     kdePackages.kwallet
     kdePackages.kwallet-pam
   ];
+
+  # Unified pointer cursor: sets gtk + hyprcursor + XCursor env in one place.
+  # Bibata-Modern-Classic at 32 px matches the 4K OLED scale. This replaces
+  # the gtk.cursorTheme block in gtk.nix (kept for size correction below).
+  home.pointerCursor = {
+    name = "Bibata-Modern-Classic";
+    package = pkgs.bibata-cursors;
+    size = 32;
+    gtk.enable = true;
+    x11.enable = true;
+    hyprcursor.enable = true;
+  };
+
+  # pyprland scratchpad config — TOML loaded by `pypr` daemon (exec-once below).
+  # Each scratchpad is a class-tagged terminal window that toggles on a bind.
+  xdg.configFile."hypr/pyprland.toml".text = ''
+    [pyprland]
+    plugins = ["scratchpads"]
+
+    [scratchpads.term]
+    animation = "fromTop"
+    command = "kitty --class scratchterm"
+    class = "scratchterm"
+    size = "60% 50%"
+    margin = 50
+
+    [scratchpads.btop]
+    animation = "fromTop"
+    command = "kitty --class scratchbtop -e btop"
+    class = "scratchbtop"
+    size = "70% 70%"
+    margin = 50
+  '';
 
   # Hypridle config — driven from Hyprland's exec-once (systemd.enable = false
   # below means no HM systemd service for it).
@@ -58,6 +110,18 @@
     package = null;
     portalPackage = null;
 
+    # Plugins matched to the system hyprland by virtue of being drawn from the
+    # same nixpkgs pin (no separate hyprland-plugins flake input → no version
+    # skew). All configs live under settings.plugin.<name> below.
+    plugins = with pkgs.hyprlandPlugins; [
+      hyprexpo # Mission Control–style workspace overview (Super + grave)
+      hypr-dynamic-cursors # Cursor physics + shake-to-find (essential at 4K)
+      borders-plus-plus # Concentric Gruvbox accent border
+      hyprfocus # Subtle pulse on the newly-focused window
+      hyprtrails # Motion trails behind moving windows
+      xtra-dispatchers # Extra IPC dispatchers for richer binds
+    ];
+
     settings = {
       env = [
         "LIBVA_DRIVER_NAME,nvidia"
@@ -73,6 +137,11 @@
         # Reuse Plasma 6's Qt platform theme so Qt apps render Breeze under
         # Hyprland (matches their KDE appearance; no qt6ct/kvantum stack).
         "QT_QPA_PLATFORMTHEME,kde"
+        # Belt-and-suspenders Qt scaling for non-Plasma Qt tools where
+        # PLATFORMTHEME=kde doesn't carry Plasma's auto-scale heuristics.
+        "QT_AUTO_SCREEN_SCALE_FACTOR,1"
+        # XCURSOR_THEME / XCURSOR_SIZE / HYPRCURSOR_* are set by
+        # home.pointerCursor at the top of this file — no manual env entries.
       ];
 
       exec-once = [
@@ -91,7 +160,14 @@
         "kdeconnect-indicator"
         "kwalletd6"
         "hypridle"
-        "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1"
+        # hyprsunset: OLED blue-light filter. Pre-shader, survives screen
+        # captures, and is the documented successor to hyprshade. Daemon
+        # mode auto-applies a sunset schedule based on system clock.
+        "hyprsunset"
+        # hyprpolkitagent: native Wayland polkit (supersedes polkit-gnome).
+        "systemctl --user start hyprpolkitagent.service"
+        # pyprland: scratchpads daemon. Config in xdg.configFile."hypr/pyprland.toml".
+        "pypr"
       ];
 
       monitor = [
@@ -124,10 +200,14 @@
         fullscreen_opacity = 1;
         dim_inactive = false;
         dim_special = 0.3;
+        # Blur cost scales with output area; at 4K, passes=3/size=6 burns
+        # 4-6 ms/frame of the 240 Hz budget and produces visible stutter
+        # on heavy multitasking. passes=2/size=4 is imperceptibly different
+        # on the frosted waybar but recovers the frame budget.
         blur = {
           enabled = true;
-          size = 6;
-          passes = 3;
+          size = 4;
+          passes = 2;
           new_optimizations = true;
           ignore_opacity = true;
           xray = false;
@@ -187,11 +267,98 @@
         disable_splash_rendering = true;
         mouse_move_enables_dpms = true;
         key_press_enables_dpms = true;
-        # Adaptive Sync / VRR — pairs with __GL_VRR_ALLOWED=1 in env.
-        vrr = 1;
+        # Adaptive Sync / VRR mode 2 = fullscreen-only. mode 1 enables VRR
+        # on every surface and can dim / flicker on partial OLED redraws;
+        # mode 2 keeps the gaming benefit and pins the desktop at 240 Hz.
+        vrr = 2;
         # Dark fallback colour shown briefly before the wallpaper engine
         # process renders — avoids a black flash at startup.
         background_color = "rgb(1d2021)";
+      };
+
+      # Lower-latency fullscreen on NVIDIA. The compositor bypasses its
+      # own composition pass when a fullscreen client matches the output
+      # mode exactly. Pairs with allow_tearing + the immediate window rule.
+      render = {
+        direct_scanout = true;
+      };
+
+      # 4K HiDPI: prevent XWayland from upscaling legacy X11 apps (which
+      # produces blurry text). With zero-scaling, X11 clients render at
+      # native pixel resolution.
+      xwayland = {
+        force_zero_scaling = true;
+      };
+
+      # Mission Control–style workspace overview (hyprexpo plugin).
+      # Bound to $mod + grave (backtick, top-left of keyboard) below.
+      plugin = {
+        hyprexpo = {
+          columns = 3;
+          gap_size = 5;
+          bg_col = "rgb(1d2021)";
+          workspace_method = "center current";
+          enable_gesture = false; # desktop has no touchpad
+        };
+
+        # Cursor physics + shake-to-find. The "shake" gesture briefly enlarges
+        # the cursor when wiggled — a real ergonomic win at 4K where the
+        # cursor is otherwise easy to lose. `tilt` mode rotates the cursor
+        # subtly toward the direction of motion.
+        dynamic-cursors = {
+          enabled = true;
+          mode = "tilt";
+          threshold = 2;
+          shake = {
+            enabled = true;
+            nearest = true;
+            threshold = 6.0;
+            base = 4.0;
+            speed = 4.0;
+            influence = 0.0;
+            limit = 0.0;
+            timeout = 2000;
+            effects = false;
+            ipc = false;
+          };
+        };
+
+        # Concentric extra border in Gruvbox yellow — adds depth without
+        # widening the main border. Plays nicely with `general.col.active_border`.
+        borders-plus-plus = {
+          add_borders = 1;
+          "col.border_1" = "rgb(d79921)";
+          border_size_1 = 1;
+          natural_rounding = true;
+        };
+
+        # Subtle pulse on focus change. shrink_percentage 0.97 = barely
+        # noticeable scale dip — enough to track focus, not enough to distract.
+        hyprfocus = {
+          enabled = true;
+          keyboard_focus_animation = "shrink";
+          mouse_focus_animation = "shrink";
+          bezier = [
+            "bezIn,  0.5, 0.0, 1.0, 0.5"
+            "bezOut, 0.0, 0.5, 0.5, 1.0"
+          ];
+          shrink = {
+            shrink_percentage = 0.97;
+            in_bezier = "bezIn";
+            in_speed = 0.4;
+            out_bezier = "bezOut";
+            out_speed = 0.4;
+          };
+        };
+
+        # Motion trails in Gruvbox yellow. Cheap visual flair on 4K@240Hz.
+        hyprtrails = {
+          color = "rgba(d79921aa)";
+          bezier_step = 0.025;
+          points_per_step = 2;
+          history_points = 20;
+          history_step = 2;
+        };
       };
 
       # Hyprland 0.46+ removed `render.explicit_sync` — it's automatic now,
@@ -213,12 +380,24 @@
         "$mod, Return, exec, $terminal"
         "$mod, B,      exec, $browser"
         "$mod, Space,  exec, $launcher"
+        "$mod, A,      exec, walker" # unified launcher (apps + clipboard + emoji)
         "$mod, E,      exec, $filemanager"
+        "$mod, Y,      exec, $terminal -e yazi" # TUI file manager (kitty/ghostty graphics)
         "$mod, L,      exec, hyprlock"
         "$mod, V,      exec, cliphist list | rofi -dmenu | cliphist decode | wl-copy"
         "$mod SHIFT, P, exec, hyprpicker -a"
+        "$mod CTRL, P, exec, hyprprop | wl-copy" # window props -> clipboard
         "$mod, period,  exec, rofimoji"
         "$mod SHIFT, E, exec, wlogout"
+
+        # Sidecars (Alt cluster)
+        "$mod ALT, B, exec, rofi-bluetooth"
+        "$mod ALT, R, exec, wl-screenrec -f $HOME/Videos/screen-$(date +%s).mp4"
+        "$mod ALT SHIFT, R, exec, pkill -INT -x wl-screenrec"
+
+        # pyprland scratchpads (Quake-style dropdowns)
+        "$mod, T, exec, pypr toggle term" # dropdown ghostty
+        "$mod, M, exec, pypr toggle btop" # dropdown system monitor
 
         "$mod, Q,      killactive"
         "$mod, F,      fullscreen"
@@ -264,6 +443,11 @@
         ",      Print, exec, grimblast --notify copy area"
         "$mod,  Print, exec, grimblast --notify copy screen"
         "SHIFT, Print, exec, grimblast --notify copy output"
+        # Annotated area capture: grimblast → satty editor → wl-copy on save.
+        "$mod SHIFT, Print, exec, grimblast save area - | satty -f - --early-exit --copy-command wl-copy"
+
+        # hyprexpo overview — Super + grave (backtick) toggles workspace grid.
+        "$mod, grave, hyprexpo:expo, toggle"
       ];
 
       bindm = [
