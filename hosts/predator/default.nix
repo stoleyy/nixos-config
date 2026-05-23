@@ -202,24 +202,42 @@
         user = lib.mkForce "stoleyy";
       };
 
-      # Gamescope display config: 4K @ 240 Hz OLED + HDR + VRR.
-      # ENABLE_GAMESCOPE_WSI=1 is required for NVIDIA Vulkan WSI.
-      # If --hdr-enabled causes a blank screen on first boot, remove it
-      # and rebuild. DXVK_ASYNC=1 enables async shader compilation.
+      # Gamescope display config: 4K @ 240 Hz OLED + VRR on HDMI-A-1.
+      #
+      # Initial revision passed --width/--height (internal nested-compositor
+      # resolution only) without --output-width/--output-height (KMS output
+      # mode), no --prefer-output, and --hdr-enabled. The result was a black
+      # screen with a flashing TTY cursor: gamescope took over KMS, failed
+      # to drive a usable mode on the OLED, exited, and SDDM gave up — the
+      # exact failure mode the original comment warned about for HDR.
+      #
+      # HDR is intentionally OFF here. Re-enable in a separate commit once a
+      # picture is confirmed, so HDR remains a clean git bisect point.
+      # --prefer-output HDMI-A-1 mirrors home/stoleyy/hyprland.nix and makes
+      # connector selection deterministic. --output-width/-height set the
+      # actual KMS mode (the older --width/--height only sized the internal
+      # compositor, leaving the output at the EDID-preferred mode).
+      # WLR_NO_HARDWARE_CURSORS=1 and WLR_RENDERER=vulkan are the standard
+      # NVIDIA + wlroots session workarounds. ENABLE_GAMESCOPE_WSI=1 is
+      # required for NVIDIA Vulkan WSI. DXVK_ASYNC=1 enables async shader
+      # compilation.
       programs.steam.gamescopeSession = {
         args = [
-          "--width"
+          "--output-width"
           "3840"
-          "--height"
+          "--output-height"
           "2160"
           "--refresh"
           "240"
-          "--hdr-enabled"
+          "--prefer-output"
+          "HDMI-A-1"
           "--adaptive-sync"
         ];
         env = {
           ENABLE_GAMESCOPE_WSI = "1";
           DXVK_ASYNC = "1";
+          WLR_RENDERER = "vulkan";
+          WLR_NO_HARDWARE_CURSORS = "1";
         };
       };
 
