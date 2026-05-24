@@ -100,7 +100,7 @@ in
     # Force-clear stale kdeglobals color cache. Plasma-manager declares
     # DeltaruneSanctuary but kdeglobals accumulates runtime color state
     # that overrides the declared scheme (right-click menus, Qt apps stay
-    # Gruvbox yellow). Removing it lets plasma-manager write a clean copy.
+    # stale colors). Removing it lets plasma-manager write a clean copy.
     activation.fixKdeColors = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       rm -f "$HOME/.config/kdeglobals"
     '';

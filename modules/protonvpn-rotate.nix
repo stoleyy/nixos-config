@@ -215,52 +215,53 @@ let
         echo "Done. Now connected to $BEST_NAME ($BEST_IP:$BEST_PORT)."
   '';
 
-  # Probe script that adds temporary nft rules for pinging pool endpoints
-  # through the kill switch. We use a separate "probe" chain inserted before
-  # the drop rule so pings reach non-current endpoints.
+  # Probe script: temporarily allows all pool IPs through the killswitch so
+  # the rotation script can ping them. Uses a runtime-built nftables table
+  # because the pool IP list is only known at execution time (read from JSON).
+  # Base rules mirror lib/nftables.nix.
   probeSetupScript = pkgs.writeShellScript "protonvpn-probe-setup" ''
-    set -euo pipefail
-    PATH="${
-      lib.makeBinPath (
-        with pkgs;
-        [
-          nftables
-          jq
-        ]
-      )
-    }:$PATH"
-    POOL_FILE="${rotateCfg.poolFile}"
-    [ -f "$POOL_FILE" ] || exit 0
+        set -euo pipefail
+        PATH="${
+          lib.makeBinPath (
+            with pkgs;
+            [
+              nftables
+              jq
+              wireguard-tools
+              gawk
+            ]
+          )
+        }:$PATH"
+        POOL_FILE="${rotateCfg.poolFile}"
+        [ -f "$POOL_FILE" ] || exit 0
 
-    # Add all pool IPs to the kill switch temporarily (before the drop rule)
-    # by replacing the table with one that includes all pool endpoints.
-    CURRENT_IP=$(${pkgs.wireguard-tools}/bin/wg show protonvpn endpoints 2>/dev/null | ${pkgs.gawk}/bin/awk -F'[:\t]' '{print $2}')
-    [ -z "$CURRENT_IP" ] && exit 1
+        CURRENT_IP=$(wg show protonvpn endpoints 2>/dev/null | awk -F'[:\t]' '{print $2}')
+        [ -z "$CURRENT_IP" ] && exit 1
 
-    POOL_IPS=$(jq -r '.[].endpoint' "$POOL_FILE" | cut -d: -f1 | sort -u)
-    ALLOW_RULES=""
-    for ip in $POOL_IPS; do
-      ALLOW_RULES="$ALLOW_RULES
-        ip daddr $ip accept"
-    done
+        # Build allow rules for current endpoint + all pool IPs
+        ALLOW_RULES="ip daddr $CURRENT_IP accept"
+        for ip in $(jq -r '.[].endpoint' "$POOL_FILE" | cut -d: -f1 | sort -u); do
+          ALLOW_RULES="$ALLOW_RULES
+              ip daddr $ip accept"
+        done
 
-    nft -f - <<EOF
-    table inet protonvpn_killswitch {
-      chain output {
-        type filter hook output priority -100; policy accept;
-        oifname "lo" accept
-        ip daddr 192.168.1.0/24 accept
-        ip daddr 169.254.0.0/16 accept
-        ip daddr 224.0.0.0/4 accept
-        ip daddr 255.255.255.255 accept
-        ip6 daddr fe80::/10 accept
-        ip6 daddr ff00::/8 accept
-        $ALLOW_RULES
-        oifname "protonvpn" accept
-        counter drop
-      }
-    }
-    EOF
+        nft -f - <<PROBEEOF
+        table inet protonvpn_killswitch {
+          chain output {
+            type filter hook output priority -100; policy accept;
+            oifname "lo" accept
+            ip daddr 192.168.1.0/24 accept
+            ip daddr 169.254.0.0/16 accept
+            ip daddr 224.0.0.0/4 accept
+            ip daddr 255.255.255.255 accept
+            ip6 daddr fe80::/10 accept
+            ip6 daddr ff00::/8 accept
+            $ALLOW_RULES
+            oifname "protonvpn" accept
+            counter drop
+          }
+        }
+    PROBEEOF
   '';
 in
 {

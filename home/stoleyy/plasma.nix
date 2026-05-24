@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, theme, ... }:
 
 let
   qdbus = "${pkgs.kdePackages.qttools}/bin/qdbus";
@@ -42,7 +42,7 @@ in
         pointSize = 10;
       };
       fixedWidth = {
-        family = "JetBrainsMono Nerd Font";
+        family = theme.font.name;
         pointSize = 11;
       };
       small = {

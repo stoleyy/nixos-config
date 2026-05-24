@@ -57,8 +57,6 @@
             extraSpecialArgs = {
               inherit inputs;
               theme = import ../lib/theme.nix;
-              # Backwards compat — modules migrating to `theme` can still use `colors`
-              inherit ((import ../lib/theme.nix)) colors;
             };
             sharedModules = [
               inputs.plasma-manager.homeModules.plasma-manager

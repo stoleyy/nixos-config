@@ -1,11 +1,15 @@
 # Deltarune Sanctuary — centralized theme definition.
 # Single source of truth for colors, font, and sizing across all modules.
 # Passed to HM modules via extraSpecialArgs: { theme, ... }
-{
+rec {
   font = {
     name = "JetBrainsMono Nerd Font";
     size = 13;
   };
+
+  # Strip the leading "#" from a hex color string: "#C8CAE0" → "C8CAE0"
+  # Use in contexts that need bare hex (rgba(), Spicetify, etc.)
+  stripHash = color: builtins.substring 1 6 color;
 
   colors = {
     bg0 = "#000000";
