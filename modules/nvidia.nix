@@ -1,5 +1,10 @@
 # NVIDIA proprietary driver — production track, open=false (Ada workaround), VAAPI, Vulkan, modesetting.
-{ config, pkgs, ... }:
+{
+  config,
+  pkgs,
+  host,
+  ...
+}:
 
 {
   services.xserver.videoDrivers = [ "nvidia" ];
@@ -57,7 +62,7 @@
     # despite the "GL" prefix (confirmed NVIDIA forums + DXVK #4014). Path
     # pinned under XDG_CACHE_HOME for cache hygiene.
     __GL_SHADER_DISK_CACHE = "1";
-    __GL_SHADER_DISK_CACHE_PATH = "/home/stoleyy/.cache/nv-shader-cache";
+    __GL_SHADER_DISK_CACHE_PATH = "${host.home}/.cache/nv-shader-cache";
     # Disable the driver's size limit. AAA titles (Cyberpunk, Hogwarts Legacy)
     # exceed the default cap; the driver then prunes old entries, causing
     # recompilation stutter. Well-documented fix (DXVK #4014, GamingOnLinux).

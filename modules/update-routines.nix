@@ -1,5 +1,5 @@
 # Unattended update pipeline — hands-off, Windows-style automatic maintenance.
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 
 # Three timers run weekly, fully unattended:
 #   1. Sun 03:00 — `nix flake update --refresh` bumps flake.lock for all inputs
@@ -86,7 +86,7 @@
             g() {
               git -c safe.directory=/etc/nixos \
                   -c user.name=nixos-auto \
-                  -c user.email=nixos-auto@predator "$@"
+                  -c user.email=nixos-auto@${config.networking.hostName} "$@"
             }
 
             /run/current-system/sw/bin/nix flake update --refresh

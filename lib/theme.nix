@@ -4,6 +4,7 @@
 {
   font = {
     name = "JetBrainsMono Nerd Font";
+    general = "Inter"; # proportional UI font (Plasma, GTK dialogs)
     size = 13;
   };
 

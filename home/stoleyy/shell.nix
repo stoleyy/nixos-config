@@ -1,7 +1,7 @@
 { theme, ... }:
 
 let
-  c = theme.colors;
+  inherit (theme) colors;
 in
 {
   programs = {
@@ -140,15 +140,15 @@ in
         # Deltarune Sanctuary palette for prompt
         palette = "sanctuary";
         palettes.sanctuary = {
-          fg = c.fg0;
-          bg = c.bg0;
-          inherit (c) green;
-          inherit (c) yellow;
-          inherit (c) blue;
-          inherit (c) purple;
-          inherit (c) aqua;
-          inherit (c) orange;
-          inherit (c) red;
+          fg = colors.fg0;
+          bg = colors.bg0;
+          inherit (colors) green;
+          inherit (colors) yellow;
+          inherit (colors) blue;
+          inherit (colors) purple;
+          inherit (colors) aqua;
+          inherit (colors) orange;
+          inherit (colors) red;
         };
         format = "$directory$git_branch$git_status$nix_shell$character";
         right_format = "$cmd_duration";

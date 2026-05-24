@@ -1,15 +1,21 @@
 # Media server stack: Jellyfin, Sonarr/Radarr/Prowlarr, qBittorrent (VPN-bound), Bazarr — depends on protonvpn.nix.
 {
+  config,
   lib,
+  host,
   ...
 }:
 
 # Core media server stack: Jellyfin + *arr suite + qBittorrent + Bazarr.
 #
 # All services run as dedicated system users sharing a common `media` group
-# for filesystem access to /home/stoleyy/games/media/. qBittorrent is bound
-# to the ProtonVPN WireGuard tunnel so torrent traffic is VPN-only (the
-# kill switch in modules/protonvpn.nix is the second layer).
+# for filesystem access to the media directory. qBittorrent is bound to the
+# ProtonVPN WireGuard tunnel so torrent traffic is VPN-only (the kill switch
+# in modules/protonvpn.nix is the second layer).
+#
+# Coupling: qBittorrent binds to the "protonvpn" WireGuard interface
+# (defined in modules/protonvpn.nix → networking.wg-quick.interfaces.protonvpn).
+# The VPN client address is derived from config.modules.protonvpn.clientAddress.
 #
 # First-boot setup (after `nixos-rebuild switch`):
 #   1. Jellyfin:     http://localhost:8096  — wizard, add libraries, enable NVENC
@@ -24,8 +30,10 @@
 # Migrate to sops-nix once the age key is bootstrapped.
 
 let
+  # VPN address without CIDR suffix — derived from the protonvpn module option.
+  vpnAddr = builtins.head (lib.splitString "/" config.modules.protonvpn.clientAddress);
+
   # Common systemd hardening options shared by all media services.
-  # Per-service blocks merge this with // and override individual keys as needed.
   hardeningDefaults = {
     NoNewPrivileges = true;
     PrivateTmp = true;
@@ -47,14 +55,32 @@ let
     SystemCallFilter = [ "@system-service" ];
     SystemCallArchitectures = "native";
     MemoryDenyWriteExecute = true;
-    # Default address families — *arr services and Bazarr only need these three.
-    # qBittorrent and Jellyfin extend this list below.
     RestrictAddressFamilies = [
       "AF_INET"
       "AF_INET6"
       "AF_UNIX"
     ];
   };
+
+  # Factory for the 4 standard *arr services — on-demand, sandboxed, media-accessible.
+  # qBittorrent and Jellyfin are too different (VPN binding, GPU access) for a factory.
+  mkArrService =
+    {
+      stateDir,
+      mediaPaths ? [ host.mediaDir ],
+      relaxJit ? false,
+    }:
+    {
+      wantedBy = lib.mkForce [ ];
+      serviceConfig =
+        hardeningDefaults
+        // {
+          ReadWritePaths = [ stateDir ] ++ mediaPaths;
+        }
+        // lib.optionalAttrs relaxJit {
+          MemoryDenyWriteExecute = lib.mkForce false;
+        };
+    };
 in
 {
   # ---------- shared media group ----------
@@ -72,7 +98,7 @@ in
       qbittorrent.extraGroups = [ "media" ];
       bazarr.extraGroups = [ "media" ];
       # stoleyy needs media group for direct file access
-      stoleyy.extraGroups = [ "media" ];
+      ${host.user}.extraGroups = [ "media" ];
     };
   };
 
@@ -112,19 +138,20 @@ in
         Preferences = {
           General.Locale = "en";
           Downloads = {
-            SavePath = "/home/stoleyy/games/media/downloads/complete";
-            TempPath = "/home/stoleyy/games/media/downloads/incomplete";
+            SavePath = "${host.mediaDir}/downloads/complete";
+            TempPath = "${host.mediaDir}/downloads/incomplete";
             TempPathEnabled = true;
           };
-          # Bind to VPN interface — no traffic exits without the tunnel
+          # Bind to VPN interface — no traffic exits without the tunnel.
+          # Interface name matches networking.wg-quick.interfaces key in protonvpn.nix.
           Connection = {
             InterfaceName = "protonvpn";
-            InterfaceAddress = "10.2.0.2";
+            InterfaceAddress = vpnAddr;
           };
         };
         BitTorrent.Session = {
           Interface = "protonvpn";
-          InterfaceAddress = "10.2.0.2";
+          InterfaceAddress = vpnAddr;
           InterfaceName = "protonvpn";
           # Disable DHT/PeX/LSD — these leak the real IP outside the tunnel
           DHT = false;
@@ -144,10 +171,9 @@ in
   # ---------- systemd service hardening + on-demand startup ----------
   systemd = {
     services = {
-      # qBittorrent: upstream already has full hardening; we override the three
-      # settings that differ: ProtectHome off (media in /home), ProtectSystem
-      # strict (upstream uses full), PrivateTmp on (upstream disables it).
+      # qBittorrent: explicit (VPN binding + custom hardening overrides).
       # bindsTo: if VPN dies, qBittorrent stops too — prevents IP leaks.
+      # Service name matches protonvpn.nix → networking.wg-quick.interfaces.protonvpn.
       qbittorrent = {
         bindsTo = [ "wg-quick-protonvpn.service" ];
         after = [ "wg-quick-protonvpn.service" ];
@@ -158,7 +184,7 @@ in
           PrivateTmp = lib.mkForce true;
           ReadWritePaths = [
             "/var/lib/qbittorrent"
-            "/home/stoleyy/games/media"
+            host.mediaDir
           ];
           # qBittorrent needs AF_NETLINK for network interface binding (VPN).
           RestrictAddressFamilies = [
@@ -170,9 +196,9 @@ in
         };
       };
 
-      # Jellyfin: upstream has most hardening; add the full sandboxing stack.
-      # PrivateDevices omitted — Jellyfin needs /dev/dri for NVENC GPU transcoding.
-      # MemoryDenyWriteExecute omitted: .NET CoreCLR JIT requires W+X pages.
+      # Jellyfin: explicit (GPU transcoding + .NET JIT).
+      # PrivateDevices off — needs /dev/dri for NVENC.
+      # MemoryDenyWriteExecute off — .NET CoreCLR JIT requires W+X pages.
       jellyfin = {
         wantedBy = lib.mkForce [ ];
         serviceConfig = hardeningDefaults // {
@@ -180,7 +206,7 @@ in
           MemoryDenyWriteExecute = lib.mkForce false;
           ReadWritePaths = [
             "/var/lib/jellyfin"
-            "/home/stoleyy/games/media"
+            host.mediaDir
           ];
           # Jellyfin needs AF_NETLINK for network interface enumeration.
           RestrictAddressFamilies = [
@@ -192,56 +218,32 @@ in
         };
       };
 
-      # MemoryDenyWriteExecute omitted for *arr/.NET/Mono JIT (W+X pages needed).
-      sonarr = {
-        wantedBy = lib.mkForce [ ];
-        serviceConfig = hardeningDefaults // {
-          MemoryDenyWriteExecute = lib.mkForce false;
-          ReadWritePaths = [
-            "/var/lib/sonarr"
-            "/home/stoleyy/games/media"
-          ];
-        };
+      # *arr suite — standard on-demand services via factory.
+      # .NET/Mono JIT needs MemoryDenyWriteExecute relaxed (relaxJit).
+      sonarr = mkArrService {
+        stateDir = "/var/lib/sonarr";
+        relaxJit = true;
       };
-
-      radarr = {
-        wantedBy = lib.mkForce [ ];
-        serviceConfig = hardeningDefaults // {
-          MemoryDenyWriteExecute = lib.mkForce false;
-          ReadWritePaths = [
-            "/var/lib/radarr"
-            "/home/stoleyy/games/media"
-          ];
-        };
+      radarr = mkArrService {
+        stateDir = "/var/lib/radarr";
+        relaxJit = true;
       };
-
-      prowlarr = {
-        wantedBy = lib.mkForce [ ];
-        serviceConfig = hardeningDefaults // {
-          MemoryDenyWriteExecute = lib.mkForce false;
-          ReadWritePaths = [ "/var/lib/prowlarr" ];
-        };
+      prowlarr = mkArrService {
+        stateDir = "/var/lib/prowlarr";
+        relaxJit = true;
+        mediaPaths = [ ];
       };
-
-      bazarr = {
-        wantedBy = lib.mkForce [ ];
-        serviceConfig = hardeningDefaults // {
-          ReadWritePaths = [
-            "/var/lib/bazarr"
-            "/home/stoleyy/games/media"
-          ];
-        };
-      };
+      bazarr = mkArrService { stateDir = "/var/lib/bazarr"; };
     };
 
     # ---------- media directory tree ----------
     tmpfiles.rules = [
-      "d /home/stoleyy/games/media                       0775 stoleyy media -"
-      "d /home/stoleyy/games/media/movies                0775 stoleyy media -"
-      "d /home/stoleyy/games/media/tv                    0775 stoleyy media -"
-      "d /home/stoleyy/games/media/downloads             0775 stoleyy media -"
-      "d /home/stoleyy/games/media/downloads/complete    0775 stoleyy media -"
-      "d /home/stoleyy/games/media/downloads/incomplete  0775 stoleyy media -"
+      "d ${host.mediaDir}                       0775 ${host.user} media -"
+      "d ${host.mediaDir}/movies                0775 ${host.user} media -"
+      "d ${host.mediaDir}/tv                    0775 ${host.user} media -"
+      "d ${host.mediaDir}/downloads             0775 ${host.user} media -"
+      "d ${host.mediaDir}/downloads/complete    0775 ${host.user} media -"
+      "d ${host.mediaDir}/downloads/incomplete  0775 ${host.user} media -"
     ];
 
     # ---------- on-demand startup ----------

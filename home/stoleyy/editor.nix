@@ -1,8 +1,7 @@
 { pkgs, theme, ... }:
 
 let
-  c = theme.colors;
-  f = theme.font;
+  inherit (theme) colors font;
 in
 {
   programs.vscode = {
@@ -17,27 +16,27 @@ in
       userSettings = {
         "workbench.colorTheme" = "Default Dark Modern";
         "workbench.colorCustomizations" = {
-          "editor.background" = c.bg0;
-          "sideBar.background" = c.bg1;
-          "activityBar.background" = c.bg1;
-          "titleBar.activeBackground" = c.bg1;
-          "tab.activeBackground" = c.bg2;
-          "tab.inactiveBackground" = c.bg1;
-          "statusBar.background" = c.bg2;
-          "terminal.background" = c.bg0;
-          "terminal.foreground" = c.fg0;
-          "editorGroupHeader.tabsBackground" = c.bg1;
-          "panel.background" = c.bg0;
-          "focusBorder" = c.green;
-          "list.activeSelectionBackground" = c.green;
-          "list.hoverBackground" = c.bg2;
-          "editor.selectionBackground" = "${c.green}66";
-          "editorCursor.foreground" = c.yellow;
-          "editor.lineHighlightBackground" = c.bg1;
+          "editor.background" = colors.bg0;
+          "sideBar.background" = colors.bg1;
+          "activityBar.background" = colors.bg1;
+          "titleBar.activeBackground" = colors.bg1;
+          "tab.activeBackground" = colors.bg2;
+          "tab.inactiveBackground" = colors.bg1;
+          "statusBar.background" = colors.bg2;
+          "terminal.background" = colors.bg0;
+          "terminal.foreground" = colors.fg0;
+          "editorGroupHeader.tabsBackground" = colors.bg1;
+          "panel.background" = colors.bg0;
+          "focusBorder" = colors.green;
+          "list.activeSelectionBackground" = colors.green;
+          "list.hoverBackground" = colors.bg2;
+          "editor.selectionBackground" = "${colors.green}66";
+          "editorCursor.foreground" = colors.yellow;
+          "editor.lineHighlightBackground" = colors.bg1;
         };
         "editor.formatOnSave" = true;
-        "editor.fontFamily" = "'${f.name}', monospace";
-        "editor.fontSize" = f.size;
+        "editor.fontFamily" = "'${font.name}', monospace";
+        "editor.fontSize" = font.size;
         "telemetry.telemetryLevel" = "off";
         "update.mode" = "none";
         "extensions.autoUpdate" = false;

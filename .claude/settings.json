@@ -97,6 +97,12 @@
     ],
     "PostToolUse": [
       {
+        "matcher": "Read",
+        "hooks": [
+          { "type": "command", "command": ".claude/hooks/gateguard-mark-read.sh", "timeout": 3 }
+        ]
+      },
+      {
         "matcher": "Write|Edit",
         "hooks": [
           { "type": "command", "command": ".claude/hooks/post-edit-nixfmt.sh", "timeout": 10, "statusMessage": "nixfmt" }

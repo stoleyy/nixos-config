@@ -38,7 +38,7 @@ in
 
     fonts = {
       general = {
-        family = "Inter";
+        family = theme.font.general;
         pointSize = 10;
       };
       fixedWidth = {
@@ -46,19 +46,19 @@ in
         pointSize = 11;
       };
       small = {
-        family = "Inter";
+        family = theme.font.general;
         pointSize = 9;
       };
       menu = {
-        family = "Inter";
+        family = theme.font.general;
         pointSize = 10;
       };
       toolbar = {
-        family = "Inter";
+        family = theme.font.general;
         pointSize = 10;
       };
       windowTitle = {
-        family = "Inter";
+        family = theme.font.general;
         pointSize = 10;
       };
     };

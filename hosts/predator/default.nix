@@ -2,6 +2,7 @@
   config,
   pkgs,
   lib,
+  host,
   ...
 }:
 
@@ -42,7 +43,7 @@
   # 2026-05-16, breaking Steam/Lutris). nofail + device-timeout so a
   # missing/slow disk degrades to a boot warning instead of a hard
   # "Dependency failed for /home/stoleyy/games" stop.
-  fileSystems."/home/stoleyy/games" = {
+  fileSystems."${host.gamesDir}" = {
     device = "/dev/disk/by-uuid/efd6d32e-54f9-4e6d-965f-67279a31da47";
     fsType = "ext4";
     options = [
@@ -58,7 +59,7 @@
   # nofail + device-timeout degradation contract as games above.
   # Former Windows NVMe (nvme1n1) — wiped and repartitioned as a single ext4.
   # General-purpose data partition (backups, media, project archives).
-  fileSystems."/data" = {
+  fileSystems."${host.dataDir}" = {
     device = "/dev/disk/by-uuid/88c50d98-1905-405d-a9c2-5ce522c9ad77";
     fsType = "ext4";
     options = [
@@ -163,10 +164,10 @@
     # root inode. The previous failure was "Failed to resolve group 'stoleyy'" —
     # 'stoleyy' is a user, not a group. 'users' (GID 100) is the correct primary
     # group for a NixOS isNormalUser account.
-    "d /home/stoleyy/games 0755 stoleyy users -"
+    "d ${host.gamesDir} 0755 ${host.user} users -"
     # /data is a general-purpose partition not directly written by user services;
     # root:root is correct there.
-    "d /data               0755 root root -"
+    "d ${host.dataDir}  0755 root root -"
   ];
 
   specialisation = {
@@ -211,60 +212,12 @@
           enable = true;
           restart = true;
           settings.default_session = {
-            command = "${pkgs.writeShellScript "gamescope-session" ''
-              # Thorough logging — survives reboots since it's in $HOME.
-              LOG=/home/stoleyy/gamescope-session.log
-              exec > "$LOG" 2>&1
-              set -x
-
-              echo "============================================"
-              echo "gamescope session — $(date)"
-              echo "============================================"
-
-              echo "--- environment ---"
-              env | sort
-
-              echo "--- DRI devices ---"
-              ls -la /dev/dri/ || true
-
-              echo "--- logind session ---"
-              loginctl session-status || true
-
-              echo "--- seat info ---"
-              loginctl seat-status seat0 || true
-
-              echo "--- DRM info ---"
-              for card in /sys/class/drm/card*/; do
-                echo "$card: $(cat "$card/device/vendor" 2>/dev/null) $(cat "$card/device/device" 2>/dev/null)"
-              done
-
-              echo "--- NVIDIA driver ---"
-              cat /proc/driver/nvidia/version 2>/dev/null || true
-
-              echo "--- steam-gamescope wrapper contents ---"
-              cat "$(command -v steam-gamescope)" || true
-
-              echo "--- gamescope version ---"
-              gamescope --help 2>&1 | head -1 || true
-
-              # Xwayland EGL fix: libepoxy does dlopen("libEGL.so.1") at runtime
-              # but has no RPATH. Xwayland's RUNPATH includes libglvnd, but
-              # RUNPATH is NOT inherited by transitive dlopen calls. Prepend
-              # libglvnd + the OpenGL driver dir so the GLVND EGL dispatcher
-              # and NVIDIA vendor ICD are discoverable.
-              export LD_LIBRARY_PATH="${pkgs.libglvnd}/lib:/run/opengl-driver/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-
-              echo "============================================"
-              echo "Launching steam-gamescope..."
-              echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
-              echo "============================================"
-
-              steam-gamescope
-              RC=$?
-              echo "steam-gamescope exited with code $RC at $(date)"
-              exit $RC
-            ''}";
-            user = "stoleyy";
+            command =
+              let
+                gamescopeSession = pkgs.callPackage ../../packages/gamescope-session.nix { inherit host; };
+              in
+              "${gamescopeSession}";
+            user = host.user;
           };
         };
 

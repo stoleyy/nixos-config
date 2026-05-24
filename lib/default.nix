@@ -13,6 +13,7 @@
       inherit system;
       specialArgs = {
         inherit inputs;
+        host = import ../lib/host.nix;
       };
       modules = [
         ../hosts/${hostName}

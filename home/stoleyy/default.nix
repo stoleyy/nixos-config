@@ -6,8 +6,7 @@
 }:
 
 let
-  c = theme.colors;
-  inherit (theme) hexToRgb;
+  inherit (theme) colors hexToRgb;
 in
 {
   imports = [
@@ -48,29 +47,29 @@ in
       description = "Deep indigo theme matching the Deltarune Sanctuary palette";
       theme = {
         colors = {
-          frame = hexToRgb c.bg1;
-          frame_inactive = hexToRgb c.bg0;
-          frame_incognito = hexToRgb c.bg2;
-          frame_incognito_inactive = hexToRgb c.bg1;
-          toolbar = hexToRgb c.bg1;
-          toolbar_text = hexToRgb c.fg0;
-          toolbar_button_icon = hexToRgb c.yellow;
-          tab_background_text = hexToRgb c.fg2;
-          tab_text = hexToRgb c.fg0;
-          tab_selected = hexToRgb c.bg2;
-          tab_background_inactive_frame = hexToRgb c.bg0;
-          tab_background_inactive_frame_inactive = hexToRgb c.bg0;
-          bookmark_text = hexToRgb c.fg1;
-          ntp_background = hexToRgb c.bg0;
-          ntp_text = hexToRgb c.fg0;
-          ntp_link = hexToRgb c.yellow;
-          ntp_header = hexToRgb c.bg1;
-          omnibox_background = hexToRgb c.bg0;
-          omnibox_text = hexToRgb c.fg0;
-          omnibox_results_bg = hexToRgb c.bg1;
-          omnibox_results_text = hexToRgb c.fg0;
-          omnibox_results_url = hexToRgb c.yellow;
-          button_background = hexToRgb c.green;
+          frame = hexToRgb colors.bg1;
+          frame_inactive = hexToRgb colors.bg0;
+          frame_incognito = hexToRgb colors.bg2;
+          frame_incognito_inactive = hexToRgb colors.bg1;
+          toolbar = hexToRgb colors.bg1;
+          toolbar_text = hexToRgb colors.fg0;
+          toolbar_button_icon = hexToRgb colors.yellow;
+          tab_background_text = hexToRgb colors.fg2;
+          tab_text = hexToRgb colors.fg0;
+          tab_selected = hexToRgb colors.bg2;
+          tab_background_inactive_frame = hexToRgb colors.bg0;
+          tab_background_inactive_frame_inactive = hexToRgb colors.bg0;
+          bookmark_text = hexToRgb colors.fg1;
+          ntp_background = hexToRgb colors.bg0;
+          ntp_text = hexToRgb colors.fg0;
+          ntp_link = hexToRgb colors.yellow;
+          ntp_header = hexToRgb colors.bg1;
+          omnibox_background = hexToRgb colors.bg0;
+          omnibox_text = hexToRgb colors.fg0;
+          omnibox_results_bg = hexToRgb colors.bg1;
+          omnibox_results_text = hexToRgb colors.fg0;
+          omnibox_results_url = hexToRgb colors.yellow;
+          button_background = hexToRgb colors.green;
         };
         tints = {
           background_tab = [

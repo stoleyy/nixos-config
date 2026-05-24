@@ -1,7 +1,7 @@
 { pkgs, theme, ... }:
 
 let
-  c = theme.colors;
+  inherit (theme) colors stripHash;
 in
 
 {
@@ -177,9 +177,8 @@ in
         gaps_in = 3;
         gaps_out = 8;
         border_size = 2;
-        "col.active_border" =
-          "rgba(${theme.stripHash c.green}ff) rgba(${theme.stripHash c.yellow}ff) 45deg";
-        "col.inactive_border" = "rgba(${theme.stripHash c.bg1}cc) rgba(${theme.stripHash c.bg2}cc) 45deg";
+        "col.active_border" = "rgba(${stripHash colors.green}ff) rgba(${stripHash colors.yellow}ff) 45deg";
+        "col.inactive_border" = "rgba(${stripHash colors.bg1}cc) rgba(${stripHash colors.bg2}cc) 45deg";
         layout = "dwindle";
         resize_on_border = true;
         snap.enabled = true;
@@ -264,7 +263,7 @@ in
         vrr = 2;
         # Dark fallback colour shown briefly before the wallpaper engine
         # process renders — avoids a black flash at startup.
-        background_color = "rgb(${theme.stripHash c.black})";
+        background_color = "rgb(${stripHash colors.black})";
       };
 
       # Lower-latency fullscreen on NVIDIA. The compositor bypasses its
@@ -287,7 +286,7 @@ in
         hyprexpo = {
           columns = 3;
           gap_size = 5;
-          bg_col = "rgb(${theme.stripHash c.black})";
+          bg_col = "rgb(${stripHash colors.black})";
           workspace_method = "center current";
           enable_gesture = false; # desktop has no touchpad
         };
@@ -318,7 +317,7 @@ in
         # widening the main border. Plays nicely with `general.col.active_border`.
         borders-plus-plus = {
           add_borders = 1;
-          "col.border_1" = "rgb(${theme.stripHash c.bg2})";
+          "col.border_1" = "rgb(${stripHash colors.bg2})";
           border_size_1 = 1;
           natural_rounding = true;
         };
@@ -344,7 +343,7 @@ in
 
         # Motion trails in Sanctuary accent. Cheap visual flair on 4K@240Hz.
         hyprtrails = {
-          color = "rgba(${theme.stripHash c.green}aa)";
+          color = "rgba(${stripHash colors.green}aa)";
           bezier_step = 0.025;
           points_per_step = 2;
           history_points = 20;
@@ -500,14 +499,10 @@ in
     in
     {
       swayosd = mkSessionService "SwayOSD server" "${pkgs.swayosd}/bin/swayosd-server";
-      cliphist-text = mkSessionService "Clipboard history (text)"
-        "${pkgs.wl-clipboard}/bin/wl-paste --type text --watch ${pkgs.cliphist}/bin/cliphist store --max-items 50";
-      cliphist-image = mkSessionService "Clipboard history (images)"
-        "${pkgs.wl-clipboard}/bin/wl-paste --type image --watch ${pkgs.cliphist}/bin/cliphist store --max-items 50";
-      wl-clip-persist = mkSessionService "Persist clipboard on app close"
-        "${pkgs.wl-clip-persist}/bin/wl-clip-persist --clipboard regular";
-      pyprland = mkSessionService "Pyprland scratchpad daemon"
-        "${pkgs.pyprland}/bin/pypr";
+      cliphist-text = mkSessionService "Clipboard history (text)" "${pkgs.wl-clipboard}/bin/wl-paste --type text --watch ${pkgs.cliphist}/bin/cliphist store --max-items 50";
+      cliphist-image = mkSessionService "Clipboard history (images)" "${pkgs.wl-clipboard}/bin/wl-paste --type image --watch ${pkgs.cliphist}/bin/cliphist store --max-items 50";
+      wl-clip-persist = mkSessionService "Persist clipboard on app close" "${pkgs.wl-clip-persist}/bin/wl-clip-persist --clipboard regular";
+      pyprland = mkSessionService "Pyprland scratchpad daemon" "${pkgs.pyprland}/bin/pypr";
     };
 
   # HyDE-inspired hyprlock layout — time top-right, greeting center, input bottom.
@@ -533,7 +528,7 @@ in
           position = "-40, -20";
           halign = "right";
           valign = "top";
-          color = "rgb(${theme.stripHash c.fg0})";
+          color = "rgb(${stripHash colors.fg0})";
           font_size = 90;
           font_family = theme.font.name;
           text = ''cmd[update:1000] echo "$(date +"%H:%M")"'';
@@ -543,7 +538,7 @@ in
           position = "-40, -150";
           halign = "right";
           valign = "top";
-          color = "rgb(${theme.stripHash c.fg1})";
+          color = "rgb(${stripHash colors.fg1})";
           font_size = 22;
           font_family = theme.font.name;
           text = ''cmd[update:60000] echo "$(date +"%A, %d %B %Y")"'';
@@ -553,7 +548,7 @@ in
           position = "0, 60";
           halign = "center";
           valign = "center";
-          color = "rgb(${theme.stripHash c.yellow})";
+          color = "rgb(${stripHash colors.yellow})";
           font_size = 18;
           font_family = theme.font.name;
           text = ''cmd[update:60000] echo "Good $(date +%H | awk '{if ($1 < 12) print "Morning"; else if ($1 < 18) print "Afternoon"; else print "Evening"}'), $USER"'';
@@ -566,9 +561,9 @@ in
           halign = "center";
           valign = "center";
           outline_thickness = 3;
-          outer_color = "rgb(${theme.stripHash c.green})";
-          inner_color = "rgb(${theme.stripHash c.bg1})";
-          font_color = "rgb(${theme.stripHash c.fg0})";
+          outer_color = "rgb(${stripHash colors.green})";
+          inner_color = "rgb(${stripHash colors.bg1})";
+          font_color = "rgb(${stripHash colors.fg0})";
           fade_on_empty = false;
           placeholder_text = "<i>Password...</i>";
           shadow_passes = 2;

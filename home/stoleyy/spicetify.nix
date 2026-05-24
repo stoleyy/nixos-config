@@ -6,7 +6,7 @@
 }:
 
 let
-  c = theme.colors;
+  inherit (theme) colors stripHash;
   spicePkgs = inputs.spicetify-nix.legacyPackages.${pkgs.stdenv.hostPlatform.system};
 in
 {
@@ -17,22 +17,22 @@ in
     theme = spicePkgs.themes.comfy;
     colorScheme = "custom";
     customColorScheme = {
-      text = theme.stripHash c.fg0;
-      subtext = theme.stripHash c.fg1;
-      sidebar-text = theme.stripHash c.fg2;
-      main = theme.stripHash c.black;
-      sidebar = theme.stripHash c.bg1;
-      player = theme.stripHash c.bg1;
-      card = theme.stripHash c.bg2;
-      shadow = theme.stripHash c.black;
-      selected-row = theme.stripHash c.green;
-      button = theme.stripHash c.green;
-      button-active = theme.stripHash c.yellow;
-      button-disabled = theme.stripHash c.muted;
-      tab-active = theme.stripHash c.green;
-      notification = theme.stripHash c.blue;
-      notification-error = theme.stripHash c.red;
-      misc = theme.stripHash c.bg2;
+      text = stripHash colors.fg0;
+      subtext = stripHash colors.fg1;
+      sidebar-text = stripHash colors.fg2;
+      main = stripHash colors.black;
+      sidebar = stripHash colors.bg1;
+      player = stripHash colors.bg1;
+      card = stripHash colors.bg2;
+      shadow = stripHash colors.black;
+      selected-row = stripHash colors.green;
+      button = stripHash colors.green;
+      button-active = stripHash colors.yellow;
+      button-disabled = stripHash colors.muted;
+      tab-active = stripHash colors.green;
+      notification = stripHash colors.blue;
+      notification-error = stripHash colors.red;
+      misc = stripHash colors.bg2;
     };
     enabledExtensions = with spicePkgs.extensions; [
       adblock
