@@ -1,3 +1,4 @@
+# Nix daemon, binary caches, and developer UX (nh, direnv, fish shell integration).
 _:
 
 {

@@ -17,38 +17,45 @@
       modules = [
         ../hosts/${hostName}
         ../overlays
-        ../modules/base.nix
-        ../modules/nix.nix
-        ../modules/nix-ld.nix
-        ../modules/kernel.nix
-        ../modules/hardware.nix
-        ../modules/system.nix
-        ../modules/networking.nix
-        ../modules/desktop.nix
-        ../modules/audio.nix
-        ../modules/fonts.nix
-        ../modules/gaming.nix
-        ../modules/apps.nix
-        ../modules/ollama.nix
-        ../modules/hardening.nix
-        ../modules/hyprland.nix
-        ../modules/theming.nix
-        ../modules/containers.nix
-        # wazuh-manager.nix unconditionally declares the
-        # virtualisation.oci-containers stack (no enable gate). Without the
-        # one-time manual cert bootstrap (see the module header), all three
-        # containers restart-loop forever — burning CPU/disk and flooding
-        # the journal (observed on the box). Disabled until the certs exist;
-        # re-add this import after completing the cert setup. Mirrors the
-        # disabled-by-default posture of wazuh-agent.nix.
-        # ../modules/wazuh-manager.nix
-        ../modules/wazuh-agent.nix
-        ../modules/protonvpn.nix
-        ../modules/protonvpn-rotate.nix
-        ../modules/media-server.nix
-        ../modules/auditd.nix
-        ../modules/fan-control.nix
-        ../modules/update-routines.nix
+
+        # ── Foundation ──
+        ../modules/base.nix # user account, shell, allowUnfree
+        ../modules/nix.nix # daemon, caches, dev UX (nh, direnv)
+        ../modules/nix-ld.nix # foreign ELF ABI shim
+        ../modules/system.nix # fstrim, fwupd, journald, OOM, stateVersion
+
+        # ── Hardware & kernel ──
+        ../modules/kernel.nix # kernel pin, sysctl, THP, NVMe scheduler
+        ../modules/hardware.nix # microcode, bluetooth, zram
+        ../modules/fan-control.nix # it87 driver + fancontrol (Predator PO3-650)
+        ../modules/networking.nix # NetworkManager, nftables, resolved
+
+        # ── Desktop & UX ──
+        ../modules/desktop.nix # SDDM, Plasma 6, XDG portals
+        ../modules/hyprland.nix # Hyprland session (default, autologin)
+        ../modules/audio.nix # PipeWire, low-latency, BT codecs
+        ../modules/fonts.nix # Noto, Liberation, JetBrainsMono
+        ../modules/theming.nix # Papirus icons, cava
+
+        # ── Applications ──
+        ../modules/apps.nix # Brave, Zen, CLI tools, ProtonVPN GUI
+        ../modules/gaming.nix # Steam, GameMode, gamescope, game-install
+        ../modules/ollama.nix # local LLM inference (CUDA)
+
+        # ── Security & monitoring ──
+        ../modules/hardening.nix # CIS/KSPP sysctl, AppArmor
+        ../modules/auditd.nix # syscall/FIM audit → Wazuh
+        ../modules/wazuh-agent.nix # HIDS agent
+        # ../modules/wazuh-manager.nix # disabled — pending cert bootstrap
+
+        # ── Networking services ──
+        ../modules/protonvpn.nix # WireGuard tunnel + kill switch
+        ../modules/protonvpn-rotate.nix # quality-based server rotation
+        ../modules/containers.nix # Podman/OCI runtime
+        ../modules/media-server.nix # Jellyfin, *arr stack, qBittorrent
+        ../modules/update-routines.nix # weekly rebuild, flake bump, vulnix
+
+        # ── External modules ──
         inputs.nix-gaming.nixosModules.pipewireLowLatency
         inputs.nix-gaming.nixosModules.platformOptimizations
         inputs.sops-nix.nixosModules.sops

@@ -1,3 +1,4 @@
+# PipeWire audio stack — low-latency ALSA/PulseAudio/JACK compat + LDAC/aptX Bluetooth codecs.
 _:
 
 {

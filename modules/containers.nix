@@ -1,3 +1,4 @@
+# Podman/OCI container runtime — dockerCompat shim, DNS, weekly image prune; used by wazuh-manager.nix.
 { pkgs, lib, ... }:
 
 # Container runtime for declarative services (Wazuh manager, future workloads).

@@ -1,3 +1,4 @@
+# ProtonVPN kernel WireGuard tunnel — boot-time activation, firewall kill-switch, sops-encrypted key.
 {
   config,
   lib,

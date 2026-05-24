@@ -1,3 +1,4 @@
+# Fan control — out-of-tree it87 driver (IT8637E) + fancontrol service for the Predator PO3-650.
 {
   pkgs,
   config,

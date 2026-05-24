@@ -1,3 +1,4 @@
+# Media server stack: Jellyfin, Sonarr/Radarr/Prowlarr, qBittorrent (VPN-bound), Bazarr — depends on protonvpn.nix.
 {
   lib,
   ...

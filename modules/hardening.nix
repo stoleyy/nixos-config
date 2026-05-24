@@ -1,3 +1,4 @@
+# Kernel hardening — CIS/KSPP sysctl (network, ptrace, kptr) + AppArmor + secure boot settings.
 { pkgs, ... }:
 
 {

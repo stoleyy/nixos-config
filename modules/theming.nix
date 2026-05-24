@@ -1,3 +1,4 @@
+# System-level theming packages: Papirus icons, cava, Inter + GeistMono fonts — complements fonts.nix.
 { pkgs, ... }:
 
 {

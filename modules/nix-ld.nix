@@ -1,3 +1,4 @@
+# Foreign ELF ABI shim — lets pre-compiled Linux binaries run on NixOS via nix-ld.
 { pkgs, ... }:
 
 {

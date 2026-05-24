@@ -1,3 +1,4 @@
+# Local LLM inference via Ollama — CUDA acceleration, llama3.2 + qwen2.5-coder, VRAM released after 10 min idle.
 _:
 
 {

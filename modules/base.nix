@@ -1,3 +1,4 @@
+# User account, shell, and foundational system settings — imports shell.nix implicitly via home-manager.
 { pkgs, ... }:
 
 {

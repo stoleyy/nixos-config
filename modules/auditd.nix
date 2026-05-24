@@ -1,3 +1,4 @@
+# Linux audit subsystem — kernel syscall/FIM observability feeding Wazuh HIDS.
 _:
 
 # Linux audit subsystem — kernel-level syscall observability for Wazuh.

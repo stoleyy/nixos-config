@@ -1,3 +1,4 @@
+# SDDM display manager, KDE Plasma 6 desktop, XDG portals, and session autologin wiring.
 { pkgs, ... }:
 
 {

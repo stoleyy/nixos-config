@@ -1,3 +1,4 @@
+# Physical hardware: CPU microcode, Bluetooth, Logitech, zram swap.
 _:
 
 {

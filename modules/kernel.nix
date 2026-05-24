@@ -1,3 +1,4 @@
+# Kernel package, sysctl tuning, THP, and NVMe I/O scheduler.
 { pkgs, config, ... }:
 
 {

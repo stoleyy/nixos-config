@@ -1,3 +1,4 @@
+# User-facing applications: Brave, Zen Browser, CLI tools, ProtonVPN GUI.
 { pkgs, inputs, ... }:
 
 {

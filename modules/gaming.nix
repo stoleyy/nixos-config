@@ -1,3 +1,4 @@
+# Steam, GameMode, gamescope, ananicy-cpp, and the game-install torrent pipeline.
 { pkgs, ... }:
 
 let

@@ -1,3 +1,4 @@
+# NetworkManager + nftables firewall, systemd-resolved with Quad9 DoT, ProtonVPN kill-switch support.
 _:
 
 {

@@ -1,3 +1,4 @@
+# System fonts: Noto, Liberation, JetBrainsMono Nerd Font; fontconfig defaults — supplemented by theming.nix.
 { pkgs, ... }:
 
 {

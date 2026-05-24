@@ -1,3 +1,4 @@
+# Wazuh manager + indexer + dashboard (single-node, podman) — disabled in lib/default.nix pending cert bootstrap.
 {
   pkgs,
   config,

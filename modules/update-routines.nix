@@ -1,3 +1,4 @@
+# Periodic update wiring — weekly nixos-rebuild boot, flake.lock bump, and vulnix CVE scan.
 { pkgs, ... }:
 
 # Periodic update wiring so the system doesn't slowly turn into a

@@ -1,3 +1,4 @@
+# NVIDIA proprietary driver — production track, open=false (Ada workaround), VAAPI, Vulkan, modesetting.
 { config, pkgs, ... }:
 
 {

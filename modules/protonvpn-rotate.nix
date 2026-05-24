@@ -1,3 +1,4 @@
+# ProtonVPN server rotation — quality-based health checks, automatic wg-quick peer swap.
 {
   config,
   lib,
