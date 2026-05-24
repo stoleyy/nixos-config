@@ -1,5 +1,8 @@
-{ colors, ... }:
+{ theme, ... }:
 
+let
+  inherit (theme) colors;
+in
 {
   services.swaync = {
     enable = true;
@@ -53,15 +56,15 @@
 
     style = ''
       * {
-        font-family: "JetBrainsMono Nerd Font";
-        font-size:   13px;
+        font-family: "${theme.font.name}";
+        font-size:   ${toString theme.font.size}px;
       }
 
       .control-center,
       .notification-row .notification-background {
-        background:    rgba(7, 6, 47, 0.95);
+        background:    ${colors.bg1}F2;
         color:         ${colors.fg0};
-        border:        1px solid rgba(60, 75, 155, 0.35);
+        border:        1px solid ${colors.green}59;
         border-radius: 14px;
       }
 
@@ -111,7 +114,7 @@
       }
 
       .widget-title button {
-        background:    rgba(10, 9, 78, 0.6);
+        background:    ${colors.bg2}99;
         color:         ${colors.fg0};
         border:        none;
         border-radius: 8px;
@@ -120,7 +123,7 @@
       }
 
       .widget-title button:hover {
-        background: rgba(60, 75, 155, 0.3);
+        background: ${colors.green}4D;
       }
 
       .widget-dnd > switch:checked {
@@ -129,7 +132,7 @@
       }
 
       .close-button {
-        background:    rgba(60, 75, 155, 0.5);
+        background:    ${colors.green}80;
         color:         ${colors.fg0};
         border:        none;
         border-radius: 6px;

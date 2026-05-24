@@ -27,224 +27,192 @@ let
   cfg = config.modules.protonvpn;
   rotateCfg = cfg.autoRotate;
 
+  inherit (import ../lib/nftables.nix { inherit lib; }) mkKillswitchTable;
+
   rotateScript = pkgs.writeShellScript "protonvpn-rotate" ''
-    set -euo pipefail
-    PATH="${
-      lib.makeBinPath (
-        with pkgs;
-        [
-          wireguard-tools
-          nftables
-          iputils
-          jq
-          coreutils
-          gawk
-          curl
-        ]
-      )
-    }:$PATH"
+        set -euo pipefail
+        PATH="${
+          lib.makeBinPath (
+            with pkgs;
+            [
+              wireguard-tools
+              nftables
+              iputils
+              jq
+              coreutils
+              gawk
+              curl
+            ]
+          )
+        }:$PATH"
 
-    POOL_FILE="${rotateCfg.poolFile}"
-    IFACE="protonvpn"
-    HYSTERESIS=${toString rotateCfg.hysteresisMs}
-    PING_COUNT=3
-    PING_TIMEOUT=2
-    # Quality thresholds — only rotate when current connection is degraded
-    MAX_LATENCY_MS=150    # trigger rotation if current latency exceeds this
-    MAX_LOSS_PCT=20       # trigger rotation if packet loss exceeds this
-    SPEED_CHECK_URL="https://speed.cloudflare.com/__down?bytes=1048576" # 1MB download
+        POOL_FILE="${rotateCfg.poolFile}"
+        IFACE="protonvpn"
+        HYSTERESIS=${toString rotateCfg.hysteresisMs}
+        PING_COUNT=3
+        PING_TIMEOUT=2
+        # Quality thresholds — only rotate when current connection is degraded
+        MAX_LATENCY_MS=150    # trigger rotation if current latency exceeds this
+        MAX_LOSS_PCT=20       # trigger rotation if packet loss exceeds this
+        SPEED_CHECK_URL="https://speed.cloudflare.com/__down?bytes=1048576" # 1MB download
 
-    if [ ! -f "$POOL_FILE" ]; then
-      echo "ERROR: server pool not found at $POOL_FILE" >&2
-      echo "See: docs/protonvpn-wg-setup.md for how to populate it." >&2
-      exit 1
-    fi
+        if [ ! -f "$POOL_FILE" ]; then
+          echo "ERROR: server pool not found at $POOL_FILE" >&2
+          echo "See: docs/protonvpn-wg-setup.md for how to populate it." >&2
+          exit 1
+        fi
 
-    SERVER_COUNT=$(jq length "$POOL_FILE")
-    if [ "$SERVER_COUNT" -lt 2 ]; then
-      echo "Pool has fewer than 2 servers, nothing to rotate." >&2
-      exit 0
-    fi
+        SERVER_COUNT=$(jq length "$POOL_FILE")
+        if [ "$SERVER_COUNT" -lt 2 ]; then
+          echo "Pool has fewer than 2 servers, nothing to rotate." >&2
+          exit 0
+        fi
 
-    # Current peer info
-    CURRENT_KEY=$(wg show "$IFACE" peers 2>/dev/null | head -1)
-    CURRENT_ENDPOINT=$(wg show "$IFACE" endpoints 2>/dev/null | awk '{print $2}')
+        # Current peer info
+        CURRENT_KEY=$(wg show "$IFACE" peers 2>/dev/null | head -1)
+        CURRENT_ENDPOINT=$(wg show "$IFACE" endpoints 2>/dev/null | awk '{print $2}')
 
-    if [ -z "$CURRENT_KEY" ]; then
-      echo "ERROR: no active peer on $IFACE — tunnel may be down" >&2
-      exit 1
-    fi
+        if [ -z "$CURRENT_KEY" ]; then
+          echo "ERROR: no active peer on $IFACE — tunnel may be down" >&2
+          exit 1
+        fi
 
-    CURRENT_IP=''${CURRENT_ENDPOINT%%:*}
+        CURRENT_IP=''${CURRENT_ENDPOINT%%:*}
 
-    echo "Current: $CURRENT_ENDPOINT (key: ''${CURRENT_KEY:0:8}...)"
+        echo "Current: $CURRENT_ENDPOINT (key: ''${CURRENT_KEY:0:8}...)"
 
-    # --- Quality check: measure current connection health ---
-    CURRENT_PING=$(ping -c 5 -W 3 -q 10.2.0.1 2>/dev/null \
-      | awk -F'/' '/^rtt/{print $5}' || echo "99999")
-    CURRENT_LOSS=$(ping -c 5 -W 3 -q 10.2.0.1 2>/dev/null \
-      | awk -F'[,%]' '/packet loss/{print $3}' | tr -d ' ' || echo "100")
+        # --- Quality check: measure current connection health ---
+        CURRENT_PING=$(ping -c 5 -W 3 -q 10.2.0.1 2>/dev/null \
+          | awk -F'/' '/^rtt/{print $5}' || echo "99999")
+        CURRENT_LOSS=$(ping -c 5 -W 3 -q 10.2.0.1 2>/dev/null \
+          | awk -F'[,%]' '/packet loss/{print $3}' | tr -d ' ' || echo "100")
 
-    CURRENT_PING_INT=''${CURRENT_PING%.*}
-    CURRENT_LOSS_INT=''${CURRENT_LOSS%.*}
+        CURRENT_PING_INT=''${CURRENT_PING%.*}
+        CURRENT_LOSS_INT=''${CURRENT_LOSS%.*}
 
-    echo "Quality: latency=''${CURRENT_PING_INT}ms loss=''${CURRENT_LOSS_INT}%"
+        echo "Quality: latency=''${CURRENT_PING_INT}ms loss=''${CURRENT_LOSS_INT}%"
 
-    # If current connection is healthy, don't rotate
-    if [ "$CURRENT_PING_INT" -lt "$MAX_LATENCY_MS" ] && [ "$CURRENT_LOSS_INT" -lt "$MAX_LOSS_PCT" ]; then
-      echo "Connection healthy (''${CURRENT_PING_INT}ms, ''${CURRENT_LOSS_INT}% loss). No rotation needed."
-      exit 0
-    fi
+        # If current connection is healthy, don't rotate
+        if [ "$CURRENT_PING_INT" -lt "$MAX_LATENCY_MS" ] && [ "$CURRENT_LOSS_INT" -lt "$MAX_LOSS_PCT" ]; then
+          echo "Connection healthy (''${CURRENT_PING_INT}ms, ''${CURRENT_LOSS_INT}% loss). No rotation needed."
+          exit 0
+        fi
 
-    echo "Connection degraded! Searching for a better server..."
+        echo "Connection degraded! Searching for a better server..."
 
-    # Measure latency to each server in the pool
-    BEST_NAME=""
-    BEST_IP=""
-    BEST_PORT=""
-    BEST_KEY=""
-    BEST_LATENCY=99999
-    CURRENT_LATENCY=99999
+        # Measure latency to each server in the pool
+        BEST_NAME=""
+        BEST_IP=""
+        BEST_PORT=""
+        BEST_KEY=""
+        BEST_LATENCY=99999
+        CURRENT_LATENCY=99999
 
-    while IFS= read -r server; do
-      name=$(echo "$server" | jq -r '.name')
-      endpoint=$(echo "$server" | jq -r '.endpoint')
-      key=$(echo "$server" | jq -r '.publicKey')
-      ip=''${endpoint%%:*}
-      port=''${endpoint##*:}
+        while IFS= read -r server; do
+          name=$(echo "$server" | jq -r '.name')
+          endpoint=$(echo "$server" | jq -r '.endpoint')
+          key=$(echo "$server" | jq -r '.publicKey')
+          ip=''${endpoint%%:*}
+          port=''${endpoint##*:}
 
-      # Temporarily allow this IP through kill switch for the ping probe
-      nft add rule inet protonvpn_killswitch output ip daddr "$ip" accept 2>/dev/null || true
+          # Temporarily allow this IP through kill switch for the ping probe
+          nft add rule inet protonvpn_killswitch output ip daddr "$ip" accept 2>/dev/null || true
 
-      avg=$(ping -c "$PING_COUNT" -W "$PING_TIMEOUT" -q "$ip" 2>/dev/null \
-        | awk -F'/' '/^rtt/{print $5}' || echo "99999")
+          avg=$(ping -c "$PING_COUNT" -W "$PING_TIMEOUT" -q "$ip" 2>/dev/null \
+            | awk -F'/' '/^rtt/{print $5}' || echo "99999")
 
-      # Remove the temporary rule (flush and re-apply is safer but slow;
-      # since we're adding to the end of the chain before the drop rule...
-      # actually nft appends AFTER the drop, so we need to insert instead)
-      # The kill switch allows the current endpoint + VPN iface, so pings
-      # to OTHER endpoints need a temporary exception. We'll use a separate
-      # chain for probes.
+          # Remove the temporary rule (flush and re-apply is safer but slow;
+          # since we're adding to the end of the chain before the drop rule...
+          # actually nft appends AFTER the drop, so we need to insert instead)
+          # The kill switch allows the current endpoint + VPN iface, so pings
+          # to OTHER endpoints need a temporary exception. We'll use a separate
+          # chain for probes.
 
-      echo "  $name ($ip): ''${avg}ms"
+          echo "  $name ($ip): ''${avg}ms"
 
-      if [ "$ip" = "$CURRENT_IP" ]; then
-        CURRENT_LATENCY=''${avg%.*}
-      fi
+          if [ "$ip" = "$CURRENT_IP" ]; then
+            CURRENT_LATENCY=''${avg%.*}
+          fi
 
-      avg_int=''${avg%.*}
-      if [ "$avg_int" -lt "$BEST_LATENCY" ] 2>/dev/null; then
-        BEST_LATENCY=$avg_int
-        BEST_NAME=$name
-        BEST_IP=$ip
-        BEST_PORT=$port
-        BEST_KEY=$key
-      fi
-    done < <(jq -c '.[]' "$POOL_FILE")
+          avg_int=''${avg%.*}
+          if [ "$avg_int" -lt "$BEST_LATENCY" ] 2>/dev/null; then
+            BEST_LATENCY=$avg_int
+            BEST_NAME=$name
+            BEST_IP=$ip
+            BEST_PORT=$port
+            BEST_KEY=$key
+          fi
+        done < <(jq -c '.[]' "$POOL_FILE")
 
-    # Clean up probe rules — reload kill switch with current endpoint
-    # (the main service will fix it; temporary rules are gone on table reload)
+        # Clean up probe rules — reload kill switch with current endpoint
+        # (the main service will fix it; temporary rules are gone on table reload)
 
-    if [ -z "$BEST_KEY" ] || [ "$BEST_LATENCY" = "99999" ]; then
-      echo "No reachable server found, keeping current." >&2
-      exit 0
-    fi
+        if [ -z "$BEST_KEY" ] || [ "$BEST_LATENCY" = "99999" ]; then
+          echo "No reachable server found, keeping current." >&2
+          exit 0
+        fi
 
-    if [ "$BEST_KEY" = "$CURRENT_KEY" ]; then
-      echo "Current server is already the fastest ($BEST_NAME, ''${BEST_LATENCY}ms). No swap needed."
-      exit 0
-    fi
+        if [ "$BEST_KEY" = "$CURRENT_KEY" ]; then
+          echo "Current server is already the fastest ($BEST_NAME, ''${BEST_LATENCY}ms). No swap needed."
+          exit 0
+        fi
 
-    # Hysteresis: only swap if the new server is significantly faster
-    DIFF=$((CURRENT_LATENCY - BEST_LATENCY))
-    if [ "$DIFF" -lt "$HYSTERESIS" ]; then
-      echo "Best ($BEST_NAME, ''${BEST_LATENCY}ms) is not ''${HYSTERESIS}ms+ faster than current (''${CURRENT_LATENCY}ms). Keeping current."
-      exit 0
-    fi
+        # Hysteresis: only swap if the new server is significantly faster
+        DIFF=$((CURRENT_LATENCY - BEST_LATENCY))
+        if [ "$DIFF" -lt "$HYSTERESIS" ]; then
+          echo "Best ($BEST_NAME, ''${BEST_LATENCY}ms) is not ''${HYSTERESIS}ms+ faster than current (''${CURRENT_LATENCY}ms). Keeping current."
+          exit 0
+        fi
 
-    echo "Swapping to $BEST_NAME ($BEST_IP:$BEST_PORT, ''${BEST_LATENCY}ms, delta=''${DIFF}ms)..."
+        echo "Swapping to $BEST_NAME ($BEST_IP:$BEST_PORT, ''${BEST_LATENCY}ms, delta=''${DIFF}ms)..."
 
-    # Step 1: Update kill switch to allow BOTH endpoints during transition
-    nft -f - <<EOF
-    table inet protonvpn_killswitch {
-      chain output {
-        type filter hook output priority -100; policy accept;
-        oifname "lo" accept
-        ip daddr 192.168.1.0/24 accept
-        ip daddr 169.254.0.0/16 accept
-        ip daddr 224.0.0.0/4 accept
-        ip daddr 255.255.255.255 accept
-        ip daddr $CURRENT_IP accept
-        ip daddr $BEST_IP accept
-        oifname "$IFACE" accept
-        counter drop
-      }
-    }
-    EOF
+        # Step 1: Update kill switch to allow BOTH endpoints during transition
+        nft -f - <<NFTEOF
+    ${mkKillswitchTable [
+      "$CURRENT_IP"
+      "$BEST_IP"
+    ]}
+    NFTEOF
 
-    # Step 2: Atomic peer swap (remove old, add new — microseconds apart)
-    wg set "$IFACE" peer "$CURRENT_KEY" remove
-    wg set "$IFACE" peer "$BEST_KEY" \
-      endpoint "$BEST_IP:$BEST_PORT" \
-      allowed-ips "0.0.0.0/0,::/0" \
-      persistent-keepalive 25
+        # Step 2: Atomic peer swap (remove old, add new — microseconds apart)
+        wg set "$IFACE" peer "$CURRENT_KEY" remove
+        wg set "$IFACE" peer "$BEST_KEY" \
+          endpoint "$BEST_IP:$BEST_PORT" \
+          allowed-ips "0.0.0.0/0,::/0" \
+          persistent-keepalive 25
 
-    # Step 3: Wait for handshake (up to 10s)
-    HANDSHAKE_OK=false
-    for i in $(seq 1 20); do
-      HS=$(wg show "$IFACE" latest-handshakes | awk '{print $2}')
-      if [ -n "$HS" ] && [ "$HS" != "0" ]; then
-        HANDSHAKE_OK=true
-        break
-      fi
-      sleep 0.5
-    done
+        # Step 3: Wait for handshake (up to 10s)
+        HANDSHAKE_OK=false
+        for i in $(seq 1 20); do
+          HS=$(wg show "$IFACE" latest-handshakes | awk '{print $2}')
+          if [ -n "$HS" ] && [ "$HS" != "0" ]; then
+            HANDSHAKE_OK=true
+            break
+          fi
+          sleep 0.5
+        done
 
-    if [ "$HANDSHAKE_OK" = "false" ]; then
-      echo "WARNING: No handshake after 10s. Rolling back to previous server..." >&2
-      wg set "$IFACE" peer "$BEST_KEY" remove
-      wg set "$IFACE" peer "$CURRENT_KEY" \
-        endpoint "$CURRENT_IP:''${CURRENT_ENDPOINT##*:}" \
-        allowed-ips "0.0.0.0/0,::/0" \
-        persistent-keepalive 25
-      # Restore kill switch with original endpoint only
-      nft -f - <<EOF
-      table inet protonvpn_killswitch {
-        chain output {
-          type filter hook output priority -100; policy accept;
-          oifname "lo" accept
-          ip daddr 192.168.1.0/24 accept
-          ip daddr 169.254.0.0/16 accept
-          ip daddr 224.0.0.0/4 accept
-          ip daddr 255.255.255.255 accept
-          ip daddr $CURRENT_IP accept
-          oifname "$IFACE" accept
-          counter drop
-        }
-      }
-    EOF
-      echo "Rolled back to $CURRENT_ENDPOINT." >&2
-      exit 1
-    fi
+        if [ "$HANDSHAKE_OK" = "false" ]; then
+          echo "WARNING: No handshake after 10s. Rolling back to previous server..." >&2
+          wg set "$IFACE" peer "$BEST_KEY" remove
+          wg set "$IFACE" peer "$CURRENT_KEY" \
+            endpoint "$CURRENT_IP:''${CURRENT_ENDPOINT##*:}" \
+            allowed-ips "0.0.0.0/0,::/0" \
+            persistent-keepalive 25
+          # Restore kill switch with original endpoint only
+          nft -f - <<NFTEOF
+    ${mkKillswitchTable [ "$CURRENT_IP" ]}
+    NFTEOF
+          echo "Rolled back to $CURRENT_ENDPOINT." >&2
+          exit 1
+        fi
 
-    # Step 4: Finalize kill switch with only the new endpoint
-    nft -f - <<EOF
-    table inet protonvpn_killswitch {
-      chain output {
-        type filter hook output priority -100; policy accept;
-        oifname "lo" accept
-        ip daddr 192.168.1.0/24 accept
-        ip daddr 169.254.0.0/16 accept
-        ip daddr 224.0.0.0/4 accept
-        ip daddr 255.255.255.255 accept
-        ip daddr $BEST_IP accept
-        oifname "$IFACE" accept
-        counter drop
-      }
-    }
-    EOF
+        # Step 4: Finalize kill switch with only the new endpoint
+        nft -f - <<NFTEOF
+    ${mkKillswitchTable [ "$BEST_IP" ]}
+    NFTEOF
 
-    echo "Done. Now connected to $BEST_NAME ($BEST_IP:$BEST_PORT)."
+        echo "Done. Now connected to $BEST_NAME ($BEST_IP:$BEST_PORT)."
   '';
 
   # Probe script that adds temporary nft rules for pinging pool endpoints
@@ -285,6 +253,8 @@ let
         ip daddr 169.254.0.0/16 accept
         ip daddr 224.0.0.0/4 accept
         ip daddr 255.255.255.255 accept
+        ip6 daddr fe80::/10 accept
+        ip6 daddr ff00::/8 accept
         $ALLOW_RULES
         oifname "protonvpn" accept
         counter drop

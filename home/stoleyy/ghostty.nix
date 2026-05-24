@@ -1,21 +1,25 @@
-_:
+{ theme, ... }:
 
+let
+  c = theme.colors;
+  f = theme.font;
+in
 {
   programs.ghostty = {
     enable = true;
     settings = {
-      background = "#000000";
-      foreground = "#C8CAE0";
-      selection-background = "#0A094E";
-      selection-foreground = "#C8CAE0";
-      palette = "0=#000000,1=#9B3C3C,2=#3C4B9B,3=#5987C6,4=#324DA7,5=#3C4B9B,6=#5987C6,7=#B2B5CF,8=#5D5E69,9=#B06060,10=#5987C6,11=#8D8FA7,12=#B2B5CF,13=#8D8FA7,14=#5987C6,15=#C8CAE0";
+      background = c.bg0;
+      foreground = c.fg0;
+      selection-background = c.bg2;
+      selection-foreground = c.fg0;
+      palette = "0=${c.black},1=${c.red},2=${c.green},3=${c.yellow},4=${c.blue},5=${c.purple},6=${c.aqua},7=${c.fg1},8=${c.muted},9=${c.bright.red},10=${c.bright.green},11=${c.bright.yellow},12=${c.bright.blue},13=${c.bright.purple},14=${c.bright.aqua},15=${c.fg0}";
       background-opacity = 0.85;
       background-blur-radius = 20;
       cursor-style = "bar";
       cursor-style-blink = false;
-      cursor-color = "#5987C6";
-      font-family = "JetBrainsMono Nerd Font";
-      font-size = 13;
+      cursor-color = c.yellow;
+      font-family = f.name;
+      font-size = f.size;
       window-padding-x = 12;
       window-padding-y = 12;
       window-decoration = false;

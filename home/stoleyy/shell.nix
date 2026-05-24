@@ -1,5 +1,8 @@
-_:
+{ theme, ... }:
 
+let
+  c = theme.colors;
+in
 {
   programs = {
     fish = {
@@ -27,15 +30,15 @@ _:
         # Deltarune Sanctuary palette for prompt
         palette = "sanctuary";
         palettes.sanctuary = {
-          fg = "#C8CAE0";
-          bg = "#000000";
-          green = "#3C4B9B";
-          yellow = "#5987C6";
-          blue = "#324DA7";
-          purple = "#3C4B9B";
-          aqua = "#5987C6";
-          orange = "#304B72";
-          red = "#9B3C3C";
+          fg = c.fg0;
+          bg = c.bg0;
+          inherit (c) green;
+          inherit (c) yellow;
+          inherit (c) blue;
+          inherit (c) purple;
+          inherit (c) aqua;
+          inherit (c) orange;
+          inherit (c) red;
         };
         format = "$directory$git_branch$git_status$nix_shell$character";
         right_format = "$cmd_duration";

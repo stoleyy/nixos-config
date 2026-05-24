@@ -1,12 +1,30 @@
-{ pkgs, lib, ... }:
+{
+  pkgs,
+  lib,
+  theme,
+  ...
+}:
 
+let
+  # Convert "#RRGGBB" to [R G B] integer list for Chromium theme JSON
+  hexToRgb =
+    hex:
+    let
+      h = builtins.substring 1 6 hex;
+    in
+    [
+      (builtins.fromTOML "v=0x${builtins.substring 0 2 h}").v
+      (builtins.fromTOML "v=0x${builtins.substring 2 2 h}").v
+      (builtins.fromTOML "v=0x${builtins.substring 4 2 h}").v
+    ];
+  c = theme.colors;
+in
 {
   imports = [
     ./shell.nix
     ./ai.nix
     ./openhuman.nix
     ./claude-proxy.nix
-
     ./editor.nix
     ./browser.nix
     ./git.nix
@@ -40,147 +58,36 @@
       description = "Deep indigo theme matching the Deltarune Sanctuary palette";
       theme = {
         colors = {
-          # Browser frame (titlebar area)
-          frame = [
-            7
-            6
-            47
-          ]; # bg1
-          frame_inactive = [
-            0
-            0
-            0
-          ]; # bg0
-          frame_incognito = [
-            10
-            9
-            78
-          ]; # bg2
-          frame_incognito_inactive = [
-            7
-            6
-            47
-          ];
-
-          # Toolbar / URL bar
-          toolbar = [
-            7
-            6
-            47
-          ]; # bg1
-          toolbar_text = [
-            200
-            202
-            224
-          ]; # fg0
-          toolbar_button_icon = [
-            89
-            135
-            198
-          ]; # blue
-
-          # Tabs
-          tab_background_text = [
-            141
-            143
-            167
-          ]; # muted
-          tab_text = [
-            200
-            202
-            224
-          ]; # fg0
-
-          # Active tab
-          tab_selected = [
-            10
-            9
-            78
-          ]; # bg2
-
-          # Background tabs
-          tab_background_inactive_frame = [
-            0
-            0
-            0
-          ];
-          tab_background_inactive_frame_inactive = [
-            0
-            0
-            0
-          ];
-
-          # Bookmark bar
-          bookmark_text = [
-            178
-            181
-            207
-          ]; # fg1
-
-          # New tab page
-          ntp_background = [
-            0
-            0
-            0
-          ]; # bg0
-          ntp_text = [
-            200
-            202
-            224
-          ]; # fg0
-          ntp_link = [
-            89
-            135
-            198
-          ]; # blue
-          ntp_header = [
-            7
-            6
-            47
-          ]; # bg1
-
-          # Omnibox (URL bar)
-          omnibox_background = [
-            0
-            0
-            0
-          ]; # bg0
-          omnibox_text = [
-            200
-            202
-            224
-          ]; # fg0
-          omnibox_results_bg = [
-            7
-            6
-            47
-          ]; # bg1
-          omnibox_results_text = [
-            200
-            202
-            224
-          ]; # fg0
-          omnibox_results_url = [
-            89
-            135
-            198
-          ]; # blue
-
-          # Button background
-          button_background = [
-            60
-            75
-            155
-          ]; # accent
+          frame = hexToRgb c.bg1;
+          frame_inactive = hexToRgb c.bg0;
+          frame_incognito = hexToRgb c.bg2;
+          frame_incognito_inactive = hexToRgb c.bg1;
+          toolbar = hexToRgb c.bg1;
+          toolbar_text = hexToRgb c.fg0;
+          toolbar_button_icon = hexToRgb c.yellow;
+          tab_background_text = hexToRgb c.fg2;
+          tab_text = hexToRgb c.fg0;
+          tab_selected = hexToRgb c.bg2;
+          tab_background_inactive_frame = hexToRgb c.bg0;
+          tab_background_inactive_frame_inactive = hexToRgb c.bg0;
+          bookmark_text = hexToRgb c.fg1;
+          ntp_background = hexToRgb c.bg0;
+          ntp_text = hexToRgb c.fg0;
+          ntp_link = hexToRgb c.yellow;
+          ntp_header = hexToRgb c.bg1;
+          omnibox_background = hexToRgb c.bg0;
+          omnibox_text = hexToRgb c.fg0;
+          omnibox_results_bg = hexToRgb c.bg1;
+          omnibox_results_text = hexToRgb c.fg0;
+          omnibox_results_url = hexToRgb c.yellow;
+          button_background = hexToRgb c.green;
         };
         tints = {
-          # Tint inactive tabs toward dark indigo
           background_tab = [
             0.65
             0.5
             0.3
           ];
-          # Buttons keep accent hue
           buttons = [
             0.63
             0.6

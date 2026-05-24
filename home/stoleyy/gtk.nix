@@ -2,11 +2,12 @@
   pkgs,
   lib,
   config,
-  colors,
+  theme,
   ...
 }:
 
 let
+  inherit (theme) colors;
   sanctuaryCss = ''
     @define-color window_bg_color ${colors.bg0};
     @define-color view_bg_color ${colors.bg0};

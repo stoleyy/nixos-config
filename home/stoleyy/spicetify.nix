@@ -1,6 +1,12 @@
-{ inputs, pkgs, ... }:
+{
+  inputs,
+  pkgs,
+  theme,
+  ...
+}:
 
 let
+  c = theme.colors;
   spicePkgs = inputs.spicetify-nix.legacyPackages.${pkgs.stdenv.hostPlatform.system};
 in
 {
@@ -11,22 +17,22 @@ in
     theme = spicePkgs.themes.comfy;
     colorScheme = "custom";
     customColorScheme = {
-      text = "C8CAE0";
-      subtext = "B2B5CF";
-      sidebar-text = "8D8FA7";
-      main = "000000";
-      sidebar = "07062F";
-      player = "07062F";
-      card = "0A094E";
-      shadow = "000000";
-      selected-row = "3C4B9B";
-      button = "3C4B9B";
-      button-active = "5987C6";
-      button-disabled = "5D5E69";
-      tab-active = "3C4B9B";
-      notification = "324DA7";
-      notification-error = "9B3C3C";
-      misc = "0A094E";
+      text = builtins.substring 1 6 c.fg0;
+      subtext = builtins.substring 1 6 c.fg1;
+      sidebar-text = builtins.substring 1 6 c.fg2;
+      main = builtins.substring 1 6 c.black;
+      sidebar = builtins.substring 1 6 c.bg1;
+      player = builtins.substring 1 6 c.bg1;
+      card = builtins.substring 1 6 c.bg2;
+      shadow = builtins.substring 1 6 c.black;
+      selected-row = builtins.substring 1 6 c.green;
+      button = builtins.substring 1 6 c.green;
+      button-active = builtins.substring 1 6 c.yellow;
+      button-disabled = builtins.substring 1 6 c.muted;
+      tab-active = builtins.substring 1 6 c.green;
+      notification = builtins.substring 1 6 c.blue;
+      notification-error = builtins.substring 1 6 c.red;
+      misc = builtins.substring 1 6 c.bg2;
     };
     enabledExtensions = with spicePkgs.extensions; [
       adblock

@@ -1,4 +1,8 @@
-{ pkgs, ... }:
+{ pkgs, theme, ... }:
+
+let
+  c = theme.colors;
+in
 
 {
   home.packages = with pkgs; [
@@ -172,8 +176,11 @@
         gaps_in = 3;
         gaps_out = 8;
         border_size = 2;
-        "col.active_border" = "rgba(3C4B9Bff) rgba(5987C6ff) 45deg";
-        "col.inactive_border" = "rgba(07062Fcc) rgba(0A094Ecc) 45deg";
+        "col.active_border" = "rgba(${builtins.substring 1 6 c.green}ff) rgba(${
+          builtins.substring 1 6 c.yellow
+        }ff) 45deg";
+        "col.inactive_border" =
+          "rgba(${builtins.substring 1 6 c.bg1}cc) rgba(${builtins.substring 1 6 c.bg2}cc) 45deg";
         layout = "dwindle";
         resize_on_border = true;
         snap.enabled = true;
@@ -262,7 +269,7 @@
         vrr = 2;
         # Dark fallback colour shown briefly before the wallpaper engine
         # process renders — avoids a black flash at startup.
-        background_color = "rgb(000000)";
+        background_color = "rgb(${builtins.substring 1 6 c.black})";
       };
 
       # Lower-latency fullscreen on NVIDIA. The compositor bypasses its
@@ -285,7 +292,7 @@
         hyprexpo = {
           columns = 3;
           gap_size = 5;
-          bg_col = "rgb(000000)";
+          bg_col = "rgb(${builtins.substring 1 6 c.black})";
           workspace_method = "center current";
           enable_gesture = false; # desktop has no touchpad
         };
@@ -316,7 +323,7 @@
         # widening the main border. Plays nicely with `general.col.active_border`.
         borders-plus-plus = {
           add_borders = 1;
-          "col.border_1" = "rgb(0A094E)";
+          "col.border_1" = "rgb(${builtins.substring 1 6 c.bg2})";
           border_size_1 = 1;
           natural_rounding = true;
         };
@@ -342,7 +349,7 @@
 
         # Motion trails in Sanctuary blue. Cheap visual flair on 4K@240Hz.
         hyprtrails = {
-          color = "rgba(3C4B9Baa)";
+          color = "rgba(${builtins.substring 1 6 c.green}aa)";
           bezier_step = 0.025;
           points_per_step = 2;
           history_points = 20;
@@ -505,9 +512,9 @@
           position = "-40, -20";
           halign = "right";
           valign = "top";
-          color = "rgb(C8CAE0)";
+          color = "rgb(${builtins.substring 1 6 c.fg0})";
           font_size = 90;
-          font_family = "JetBrainsMono Nerd Font";
+          font_family = theme.font.name;
           text = ''cmd[update:1000] echo "$(date +"%H:%M")"'';
         }
         # Date — below time, top-right.
@@ -515,9 +522,9 @@
           position = "-40, -150";
           halign = "right";
           valign = "top";
-          color = "rgb(B2B5CF)";
+          color = "rgb(${builtins.substring 1 6 c.fg1})";
           font_size = 22;
-          font_family = "JetBrainsMono Nerd Font";
+          font_family = theme.font.name;
           text = ''cmd[update:60000] echo "$(date +"%A, %d %B %Y")"'';
         }
         # Greeting — center.
@@ -525,9 +532,9 @@
           position = "0, 60";
           halign = "center";
           valign = "center";
-          color = "rgb(5987C6)";
+          color = "rgb(${builtins.substring 1 6 c.yellow})";
           font_size = 18;
-          font_family = "JetBrainsMono Nerd Font";
+          font_family = theme.font.name;
           text = ''cmd[update:60000] echo "Good $(date +%H | awk '{if ($1 < 12) print "Morning"; else if ($1 < 18) print "Afternoon"; else print "Evening"}'), $USER"'';
         }
       ];
@@ -538,9 +545,9 @@
           halign = "center";
           valign = "center";
           outline_thickness = 3;
-          outer_color = "rgb(3C4B9B)";
-          inner_color = "rgb(07062F)";
-          font_color = "rgb(C8CAE0)";
+          outer_color = "rgb(${builtins.substring 1 6 c.green})";
+          inner_color = "rgb(${builtins.substring 1 6 c.bg1})";
+          font_color = "rgb(${builtins.substring 1 6 c.fg0})";
           fade_on_empty = false;
           placeholder_text = "<i>Password...</i>";
           shadow_passes = 2;

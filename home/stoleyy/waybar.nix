@@ -1,5 +1,8 @@
-{ colors, ... }:
+{ theme, ... }:
 
+let
+  inherit (theme) colors;
+in
 {
   programs.waybar = {
     enable = true;
@@ -144,13 +147,13 @@
           tooltip = false;
           format = "{icon}";
           format-icons = {
-            notification = "<span foreground='#5987C6'><sup></sup></span>";
+            notification = "<span foreground='${colors.yellow}'><sup></sup></span>";
             none = "";
-            dnd-notification = "<span foreground='#5987C6'><sup></sup></span>";
+            dnd-notification = "<span foreground='${colors.yellow}'><sup></sup></span>";
             dnd-none = "";
-            inhibited-notification = "<span foreground='#5987C6'><sup></sup></span>";
+            inhibited-notification = "<span foreground='${colors.yellow}'><sup></sup></span>";
             inhibited-none = "";
-            dnd-inhibited-notification = "<span foreground='#5987C6'><sup></sup></span>";
+            dnd-inhibited-notification = "<span foreground='${colors.yellow}'><sup></sup></span>";
             dnd-inhibited-none = "";
           };
           return-type = "json";
@@ -170,21 +173,21 @@
 
     # Deltarune Sanctuary — floating island bar with glow accents.
     style = ''
-      @define-color bg        rgba(0, 0, 0, 0.0);
-      @define-color mod-bg    rgba(7, 6, 47, 0.75);
-      @define-color mod-bg2   rgba(10, 9, 78, 0.55);
-      @define-color fg        #C8CAE0;
-      @define-color fg-dim    #8D8FA7;
-      @define-color fg-bright #B2B5CF;
-      @define-color accent    #5987C6;
-      @define-color accent2   #3C4B9B;
-      @define-color accent3   #324DA7;
-      @define-color glow      rgba(89, 135, 198, 0.25);
-      @define-color glow-h    rgba(89, 135, 198, 0.45);
+      @define-color bg        ${colors.black}00;
+      @define-color mod-bg    ${colors.bg1}BF;
+      @define-color mod-bg2   ${colors.bg2}8C;
+      @define-color fg        ${colors.fg0};
+      @define-color fg-dim    ${colors.fg2};
+      @define-color fg-bright ${colors.fg1};
+      @define-color accent    ${colors.yellow};
+      @define-color accent2   ${colors.green};
+      @define-color accent3   ${colors.blue};
+      @define-color glow      ${colors.yellow}40;
+      @define-color glow-h    ${colors.yellow}73;
 
       * {
-        font-family: "JetBrainsMono Nerd Font";
-        font-size:   13px;
+        font-family: "${theme.font.name}";
+        font-size:   ${toString theme.font.size}px;
         border:      none;
         min-height:  0;
       }
@@ -221,7 +224,7 @@
         border-radius: 12px;
         padding:       0 6px;
         margin:        4px 4px;
-        border:        1px solid rgba(60, 75, 155, 0.2);
+        border:        1px solid ${colors.green}33;
       }
 
       #workspaces button {
@@ -243,12 +246,12 @@
         background:  @glow-h;
         color:       @fg;
         font-weight: bold;
-        border:      1px solid rgba(89, 135, 198, 0.4);
+        border:      1px solid ${colors.yellow}66;
         box-shadow:  0 0 8px @glow;
       }
 
       #workspaces button.urgent {
-        background: rgba(155, 60, 60, 0.5);
+        background: ${colors.red}80;
         color:      @fg;
       }
 
@@ -260,7 +263,7 @@
         margin:        4px 4px;
         color:         @fg-dim;
         font-style:    italic;
-        border:        1px solid rgba(60, 75, 155, 0.15);
+        border:        1px solid ${colors.green}26;
       }
 
       /* ── Clock (center island) ── */
@@ -272,8 +275,8 @@
         color:         @accent;
         font-weight:   bold;
         font-size:     14px;
-        border:        1px solid rgba(89, 135, 198, 0.25);
-        box-shadow:    0 0 12px rgba(89, 135, 198, 0.15);
+        border:        1px solid ${colors.yellow}40;
+        box-shadow:    0 0 12px ${colors.yellow}26;
       }
 
       /* ── Right modules (shared base) ── */
@@ -295,7 +298,7 @@
       /* ── Separator (thin dim pipe) ── */
       #custom-separator {
         background: @mod-bg;
-        color:      rgba(93, 94, 105, 0.4);
+        color:      ${colors.muted}66;
         padding:    0 2px;
         margin:     4px 0;
         font-size:  10px;
@@ -307,7 +310,7 @@
         margin-left:   4px;
         padding:       0 14px;
         color:         @accent;
-        border:        1px solid rgba(89, 135, 198, 0.15);
+        border:        1px solid ${colors.yellow}26;
       }
 
       /* ── Tray ── */
@@ -377,7 +380,7 @@
       }
 
       #clock:hover {
-        box-shadow: 0 0 16px rgba(89, 135, 198, 0.35);
+        box-shadow: 0 0 16px ${colors.yellow}59;
       }
 
       #workspaces button.active:hover {

@@ -1,4 +1,4 @@
-# Hyprland session — selectable from SDDM; Plasma 6 is the default.
+# Hyprland session — the default SDDM session (autologin enabled).
 { pkgs, ... }:
 
 {

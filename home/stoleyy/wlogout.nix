@@ -1,5 +1,8 @@
-_:
+{ theme, ... }:
 
+let
+  inherit (theme) colors;
+in
 {
   programs.wlogout = {
     enable = true;
@@ -44,18 +47,18 @@ _:
     style = ''
       * {
         background-image: none;
-        font-family:      "JetBrainsMono Nerd Font";
+        font-family:      "${theme.font.name}";
         font-size:        16px;
       }
       window {
-        background-color: rgba(0, 0, 0, 0.92);
+        background-color: ${colors.black}EB;
       }
       button {
-        color:            #C8CAE0;
-        background-color: rgba(7, 6, 47, 0.6);
+        color:            ${colors.fg0};
+        background-color: ${colors.bg1}99;
         border-style:     solid;
         border-width:     2px;
-        border-color:     rgba(10, 9, 78, 0.8);
+        border-color:     ${colors.bg2}CC;
         border-radius:    14px;
         margin:           14px;
         padding:          12px;
@@ -64,8 +67,8 @@ _:
       button:focus,
       button:active,
       button:hover {
-        background-color: rgba(60, 75, 155, 0.35);
-        border-color:     #3C4B9B;
+        background-color: ${colors.green}59;
+        border-color:     ${colors.green};
         outline-style:    none;
       }
     '';

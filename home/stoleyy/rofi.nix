@@ -1,6 +1,8 @@
-{ pkgs, colors, ... }:
+{ pkgs, theme, ... }:
 
 let
+  inherit (theme) colors;
+
   sanctuaryTheme = builtins.toFile "sanctuary.rasi" ''
     * {
       bg0:    ${colors.bg0}ff;
@@ -109,7 +111,7 @@ in
       modi = "drun,run,window";
       icon-theme = "Papirus-Dark";
       show-icons = true;
-      font = "JetBrainsMono Nerd Font 13";
+      font = "${theme.font.name} ${toString theme.font.size}";
       drun-display-fmt = "{name}";
       display-drun = "  Apps";
       display-run = "  Run";
