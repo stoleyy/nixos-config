@@ -95,6 +95,7 @@
           vulnix
           gitleaks
           shellcheck
+          flake-checker
           sops
         ];
       };

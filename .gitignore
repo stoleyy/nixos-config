@@ -20,6 +20,7 @@ result-*
 
 # ── Claude Code local overrides ─────────────────────────────────────────────────────
 .claude/settings.local.json
+CONTEXT.md
 
 # ── Editor / OS junk ──────────────────────────────────────────────────────────────
 *.swp

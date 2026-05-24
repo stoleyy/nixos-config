@@ -1,5 +1,21 @@
 {
   "permissions": {
+    "deny": [
+      "Read(/home/stoleyy/.ssh/**)",
+      "Read(/home/stoleyy/.config/sops/**)",
+      "Read(/home/stoleyy/.gnupg/**)",
+      "Read(**/.env*)",
+      "Write(/home/stoleyy/.ssh/**)",
+      "Write(/home/stoleyy/.config/sops/**)",
+      "Bash(curl * | bash)",
+      "Bash(curl * | sh)",
+      "Bash(wget * | bash)",
+      "Bash(wget * | sh)",
+      "Bash(git push --force*)",
+      "Bash(git push * --force*)",
+      "Bash(git reset --hard*)",
+      "Bash(rm -rf /*)"
+    ],
     "allow": [
       "Bash(nix flake check:*)",
       "Bash(nix flake metadata:*)",
@@ -43,8 +59,7 @@
       "Bash(sops:*)",
       "Bash(nix-collect-garbage:*)",
       "Bash(jq:*)"
-    ],
-    "deny": []
+    ]
   },
   "hooks": {
     "SessionStart": [
@@ -56,11 +71,52 @@
         ]
       }
     ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          { "type": "command", "command": ".claude/hooks/secret-scanner.sh", "timeout": 5, "statusMessage": "Scanning for secrets…" }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": ".claude/hooks/dangerous-command-guard.sh", "timeout": 5, "statusMessage": "Safety check" },
+          { "type": "command", "command": ".claude/hooks/rebuild-gate.sh", "timeout": 5 },
+          { "type": "command", "command": ".claude/hooks/commit-secret-scanner.sh", "timeout": 10, "statusMessage": "Scanning commit…" }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          { "type": "command", "command": ".claude/hooks/gateguard-nix.sh", "timeout": 5, "statusMessage": "GateGuard" }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Write|Edit",
         "hooks": [
           { "type": "command", "command": ".claude/hooks/post-edit-nixfmt.sh", "timeout": 10, "statusMessage": "nixfmt" }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          { "type": "command", "command": ".claude/hooks/pre-compact-save.sh", "timeout": 10, "statusMessage": "Saving session state…" }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          { "type": "command", "command": ".claude/hooks/anti-rationalization.sh", "timeout": 5 },
+          { "type": "command", "command": ".claude/hooks/desktop-notify.sh", "timeout": 5 }
         ]
       }
     ]
