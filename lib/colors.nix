@@ -1,29 +1,30 @@
-# Gruvbox Dark Hard palette — shared across Plasma, Hyprland, and all HM modules.
+# Deltarune Sanctuary palette — extracted from the wallpaper histogram.
+# Shared across Plasma, Hyprland, and all HM modules.
 # Imported via home-manager.extraSpecialArgs: { colors, ... }
 {
-  bg0 = "#1d2021";
-  bg1 = "#3c3836";
-  bg2 = "#504945";
-  fg0 = "#ebdbb2";
-  fg1 = "#d5c4a1";
-  fg2 = "#bdae93";
-  muted = "#a89984";
-  red = "#cc241d";
-  green = "#98971a";
-  yellow = "#d79921";
-  blue = "#458588";
-  purple = "#b16286";
-  aqua = "#689d6a";
-  orange = "#d65d0e";
+  bg0 = "#000000";
+  bg1 = "#07062F";
+  bg2 = "#0A094E";
+  fg0 = "#C8CAE0";
+  fg1 = "#B2B5CF";
+  fg2 = "#8D8FA7";
+  muted = "#5D5E69";
+  red = "#9B3C3C";
+  green = "#3C4B9B";
+  yellow = "#5987C6";
+  blue = "#324DA7";
+  purple = "#3C4B9B";
+  aqua = "#5987C6";
+  orange = "#304B72";
   bright = {
-    red = "#fb4934";
-    green = "#b8bb26";
-    yellow = "#fabd2f";
-    blue = "#83a598";
-    purple = "#d3869b";
-    aqua = "#8ec07c";
-    orange = "#fe8019";
+    red = "#B06060";
+    green = "#5987C6";
+    yellow = "#8D8FA7";
+    blue = "#B2B5CF";
+    purple = "#8D8FA7";
+    aqua = "#5987C6";
+    orange = "#3C4B9B";
   };
   black = "#000000";
-  black2 = "#050505";
+  black2 = "#07062F";
 }

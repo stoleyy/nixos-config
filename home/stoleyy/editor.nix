@@ -11,6 +11,26 @@
         vscodevim.vim
       ];
       userSettings = {
+        "workbench.colorTheme" = "Default Dark Modern";
+        "workbench.colorCustomizations" = {
+          "editor.background" = "#000000";
+          "sideBar.background" = "#07062F";
+          "activityBar.background" = "#07062F";
+          "titleBar.activeBackground" = "#07062F";
+          "tab.activeBackground" = "#0A094E";
+          "tab.inactiveBackground" = "#07062F";
+          "statusBar.background" = "#0A094E";
+          "terminal.background" = "#000000";
+          "terminal.foreground" = "#C8CAE0";
+          "editorGroupHeader.tabsBackground" = "#07062F";
+          "panel.background" = "#000000";
+          "focusBorder" = "#3C4B9B";
+          "list.activeSelectionBackground" = "#3C4B9B";
+          "list.hoverBackground" = "#0A094E";
+          "editor.selectionBackground" = "#3C4B9B66";
+          "editorCursor.foreground" = "#5987C6";
+          "editor.lineHighlightBackground" = "#07062F";
+        };
         "editor.formatOnSave" = true;
         "editor.fontFamily" = "'JetBrainsMono Nerd Font', monospace";
         "editor.fontSize" = 13;

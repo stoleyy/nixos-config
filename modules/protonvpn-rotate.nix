@@ -39,6 +39,7 @@ let
           jq
           coreutils
           gawk
+          curl
         ]
       )
     }:$PATH"
@@ -48,6 +49,10 @@ let
     HYSTERESIS=${toString rotateCfg.hysteresisMs}
     PING_COUNT=3
     PING_TIMEOUT=2
+    # Quality thresholds — only rotate when current connection is degraded
+    MAX_LATENCY_MS=150    # trigger rotation if current latency exceeds this
+    MAX_LOSS_PCT=20       # trigger rotation if packet loss exceeds this
+    SPEED_CHECK_URL="https://speed.cloudflare.com/__down?bytes=1048576" # 1MB download
 
     if [ ! -f "$POOL_FILE" ]; then
       echo "ERROR: server pool not found at $POOL_FILE" >&2
@@ -73,6 +78,25 @@ let
     CURRENT_IP=''${CURRENT_ENDPOINT%%:*}
 
     echo "Current: $CURRENT_ENDPOINT (key: ''${CURRENT_KEY:0:8}...)"
+
+    # --- Quality check: measure current connection health ---
+    CURRENT_PING=$(ping -c 5 -W 3 -q 10.2.0.1 2>/dev/null \
+      | awk -F'/' '/^rtt/{print $5}' || echo "99999")
+    CURRENT_LOSS=$(ping -c 5 -W 3 -q 10.2.0.1 2>/dev/null \
+      | awk -F'[,%]' '/packet loss/{print $3}' | tr -d ' ' || echo "100")
+
+    CURRENT_PING_INT=''${CURRENT_PING%.*}
+    CURRENT_LOSS_INT=''${CURRENT_LOSS%.*}
+
+    echo "Quality: latency=''${CURRENT_PING_INT}ms loss=''${CURRENT_LOSS_INT}%"
+
+    # If current connection is healthy, don't rotate
+    if [ "$CURRENT_PING_INT" -lt "$MAX_LATENCY_MS" ] && [ "$CURRENT_LOSS_INT" -lt "$MAX_LOSS_PCT" ]; then
+      echo "Connection healthy (''${CURRENT_PING_INT}ms, ''${CURRENT_LOSS_INT}% loss). No rotation needed."
+      exit 0
+    fi
+
+    echo "Connection degraded! Searching for a better server..."
 
     # Measure latency to each server in the pool
     BEST_NAME=""
@@ -331,6 +355,24 @@ in
         default = "stoleyy";
         description = "Username whose ProtonVPN GUI cache to read.";
       };
+
+      lat = lib.mkOption {
+        type = lib.types.float;
+        default = 0.0;
+        description = "User latitude for geographic server selection.";
+      };
+
+      lon = lib.mkOption {
+        type = lib.types.float;
+        default = 0.0;
+        description = "User longitude for geographic server selection.";
+      };
+
+      geoCities = lib.mkOption {
+        type = lib.types.int;
+        default = 0;
+        description = "Keep servers in the N closest cities only (0 = all).";
+      };
     };
   };
 
@@ -371,9 +413,12 @@ in
                     "--country ${rcfg.country}"
                     "--top ${toString rcfg.top}"
                     "--output ${toString rotateCfg.poolFile}"
-                    "--cache /home/${rcfg.cacheOwner}/.var/app/com.protonvpn.www/cache/Proton/VPN/serverlist.json"
+                    "--cache /home/${rcfg.cacheOwner}/.cache/Proton/VPN/serverlist.json"
                   ]
                   ++ lib.optional rcfg.p2p "--p2p"
+                  ++ lib.optional (rcfg.lat != 0.0) "--lat ${toString rcfg.lat}"
+                  ++ lib.optional (rcfg.lon != 0.0) "--lon ${toString rcfg.lon}"
+                  ++ lib.optional (rcfg.geoCities > 0) "--geo-cities ${toString rcfg.geoCities}"
                 );
               in
               pkgs.writeShellScript "protonvpn-refresh-pool-wrapper" ''

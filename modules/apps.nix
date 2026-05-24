@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, inputs, ... }:
 
 {
   environment.systemPackages = with pkgs; [
@@ -24,7 +24,6 @@
 
     # CLI essentials
     ripgrep
-    bat
     fd
     jq
     tree
@@ -62,6 +61,10 @@
     # `stoleyy` is already in the `networkmanager` group (modules/base.nix),
     # so polkit doesn't prompt for a password on connect.
     protonvpn-gui
+
+    # Zen Browser — privacy-focused Firefox fork with vertical tabs.
+    # Sourced from the zen-browser/desktop community flake (pre-built binaries).
+    inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default
   ];
 
   # Brave debloat via enterprise policy (managed via /etc/brave/policies/managed/).
@@ -86,7 +89,9 @@
     SyncDisabled = false; # deliberately enabled — user's cross-device sync (see note above)
   };
 
-  services.flatpak.enable = true;
+  # Flatpak disabled — all apps are declaratively managed via Nix.
+  # Prevents accidental re-installs of duplicate Steam/qBittorrent/etc.
+  services.flatpak.enable = false;
 
   # F17: prefer KDE-native portals on Plasma 6, fall back to GTK only when KDE has no backend.
   # modules/hyprland.nix extends extraPortals with xdg-desktop-portal-hyprland for the

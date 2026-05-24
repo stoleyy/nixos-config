@@ -7,13 +7,13 @@
 }:
 
 let
-  gruvboxCss = ''
+  sanctuaryCss = ''
     @define-color window_bg_color ${colors.bg0};
     @define-color view_bg_color ${colors.bg0};
-    @define-color headerbar_bg_color ${colors.bg0};
+    @define-color headerbar_bg_color ${colors.bg1};
     @define-color popover_bg_color ${colors.bg1};
-    @define-color sidebar_bg_color ${colors.bg0};
-    @define-color accent_bg_color ${colors.yellow};
+    @define-color sidebar_bg_color ${colors.bg1};
+    @define-color accent_bg_color ${colors.blue};
     @define-color accent_color ${colors.yellow};
     window, .background, headerbar, .titlebar, .view, textview text {
       background-color: ${colors.bg0};
@@ -35,9 +35,9 @@ in
     # cursorTheme intentionally absent — home.pointerCursor (declared in
     # home/stoleyy/hyprland.nix) sets gtk + hyprcursor + XCursor in one place.
     gtk3.extraConfig.gtk-application-prefer-dark-theme = 1;
-    gtk3.extraCss = gruvboxCss;
+    gtk3.extraCss = sanctuaryCss;
     gtk4.extraConfig.gtk-application-prefer-dark-theme = 1;
-    gtk4.extraCss = gruvboxCss;
+    gtk4.extraCss = sanctuaryCss;
   };
 
   qt = {

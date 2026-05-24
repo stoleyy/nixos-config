@@ -96,13 +96,17 @@
     # killSwitch defaults to true
     autoRotate = {
       enable = true;
-      interval = "30min";
-      hysteresisMs = 15; # only swap if new server is 15ms+ faster
+      interval = "5min"; # quality check interval (only swaps on degradation)
+      hysteresisMs = 20; # only swap if new server is 20ms+ faster
       refreshPool = {
         enable = true;
         country = "US";
-        top = 10;
-        refreshInterval = "6h";
+        top = 0; # all servers in the closest cities
+        refreshInterval = "3h";
+        # Southern Ohio — geo-filter to 5 nearest cities
+        lat = 39.3;
+        lon = -83.5;
+        geoCities = 5;
       };
     };
   };

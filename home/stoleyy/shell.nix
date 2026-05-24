@@ -15,24 +15,27 @@ _:
       functions = {
         rebuild = "sudo nixos-rebuild switch --flake /etc/nixos#(hostname)";
       };
-      interactiveShellInit = "set -U fish_greeting";
+      interactiveShellInit = ''
+        set -g fish_greeting ""
+        colorscript random
+      '';
     };
 
     starship = {
       enable = true;
       settings = {
-        # Gruvbox-warm palette for prompt
-        palette = "gruvbox";
-        palettes.gruvbox = {
-          fg = "#ebdbb2";
-          bg = "#1d2021";
-          green = "#98971a";
-          yellow = "#d79921";
-          blue = "#458588";
-          purple = "#b16286";
-          aqua = "#689d6a";
-          orange = "#d65d0e";
-          red = "#cc241d";
+        # Deltarune Sanctuary palette for prompt
+        palette = "sanctuary";
+        palettes.sanctuary = {
+          fg = "#C8CAE0";
+          bg = "#000000";
+          green = "#3C4B9B";
+          yellow = "#5987C6";
+          blue = "#324DA7";
+          purple = "#3C4B9B";
+          aqua = "#5987C6";
+          orange = "#304B72";
+          red = "#9B3C3C";
         };
         format = "$directory$git_branch$git_status$nix_shell$character";
         right_format = "$cmd_duration";
@@ -102,7 +105,7 @@ _:
     bat = {
       enable = true;
       config = {
-        theme = "gruvbox-dark";
+        theme = "OneHalfDark";
         style = "numbers,changes";
       };
     };

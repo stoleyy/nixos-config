@@ -20,9 +20,10 @@
     pavucontrol
     blueman
     networkmanagerapplet
-    kitty
+
     imv
     hypridle
+    btop
 
     # First-party hyprwm tools (replacements for older choices)
     hyprpolkitagent # Wayland-native polkit (replaces polkit_gnome)
@@ -67,14 +68,14 @@
 
     [scratchpads.term]
     animation = "fromTop"
-    command = "kitty --class scratchterm"
+    command = "ghostty --class=scratchterm"
     class = "scratchterm"
     size = "60% 50%"
     margin = 50
 
     [scratchpads.btop]
     animation = "fromTop"
-    command = "kitty --class scratchbtop -e btop"
+    command = "ghostty --class=scratchbtop -e btop"
     class = "scratchbtop"
     size = "70% 70%"
     margin = 50
@@ -104,7 +105,7 @@
     plugins = with pkgs.hyprlandPlugins; [
       hyprexpo # Mission Control–style workspace overview (Super + grave)
       hypr-dynamic-cursors # Cursor physics + shake-to-find (essential at 4K)
-      borders-plus-plus # Concentric Gruvbox accent border
+      borders-plus-plus # Concentric Sanctuary accent border
       hyprfocus # Subtle pulse on the newly-focused window
       hyprtrails # Motion trails behind moving windows
       xtra-dispatchers # Extra IPC dispatchers for richer binds
@@ -114,7 +115,7 @@
       env = [
         "LIBVA_DRIVER_NAME,nvidia"
         "__GLX_VENDOR_LIBRARY_NAME,nvidia"
-        "WLR_NO_HARDWARE_CURSORS,1"
+
         "__GL_GSYNC_ALLOWED,1"
         "__GL_VRR_ALLOWED,1"
         "NIXOS_OZONE_WL,1"
@@ -133,9 +134,9 @@
       ];
 
       exec-once = [
-        # Wallpaper Engine wallpaper (workshop ID 3544773177) via the native
+        # Wallpaper Engine wallpaper (workshop ID 3510055857) via the native
         # linux-wallpaperengine. Pinned to HDMI-A-1; --silent mutes audio.
-        "linux-wallpaperengine --silent --screen-root HDMI-A-1 3544773177"
+        "linux-wallpaperengine --silent --screen-root HDMI-A-1 3510055857"
         "waybar"
         "swaync"
         "nm-applet --indicator"
@@ -171,8 +172,8 @@
         gaps_in = 3;
         gaps_out = 8;
         border_size = 2;
-        "col.active_border" = "rgba(d79921ff) rgba(98971aff) 45deg";
-        "col.inactive_border" = "rgba(3c3836cc) rgba(504945cc) 45deg";
+        "col.active_border" = "rgba(3C4B9Bff) rgba(5987C6ff) 45deg";
+        "col.inactive_border" = "rgba(07062Fcc) rgba(0A094Ecc) 45deg";
         layout = "dwindle";
         resize_on_border = true;
         snap.enabled = true;
@@ -261,7 +262,7 @@
         vrr = 2;
         # Dark fallback colour shown briefly before the wallpaper engine
         # process renders — avoids a black flash at startup.
-        background_color = "rgb(1d2021)";
+        background_color = "rgb(000000)";
       };
 
       # Lower-latency fullscreen on NVIDIA. The compositor bypasses its
@@ -284,7 +285,7 @@
         hyprexpo = {
           columns = 3;
           gap_size = 5;
-          bg_col = "rgb(1d2021)";
+          bg_col = "rgb(000000)";
           workspace_method = "center current";
           enable_gesture = false; # desktop has no touchpad
         };
@@ -311,11 +312,11 @@
           };
         };
 
-        # Concentric extra border in Gruvbox yellow — adds depth without
+        # Concentric extra border in Sanctuary indigo — adds depth without
         # widening the main border. Plays nicely with `general.col.active_border`.
         borders-plus-plus = {
           add_borders = 1;
-          "col.border_1" = "rgb(d79921)";
+          "col.border_1" = "rgb(0A094E)";
           border_size_1 = 1;
           natural_rounding = true;
         };
@@ -339,9 +340,9 @@
           };
         };
 
-        # Motion trails in Gruvbox yellow. Cheap visual flair on 4K@240Hz.
+        # Motion trails in Sanctuary blue. Cheap visual flair on 4K@240Hz.
         hyprtrails = {
-          color = "rgba(d79921aa)";
+          color = "rgba(3C4B9Baa)";
           bezier_step = 0.025;
           points_per_step = 2;
           history_points = 20;
@@ -359,7 +360,7 @@
       };
 
       "$mod" = "SUPER";
-      "$terminal" = "kitty";
+      "$terminal" = "ghostty";
       "$browser" = "brave";
       "$launcher" = "rofi -show drun";
       "$filemanager" = "dolphin";
@@ -370,7 +371,7 @@
         "$mod, Space,  exec, $launcher"
         "$mod, A,      exec, walker" # unified launcher (apps + clipboard + emoji)
         "$mod, E,      exec, $filemanager"
-        "$mod, Y,      exec, $terminal -e yazi" # TUI file manager (kitty/ghostty graphics)
+        "$mod, Y,      exec, $terminal -e yazi" # TUI file manager (ghostty graphics)
         "$mod, L,      exec, hyprlock"
         "$mod, V,      exec, cliphist list | rofi -dmenu | cliphist decode | wl-copy"
         "$mod SHIFT, P, exec, hyprpicker -a"
@@ -380,7 +381,7 @@
 
         # Sidecars (Alt cluster)
         "$mod ALT, B, exec, rofi-bluetooth"
-        "$mod ALT, R, exec, wl-screenrec -f $HOME/Videos/screen-$(date +%s).mp4"
+        "$mod ALT, R, exec, mkdir -p $HOME/Videos && wl-screenrec -f $HOME/Videos/screen-$(date +%s).mp4"
         "$mod ALT SHIFT, R, exec, pkill -INT -x wl-screenrec"
 
         # pyprland scratchpads (Quake-style dropdowns)
@@ -429,8 +430,8 @@
         "$mod SHIFT, S, movetoworkspace, special:magic"
 
         ",      Print, exec, grimblast --notify copy area"
-        "$mod,  Print, exec, grimblast --notify copy screen"
-        "SHIFT, Print, exec, grimblast --notify copy output"
+        "$mod,  Print, exec, grimblast --notify copysave screen $HOME/Pictures/screenshot-$(date +%Y%m%d-%H%M%S).png"
+        "SHIFT, Print, exec, grimblast --notify copysave output $HOME/Pictures/screenshot-$(date +%Y%m%d-%H%M%S).png"
         # Annotated area capture: grimblast → satty editor → wl-copy on save.
         "$mod SHIFT, Print, exec, grimblast save area - | satty -f - --early-exit --copy-command wl-copy"
 
@@ -462,13 +463,21 @@
         "float, class:^(nm-connection-editor)$"
         "float, class:^(blueman-manager)$"
         "float, class:^(org.kde.polkit-kde-authentication-agent-1)$"
-        "float, class:^(polkit-gnome-authentication-agent-1)$"
+
         "float, title:^(Picture-in-Picture)$"
         "keepaspectratio, title:^(Picture-in-Picture)$"
         "float, class:^(xdg-desktop-portal-gtk)$"
         "size 70% 70%, class:^(xdg-desktop-portal-gtk)$"
         # Tearing path for Steam game windows — lower input latency.
         "immediate, class:^(steam_app_.*)$"
+        # Force full opacity on video/media players.
+        "opacity 1.0 override 1.0 override, class:^(mpv)$"
+        "opacity 1.0 override 1.0 override, class:^(vlc)$"
+        "opacity 1.0 override 1.0 override, class:^(com.stremio.stremio)$"
+        "opacity 1.0 override 1.0 override, title:^(Picture-in-Picture)$"
+        "opacity 1.0 override 1.0 override, class:^(brave-browser)$"
+        # Zen Browser — slight transparency to match the Hyprland rice.
+        "opacity 0.95 override 0.90 override, class:^(zen(-browser)?)$"
       ];
     };
   };
@@ -496,7 +505,7 @@
           position = "-40, -20";
           halign = "right";
           valign = "top";
-          color = "rgb(ebdbb2)";
+          color = "rgb(C8CAE0)";
           font_size = 90;
           font_family = "JetBrainsMono Nerd Font";
           text = ''cmd[update:1000] echo "$(date +"%H:%M")"'';
@@ -506,7 +515,7 @@
           position = "-40, -150";
           halign = "right";
           valign = "top";
-          color = "rgb(d5c4a1)";
+          color = "rgb(B2B5CF)";
           font_size = 22;
           font_family = "JetBrainsMono Nerd Font";
           text = ''cmd[update:60000] echo "$(date +"%A, %d %B %Y")"'';
@@ -516,7 +525,7 @@
           position = "0, 60";
           halign = "center";
           valign = "center";
-          color = "rgb(d79921)";
+          color = "rgb(5987C6)";
           font_size = 18;
           font_family = "JetBrainsMono Nerd Font";
           text = ''cmd[update:60000] echo "Good $(date +%H | awk '{if ($1 < 12) print "Morning"; else if ($1 < 18) print "Afternoon"; else print "Evening"}'), $USER"'';
@@ -529,9 +538,9 @@
           halign = "center";
           valign = "center";
           outline_thickness = 3;
-          outer_color = "rgb(d79921)";
-          inner_color = "rgb(1d2021)";
-          font_color = "rgb(ebdbb2)";
+          outer_color = "rgb(3C4B9B)";
+          inner_color = "rgb(07062F)";
+          font_color = "rgb(C8CAE0)";
           fade_on_empty = false;
           placeholder_text = "<i>Password...</i>";
           shadow_passes = 2;

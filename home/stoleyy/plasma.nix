@@ -27,7 +27,7 @@ in
       # BreezeDark and silently undo the custom scheme. The components
       # below are individually sufficient; Plasma falls back to BreezeDark
       # internals for anything not specified, which is what we want.
-      colorScheme = "GruvboxDarkHard";
+      colorScheme = "DeltaruneSanctuary";
       cursor = {
         theme = "Bibata-Modern-Classic";
         size = 24;

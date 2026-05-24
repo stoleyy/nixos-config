@@ -7,30 +7,33 @@
       mainBar = {
         layer = "top";
         position = "top";
-        height = 36;
+        height = 38;
         exclusive = true;
-        margin-top = 4;
-        margin-left = 8;
-        margin-right = 8;
+        margin-top = 6;
+        margin-left = 10;
+        margin-right = 10;
 
-        # HyDE-inspired layout: leaf-inverse group left, pill center, leaf group right.
         modules-left = [
           "hyprland/workspaces"
           "hyprland/window"
         ];
         modules-center = [
-          "idle_inhibitor"
           "clock"
-          "custom/notification"
         ];
         modules-right = [
           "mpris"
+          "custom/separator"
           "tray"
+          "custom/separator"
           "network"
           "bluetooth"
           "pulseaudio"
+          "custom/separator"
           "cpu"
           "memory"
+          "custom/separator"
+          "idle_inhibitor"
+          "custom/notification"
         ];
 
         "hyprland/workspaces" = {
@@ -50,7 +53,7 @@
         };
 
         "hyprland/window" = {
-          max-length = 40;
+          max-length = 35;
           separate-outputs = true;
         };
 
@@ -64,18 +67,18 @@
 
         clock = {
           tooltip-format = "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>";
-          format = "{:%I:%M %p}";
-          format-alt = "{:%a %b %d, %Y}";
+          format = "  {:%I:%M %p}";
+          format-alt = "  {:%a %b %d, %Y}";
         };
 
         mpris = {
-          format = "{player_icon} {dynamic}";
-          format-paused = "{player_icon} <i>{dynamic}</i>";
+          format = "{player_icon}  {dynamic}";
+          format-paused = "{player_icon}  <i>{dynamic}</i>";
           dynamic-order = [
             "title"
             "artist"
           ];
-          dynamic-len = 25;
+          dynamic-len = 20;
           player-icons = {
             default = "▶";
             spotify = "";
@@ -99,7 +102,7 @@
         };
 
         pulseaudio = {
-          format = "{icon}  {volume}%";
+          format = "{icon} {volume}%";
           format-muted = "  muted";
           format-icons = {
             headphone = "";
@@ -114,8 +117,8 @@
         };
 
         bluetooth = {
-          format = "  {status}";
-          format-connected = "  {device_alias}";
+          format = "";
+          format-connected = " {num_connections}";
           tooltip-format = "{controller_alias}\t{controller_address}";
           tooltip-format-connected = "{controller_alias}\n\n{device_enumerate}";
           tooltip-format-enumerate-connected = "{device_alias}";
@@ -123,26 +126,31 @@
         };
 
         network = {
-          format-wifi = "  {essid}";
-          format-ethernet = "󰈀  {ipaddr}";
-          format-disconnected = "󰖪  Offline";
+          format-wifi = "  {signalStrength}%";
+          format-ethernet = "󰈀";
+          format-disconnected = "󰖪";
           tooltip-format-wifi = "{essid} ({signalStrength}%)\n{ipaddr}/{cidr}\n {bandwidthUpBytes}  {bandwidthDownBytes}";
           tooltip-format-ethernet = "{ifname}\n{ipaddr}/{cidr}";
           on-click = "nm-connection-editor";
           interval = 5;
         };
 
+        "custom/separator" = {
+          format = "";
+          tooltip = false;
+        };
+
         "custom/notification" = {
           tooltip = false;
           format = "{icon}";
           format-icons = {
-            notification = "<span foreground='red'><sup></sup></span>";
+            notification = "<span foreground='#5987C6'><sup></sup></span>";
             none = "";
-            dnd-notification = "<span foreground='red'><sup></sup></span>";
+            dnd-notification = "<span foreground='#5987C6'><sup></sup></span>";
             dnd-none = "";
-            inhibited-notification = "<span foreground='red'><sup></sup></span>";
+            inhibited-notification = "<span foreground='#5987C6'><sup></sup></span>";
             inhibited-none = "";
-            dnd-inhibited-notification = "<span foreground='red'><sup></sup></span>";
+            dnd-inhibited-notification = "<span foreground='#5987C6'><sup></sup></span>";
             dnd-inhibited-none = "";
           };
           return-type = "json";
@@ -154,20 +162,25 @@
         };
 
         tray = {
-          spacing = 10;
+          spacing = 8;
+          icon-size = 14;
         };
       };
     };
 
-    # HyDE-inspired CSS with pill/leaf group shapes and workspace expansion.
+    # Deltarune Sanctuary — floating island bar with glow accents.
     style = ''
-      @define-color bar-bg    rgba(29, 32, 33, 0.01);
-      @define-color main-bg   rgba(29, 32, 33, 0.80);
-      @define-color main-fg   ${colors.fg0};
-      @define-color wb-act-bg rgba(152, 151, 26, 0.35);
-      @define-color wb-act-fg ${colors.fg0};
-      @define-color wb-hvr-bg rgba(215, 153, 33, 0.40);
-      @define-color wb-hvr-fg ${colors.fg0};
+      @define-color bg        rgba(0, 0, 0, 0.0);
+      @define-color mod-bg    rgba(7, 6, 47, 0.75);
+      @define-color mod-bg2   rgba(10, 9, 78, 0.55);
+      @define-color fg        #C8CAE0;
+      @define-color fg-dim    #8D8FA7;
+      @define-color fg-bright #B2B5CF;
+      @define-color accent    #5987C6;
+      @define-color accent2   #3C4B9B;
+      @define-color accent3   #324DA7;
+      @define-color glow      rgba(89, 135, 198, 0.25);
+      @define-color glow-h    rgba(89, 135, 198, 0.45);
 
       * {
         font-family: "JetBrainsMono Nerd Font";
@@ -177,152 +190,198 @@
       }
 
       window#waybar {
-        background-color: @bar-bg;
-        color:            @main-fg;
+        background: @bg;
+        color:      @fg;
       }
 
       tooltip {
-        background:    @main-bg;
-        border:        1px solid @wb-act-bg;
-        border-radius: 10px;
-        color:         @main-fg;
+        background:    @mod-bg;
+        border:        1px solid @accent2;
+        border-radius: 12px;
+        color:         @fg;
       }
 
       tooltip label {
-        color:   @main-fg;
-        padding: 4px;
+        color:   @fg;
+        padding: 5px;
       }
 
-      /* ── Workspace expansion animation (HyDE signature) ── */
+      /* ── Floating island groups ── */
+      .modules-left {
+        margin-left: 2px;
+      }
+
+      .modules-right {
+        margin-right: 2px;
+      }
+
+      /* ── Workspaces ── */
       #workspaces {
-        background: @main-bg;
-        border-radius: 10px 0 10px 0;  /* leaf-inverse shape */
-        padding:    0 4px;
-        margin:     3px 0 3px 3px;
+        background:    @mod-bg;
+        border-radius: 12px;
+        padding:       0 6px;
+        margin:        4px 4px;
+        border:        1px solid rgba(60, 75, 155, 0.2);
       }
 
       #workspaces button {
-        padding:          0 5px;
-        background-color: transparent;
-        color:            ${colors.muted};
-        border-radius:    10px;
+        padding:          0 6px;
+        background:       transparent;
+        color:            @fg-dim;
+        border-radius:    8px;
         margin:           3px 2px;
-        transition:       padding 0.3s cubic-bezier(0.55, -0.68, 0.48, 1.682);
+        transition:       all 0.3s cubic-bezier(0.55, -0.68, 0.48, 1.682);
       }
 
       #workspaces button:hover {
-        background: @wb-hvr-bg;
-        color:      @wb-hvr-fg;
+        background: @glow;
+        color:      @fg;
       }
 
       #workspaces button.active {
-        padding:    0 12px;
-        background: @wb-act-bg;
-        color:      @wb-act-fg;
+        padding:     0 14px;
+        background:  @glow-h;
+        color:       @fg;
         font-weight: bold;
+        border:      1px solid rgba(89, 135, 198, 0.4);
+        box-shadow:  0 0 8px @glow;
       }
 
       #workspaces button.urgent {
-        background: rgba(204, 36, 29, 0.5);
-        color:      ${colors.bright.red};
+        background: rgba(155, 60, 60, 0.5);
+        color:      @fg;
       }
 
-      /* ── Left group: leaf-inverse (top-right + bottom-left rounded) ── */
+      /* ── Window title ── */
       #window {
-        background:    @main-bg;
-        border-radius: 0 10px 0 10px;  /* leaf shape */
-        padding:       0 12px;
-        margin:        3px 0 3px 4px;
-        color:         ${colors.fg1};
+        background:    @mod-bg;
+        border-radius: 12px;
+        padding:       0 14px;
+        margin:        4px 4px;
+        color:         @fg-dim;
         font-style:    italic;
+        border:        1px solid rgba(60, 75, 155, 0.15);
       }
 
-      /* ── Center group: pill (fully rounded) ── */
-      #idle_inhibitor,
-      #clock,
-      #custom-notification {
-        padding: 0 10px;
-        margin:  0;
-        color:   @main-fg;
-      }
-
-      #idle_inhibitor {
-        background:    @main-bg;
-        border-radius: 10px 0 0 10px;
-        padding-left:  14px;
-        margin:        3px 0 3px 0;
-      }
-
+      /* ── Clock (center island) ── */
       #clock {
-        background:    @main-bg;
-        border-radius: 0;
-        color:         ${colors.yellow};
+        background:    @mod-bg;
+        border-radius: 12px;
+        padding:       0 18px;
+        margin:        4px 0;
+        color:         @accent;
         font-weight:   bold;
-        margin:        3px 0;
+        font-size:     14px;
+        border:        1px solid rgba(89, 135, 198, 0.25);
+        box-shadow:    0 0 12px rgba(89, 135, 198, 0.15);
       }
 
-      #custom-notification {
-        background:    @main-bg;
-        border-radius: 0 10px 10px 0;
-        padding-right: 14px;
-        margin:        3px 0 3px 0;
-      }
-
-      /* ── Right group: leaf (top-left + bottom-right rounded) ── */
+      /* ── Right modules (shared base) ── */
       #mpris,
       #tray,
       #network,
       #bluetooth,
       #pulseaudio,
       #cpu,
-      #memory {
-        background: @main-bg;
+      #memory,
+      #idle_inhibitor,
+      #custom-notification {
+        background: @mod-bg;
         padding:    0 10px;
-        margin:     3px 0;
-        color:      @main-fg;
+        margin:     4px 0;
+        color:      @fg;
       }
 
+      /* ── Separator (thin dim pipe) ── */
+      #custom-separator {
+        background: @mod-bg;
+        color:      rgba(93, 94, 105, 0.4);
+        padding:    0 2px;
+        margin:     4px 0;
+        font-size:  10px;
+      }
+
+      /* ── mpris island ── */
       #mpris {
-        border-radius: 10px 0 10px 0;  /* leaf-inverse */
-        margin-left:   3px;
-        margin-right:  4px;
-        color:         ${colors.bright.aqua};
+        border-radius: 12px;
+        margin-left:   4px;
+        padding:       0 14px;
+        color:         @accent;
+        border:        1px solid rgba(89, 135, 198, 0.15);
       }
 
+      /* ── Tray ── */
       #tray {
-        border-radius: 0 10px 0 10px;  /* leaf */
-        margin-right:  4px;
-        padding:       0 8px;
+        padding: 0 6px;
       }
 
       #tray > .passive {
         -gtk-icon-effect: dim;
       }
 
-      #network    {
-        border-radius: 10px 0 0 10px;
+      /* ── Status cluster (network → pulseaudio) ── */
+      #network {
+        border-radius: 12px 0 0 12px;
         padding-left:  14px;
-        color:         ${colors.blue};
-      }
-      #bluetooth  { color: ${colors.bright.orange}; }
-      #pulseaudio { color: ${colors.bright.purple}; }
-      #cpu        { color: ${colors.bright.green}; }
-      #memory {
-        border-radius: 0 10px 10px 0;
-        padding-right: 14px;
-        margin-right:  3px;
-        color:         ${colors.bright.blue};
+        color:         @accent;
       }
 
-      /* ── Hover for right group ── */
+      #bluetooth {
+        color: @accent2;
+      }
+
+      #pulseaudio {
+        border-radius: 0 12px 12px 0;
+        padding-right: 14px;
+        color:         @fg-bright;
+      }
+
+      /* ── System cluster (cpu + memory) ── */
+      #cpu {
+        border-radius: 12px 0 0 12px;
+        padding-left:  14px;
+        color:         @fg-dim;
+      }
+
+      #memory {
+        border-radius: 0 12px 12px 0;
+        padding-right: 14px;
+        color:         @fg-bright;
+      }
+
+      /* ── Controls cluster (inhibitor + notification) ── */
+      #idle_inhibitor {
+        border-radius: 12px 0 0 12px;
+        padding-left:  12px;
+        color:         @fg-dim;
+      }
+
+      #custom-notification {
+        border-radius: 0 12px 12px 0;
+        padding-right: 12px;
+        margin-right:  4px;
+        color:         @fg-dim;
+      }
+
+      /* ── Hover glow ── */
       #mpris:hover,
       #network:hover,
       #bluetooth:hover,
       #pulseaudio:hover,
       #cpu:hover,
-      #memory:hover {
-        background: @wb-hvr-bg;
-        color:      @wb-hvr-fg;
+      #memory:hover,
+      #idle_inhibitor:hover,
+      #custom-notification:hover {
+        background: @glow;
+        color:      @fg;
+      }
+
+      #clock:hover {
+        box-shadow: 0 0 16px rgba(89, 135, 198, 0.35);
+      }
+
+      #workspaces button.active:hover {
+        box-shadow: 0 0 14px @glow-h;
       }
     '';
   };

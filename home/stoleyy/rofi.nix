@@ -1,14 +1,14 @@
 { pkgs, colors, ... }:
 
 let
-  gruvboxTheme = builtins.toFile "gruvbox-hard.rasi" ''
+  sanctuaryTheme = builtins.toFile "sanctuary.rasi" ''
     * {
       bg0:    ${colors.bg0}ff;
       bg1:    ${colors.bg1}ff;
       bg2:    ${colors.bg2}ff;
       fg0:    ${colors.fg0}ff;
       fg1:    ${colors.fg1}ff;
-      accent: ${colors.green}ff;
+      accent: ${colors.blue}ff;
 
       background-color: transparent;
       text-color:       @fg0;
@@ -104,7 +104,7 @@ in
     # rofi-wayland was merged into rofi in nixpkgs 25.11 — unified package now
     # supports both X11 and Wayland backends; selection is automatic.
     package = pkgs.rofi;
-    theme = gruvboxTheme;
+    theme = sanctuaryTheme;
     extraConfig = {
       modi = "drun,run,window";
       icon-theme = "Papirus-Dark";
