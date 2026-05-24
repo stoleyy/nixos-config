@@ -137,6 +137,11 @@ in
       ];
 
       exec-once = [
+        # Signal systemd that the graphical session is live (hyprland's
+        # systemd.enable is off to avoid NVIDIA race conditions, so we
+        # activate the target manually for waybar/swaync/etc).
+        "systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP && systemctl --user start graphical-session.target"
+
         # One-shots and self-supervising daemons. Long-running services
         # are managed by systemd user units (see systemd.user.services below)
         # for automatic crash restart.

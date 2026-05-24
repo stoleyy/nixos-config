@@ -7,6 +7,9 @@ result-*
 # `nix flake archive` and similar
 *.drv
 
+# `nixos-rebuild build-vm` drops an ephemeral VM disk image in the CWD.
+*.qcow2
+
 # Hash-derived intermediate roots
 .gcroots/
 
