@@ -18,6 +18,11 @@
         ../hosts/${hostName}
         ../overlays
         ../modules/base.nix
+        ../modules/nix.nix
+        ../modules/nix-ld.nix
+        ../modules/kernel.nix
+        ../modules/hardware.nix
+        ../modules/system.nix
         ../modules/networking.nix
         ../modules/desktop.nix
         ../modules/audio.nix
@@ -43,7 +48,6 @@
         ../modules/media-server.nix
         ../modules/auditd.nix
         ../modules/fan-control.nix
-        ../modules/openrgb.nix
         ../modules/update-routines.nix
         inputs.nix-gaming.nixosModules.pipewireLowLatency
         inputs.nix-gaming.nixosModules.platformOptimizations

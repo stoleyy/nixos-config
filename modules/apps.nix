@@ -41,11 +41,6 @@
     gh
     delta
 
-    # Nix tooling
-    nixd
-    nixfmt
-    nix-output-monitor
-
     # Media
     libreoffice-fresh
 

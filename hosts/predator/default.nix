@@ -67,6 +67,12 @@
 
   networking.hostName = "predator";
 
+  # OpenRGB — RGB controller for this Intel-platform host.
+  services.hardware.openrgb = {
+    enable = true;
+    motherboard = "intel";
+  };
+
   # sops-nix: decrypt secrets at activation using the host SSH Ed25519 key.
   # Setup steps (run once before declaring any sops.secrets):
   #   1. nix-shell -p ssh-to-age --run "ssh-to-age < /etc/ssh/ssh_host_ed25519_key.pub"

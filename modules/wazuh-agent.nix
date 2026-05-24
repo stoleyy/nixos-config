@@ -87,6 +87,28 @@ let
       util-linux
     ]
   );
+
+  companions = {
+    wazuh-execd = "Wazuh execd (active-response handler)";
+    wazuh-logcollector = "Wazuh logcollector";
+    wazuh-modulesd = "Wazuh modulesd (inventory + remote commands)";
+    wazuh-syscheckd = "Wazuh syscheckd (FIM + rootcheck)";
+  };
+
+  mkCompanion = name: description: {
+    inherit description;
+    bindsTo = [ "wazuh-agent.service" ];
+    partOf = [ "wazuh-agent.service" ];
+    after = [ "wazuh-agent.service" ];
+    wantedBy = [ "wazuh-agent.service" ];
+    serviceConfig = {
+      Type = "simple";
+      ExecStart = "${cfg.package}/bin/${name} -f";
+      Restart = "on-failure";
+      ReadWritePaths = [ "/var/ossec" ];
+      Environment = [ "PATH=${daemonPath}" ];
+    };
+  };
 in
 {
   options.services.wazuh-agent = {
@@ -168,70 +190,11 @@ in
             Environment = [ "PATH=${daemonPath}" ];
           };
         };
-
-        # Companion daemons — bound to the main agent unit so they start/stop
-        # together. Each runs in foreground; do not call wazuh-control start —
-        # it daemonizes children outside systemd's view.
-        wazuh-execd = {
-          description = "Wazuh execd (active-response handler)";
-          bindsTo = [ "wazuh-agent.service" ];
-          partOf = [ "wazuh-agent.service" ];
-          after = [ "wazuh-agent.service" ];
-          wantedBy = [ "wazuh-agent.service" ];
-          serviceConfig = {
-            Type = "simple";
-            ExecStart = "${cfg.package}/bin/wazuh-execd -f";
-            Restart = "on-failure";
-            ReadWritePaths = [ "/var/ossec" ];
-            Environment = [ "PATH=${daemonPath}" ];
-          };
-        };
-
-        wazuh-logcollector = {
-          description = "Wazuh logcollector";
-          bindsTo = [ "wazuh-agent.service" ];
-          partOf = [ "wazuh-agent.service" ];
-          after = [ "wazuh-agent.service" ];
-          wantedBy = [ "wazuh-agent.service" ];
-          serviceConfig = {
-            Type = "simple";
-            ExecStart = "${cfg.package}/bin/wazuh-logcollector -f";
-            Restart = "on-failure";
-            ReadWritePaths = [ "/var/ossec" ];
-            Environment = [ "PATH=${daemonPath}" ];
-          };
-        };
-
-        wazuh-modulesd = {
-          description = "Wazuh modulesd (inventory + remote commands)";
-          bindsTo = [ "wazuh-agent.service" ];
-          partOf = [ "wazuh-agent.service" ];
-          after = [ "wazuh-agent.service" ];
-          wantedBy = [ "wazuh-agent.service" ];
-          serviceConfig = {
-            Type = "simple";
-            ExecStart = "${cfg.package}/bin/wazuh-modulesd -f";
-            Restart = "on-failure";
-            ReadWritePaths = [ "/var/ossec" ];
-            Environment = [ "PATH=${daemonPath}" ];
-          };
-        };
-
-        wazuh-syscheckd = {
-          description = "Wazuh syscheckd (FIM + rootcheck)";
-          bindsTo = [ "wazuh-agent.service" ];
-          partOf = [ "wazuh-agent.service" ];
-          after = [ "wazuh-agent.service" ];
-          wantedBy = [ "wazuh-agent.service" ];
-          serviceConfig = {
-            Type = "simple";
-            ExecStart = "${cfg.package}/bin/wazuh-syscheckd -f";
-            Restart = "on-failure";
-            ReadWritePaths = [ "/var/ossec" ];
-            Environment = [ "PATH=${daemonPath}" ];
-          };
-        };
-      };
+      }
+      # Companion daemons — bound to the main agent unit so they start/stop
+      # together. Each runs in foreground; do not call wazuh-control start —
+      # it daemonizes children outside systemd's view.
+      // lib.mapAttrs mkCompanion companions;
     };
   };
 }
