@@ -11,8 +11,11 @@
   boot.loader = {
     systemd-boot = {
       enable = true;
-      configurationLimit = 20;
+      configurationLimit = 10;
       editor = false;
+      # bootCounting — available in nixpkgs master but not 25.11 stable.
+      # Re-enable after upgrading to 25.17+:
+      # bootCounting = { enable = true; trials = 2; };
     };
     efi.canTouchEfiVariables = true;
   };

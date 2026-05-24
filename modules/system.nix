@@ -85,5 +85,22 @@ _:
     };
   };
 
+  # Reactive GC — prevents build failures from full disk.
+  # min-free triggers an automatic store GC when free space drops below 500 MB;
+  # max-free stops it once 2 GB is recovered. Complements nh.clean (base.nix)
+  # which runs on a schedule — this fires reactively mid-build if needed.
+  # Not GC scheduling, so no conflict with nix.gc being absent.
+  nix.extraOptions = ''
+    min-free = ${toString (500 * 1024 * 1024)}
+    max-free = ${toString (2 * 1024 * 1024 * 1024)}
+  '';
+
+  # Weekly store deduplication — hard-links identical files across the store.
+  # Reduces /nix/store size without touching store paths or live references.
+  nix.optimise = {
+    automatic = true;
+    dates = [ "Sun 03:30" ];
+  };
+
   system.stateVersion = "25.11";
 }

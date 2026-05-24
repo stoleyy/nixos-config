@@ -6,6 +6,7 @@ in
 {
   programs.waybar = {
     enable = true;
+    systemd.enable = true; # auto-start + restart on crash
     settings = {
       mainBar = {
         layer = "top";

@@ -17,6 +17,116 @@ in
       # Define `rebuild` as a function so command substitution evaluates at runtime.
       functions = {
         rebuild = "sudo nixos-rebuild switch --flake /etc/nixos#(hostname)";
+
+        # Test a config without making it the boot default (reversible by reboot).
+        tryrebuild = "sudo nixos-rebuild test --flake /etc/nixos#(hostname)";
+
+        # Diff current running system vs what would be built.
+        nixdiff = ''
+          set new (nixos-rebuild build --flake /etc/nixos#(hostname) --no-link --print-out-paths 2>/dev/null)
+          and nvd diff /run/current-system $new
+        '';
+
+        # Show closure size of the running system.
+        nixsize = "nix path-info -Sh /run/current-system";
+
+        # Garbage-collect old generations via nh (keeps last 3, or pass a number).
+        nixgc = ''
+          set keep (test (count $argv) -gt 0; and echo $argv[1]; or echo 3)
+          sudo nh clean all --keep $keep
+        '';
+
+        # Quick systemd unit status — `svc nginx` or `svc` for all failed.
+        svc = ''
+          if test (count $argv) -eq 0
+            systemctl --failed
+          else
+            systemctl status $argv[1]
+            echo "---"
+            journalctl -u $argv[1] -b 0 --no-pager -n 30
+          end
+        '';
+
+        # Fuzzy-find and edit a nix file in the config.
+        nixedit = ''
+          set file (fd -e nix . /etc/nixos | fzf --preview "bat --color=always {}")
+          and $EDITOR $file
+        '';
+
+        # Search NixOS options by keyword.
+        nixopt = ''
+          if test (count $argv) -eq 0
+            echo "Usage: nixopt <keyword>"
+            return 1
+          end
+          nixos-option -I nixpkgs=/etc/nixos 2>/dev/null \
+            | rg -i $argv[1]; or man configuration.nix 2>/dev/null \
+            | rg -i $argv[1]; or echo "Try: https://search.nixos.org/options?query=$argv[1]"
+        '';
+
+        # Port check — what's listening? `ports` or `ports 8080`.
+        ports = ''
+          if test (count $argv) -eq 0
+            sudo ss -tlnp
+          else
+            sudo ss -tlnp | rg $argv[1]
+          end
+        '';
+
+        # Quick git add-commit-push for /etc/nixos.
+        nixpush = ''
+          if test (count $argv) -eq 0
+            echo "Usage: nixpush \"commit message\""
+            return 1
+          end
+          cd /etc/nixos
+          git add -A
+          git commit -m $argv[1]
+          git push
+          cd -
+        '';
+
+        # Process search — `psg firefox`.
+        psg = "ps aux | rg -v rg | rg $argv[1]";
+
+        # Quick weather check.
+        wttr = ''
+          set loc (test (count $argv) -gt 0; and echo $argv[1]; or echo "")
+          curl -s "wttr.in/$loc?format=3"
+        '';
+
+        # Extract any archive format.
+        extract = ''
+          if test (count $argv) -eq 0
+            echo "Usage: extract <file>"
+            return 1
+          end
+          switch $argv[1]
+            case "*.tar.bz2"
+              tar xjf $argv[1]
+            case "*.tar.gz" "*.tgz"
+              tar xzf $argv[1]
+            case "*.tar.xz" "*.txz"
+              tar xJf $argv[1]
+            case "*.tar.zst"
+              tar --zstd -xf $argv[1]
+            case "*.zip"
+              unzip $argv[1]
+            case "*.7z"
+              7z x $argv[1]
+            case "*.rar"
+              unrar x $argv[1]
+            case "*.gz"
+              gunzip $argv[1]
+            case "*.bz2"
+              bunzip2 $argv[1]
+            case "*.xz"
+              unxz $argv[1]
+            case "*"
+              echo "extract: unknown format '$argv[1]'"
+              return 1
+          end
+        '';
       };
       interactiveShellInit = ''
         set -g fish_greeting ""
@@ -111,6 +221,12 @@ in
         theme = "OneHalfDark";
         style = "numbers,changes";
       };
+    };
+
+    # Concise community-driven man page alternatives (`tldr tar`, `tldr git-rebase`).
+    tealdeer = {
+      enable = true;
+      settings.updates.auto_update = true;
     };
 
     bash.enable = true;

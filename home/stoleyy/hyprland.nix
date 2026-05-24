@@ -137,17 +137,16 @@ in
       ];
 
       exec-once = [
+        # One-shots and self-supervising daemons. Long-running services
+        # are managed by systemd user units (see systemd.user.services below)
+        # for automatic crash restart.
+
         # Wallpaper Engine wallpaper (workshop ID 3510055857) via the native
         # linux-wallpaperengine. Pinned to HDMI-A-1; --silent mutes audio.
         "linux-wallpaperengine --silent --screen-root HDMI-A-1 3510055857"
-        "waybar"
-        "swaync"
+        # waybar managed by systemd (programs.waybar.systemd.enable in waybar.nix)
         "nm-applet --indicator"
         "cliphist wipe"
-        "wl-paste --type text --watch cliphist store --max-items 50"
-        "wl-paste --type image --watch cliphist store --max-items 50"
-        "wl-clip-persist --clipboard regular"
-        "swayosd-server"
         "udiskie --tray"
         "kdeconnect-indicator"
         "kwalletd6"
@@ -158,8 +157,6 @@ in
         "hyprsunset"
         # hyprpolkitagent: native Wayland polkit (supersedes polkit-gnome).
         "systemctl --user start hyprpolkitagent.service"
-        # pyprland: scratchpads daemon. Config in xdg.configFile."hypr/pyprland.toml".
-        "pypr"
       ];
 
       monitor = [
@@ -470,6 +467,81 @@ in
         # Zen Browser — slight transparency to match the Hyprland rice.
         "opacity 0.95 override 0.90 override, class:^(zen(-browser)?)$"
       ];
+    };
+  };
+
+  # Long-running Hyprland session services supervised by systemd for automatic
+  # crash restart. These replace the equivalent exec-once entries.
+  # swaync is managed by services.swaync.enable in swaync.nix (HM-native systemd unit).
+  systemd.user.services = {
+    swayosd = {
+      Unit = {
+        Description = "SwayOSD server";
+        After = [ "graphical-session.target" ];
+        PartOf = [ "graphical-session.target" ];
+      };
+      Service = {
+        ExecStart = "${pkgs.swayosd}/bin/swayosd-server";
+        Restart = "on-failure";
+        RestartSec = "5s";
+      };
+      Install.WantedBy = [ "graphical-session.target" ];
+    };
+
+    cliphist-text = {
+      Unit = {
+        Description = "Clipboard history (text)";
+        After = [ "graphical-session.target" ];
+        PartOf = [ "graphical-session.target" ];
+      };
+      Service = {
+        ExecStart = "${pkgs.wl-clipboard}/bin/wl-paste --type text --watch ${pkgs.cliphist}/bin/cliphist store --max-items 50";
+        Restart = "on-failure";
+        RestartSec = "5s";
+      };
+      Install.WantedBy = [ "graphical-session.target" ];
+    };
+
+    cliphist-image = {
+      Unit = {
+        Description = "Clipboard history (images)";
+        After = [ "graphical-session.target" ];
+        PartOf = [ "graphical-session.target" ];
+      };
+      Service = {
+        ExecStart = "${pkgs.wl-clipboard}/bin/wl-paste --type image --watch ${pkgs.cliphist}/bin/cliphist store --max-items 50";
+        Restart = "on-failure";
+        RestartSec = "5s";
+      };
+      Install.WantedBy = [ "graphical-session.target" ];
+    };
+
+    wl-clip-persist = {
+      Unit = {
+        Description = "Persist clipboard on app close";
+        After = [ "graphical-session.target" ];
+        PartOf = [ "graphical-session.target" ];
+      };
+      Service = {
+        ExecStart = "${pkgs.wl-clip-persist}/bin/wl-clip-persist --clipboard regular";
+        Restart = "on-failure";
+        RestartSec = "5s";
+      };
+      Install.WantedBy = [ "graphical-session.target" ];
+    };
+
+    pyprland = {
+      Unit = {
+        Description = "Pyprland scratchpad daemon";
+        After = [ "graphical-session.target" ];
+        PartOf = [ "graphical-session.target" ];
+      };
+      Service = {
+        ExecStart = "${pkgs.pyprland}/bin/pypr";
+        Restart = "on-failure";
+        RestartSec = "5s";
+      };
+      Install.WantedBy = [ "graphical-session.target" ];
     };
   };
 

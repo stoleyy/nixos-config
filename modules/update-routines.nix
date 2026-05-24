@@ -1,16 +1,18 @@
-# Periodic update wiring — weekly nixos-rebuild boot, flake.lock bump, and vulnix CVE scan.
+# Unattended update pipeline — hands-off, Windows-style automatic maintenance.
 { pkgs, ... }:
 
-# Periodic update wiring so the system doesn't slowly turn into a
-# fossilized snapshot. Three timers:
-#   1. Weekly `nixos-rebuild boot` (system.autoUpgrade) — pulls nixpkgs and
-#      builds the next generation. Manual reboot still required (allowReboot=false).
-#   2. Weekly `nix flake update` — bumps flake.lock for nixpkgs / home-manager
-#      / other inputs, then commits the updated lock to a branch named
-#      `auto/flake-update-<timestamp>` for review (NOT pushed automatically;
-#      /etc/nixos is left back on its original branch, working tree clean).
-#   3. Weekly CVE scan (vulnix) — scans the running closure for known CVEs.
-#      Output goes to journal: journalctl -u vulnix-scan
+# Three timers run weekly, fully unattended:
+#   1. Sun 03:00 — `nix flake update --refresh` bumps flake.lock for all inputs
+#      and commits the result directly to the current branch (main). No review
+#      branch, no manual cherry-pick required.
+#   2. Sun 04:00 — `nixos-rebuild boot` (system.autoUpgrade) builds the next
+#      generation from the updated lock. allowReboot=false — the new generation
+#      takes effect on the next conscious reboot. persistent=true ensures a
+#      missed timer (e.g. system was off) catches up on next boot.
+#   3. Sun 06:00 — vulnix scans the live closure for known CVEs; output in
+#      journal: journalctl -u vulnix-scan
+#   4. After nixos-upgrade.service — notify-reboot-needed sends a desktop
+#      notification if a new generation was built and a reboot is pending.
 #
 # Wazuh and OPNsense are NOT auto-updated — both have plugin/version
 # compatibility surfaces that require human eyeballs on release notes.
@@ -22,21 +24,17 @@
     enable = true;
     flake = "/etc/nixos";
     flags = [
-      "--update-input"
-      "nixpkgs"
-      "--no-write-lock-file"
       "-L" # full logs in journal
     ];
     dates = "Sun 04:00";
     randomizedDelaySec = "30min";
+    persistent = true; # catch up missed timers on next boot
     allowReboot = false; # build only; reboot is a conscious choice
     operation = "boot"; # take effect on next reboot, not live
   };
 
-  # Lock-file refresh on a separate schedule. system.autoUpgrade above
-  # uses --update-input nixpkgs (single input). For a full multi-input
-  # refresh, run `nix flake update` weekly via systemd timer and stash
-  # the resulting lock on a review branch.
+  # Lock-file refresh on a separate schedule — runs before autoUpgrade so the
+  # upgrade always builds from the freshest lock.
   # ---------- weekly CVE scan ----------
   # Runs after auto-upgrade completes, scanning the live closure for known CVEs.
   # Output goes to journal: journalctl -u vulnix-scan
@@ -73,7 +71,7 @@
         };
       };
       "flake-lock-update" = {
-        description = "Refresh flake.lock and commit it to a review branch";
+        description = "Refresh flake.lock and commit directly to current branch";
         # `nix flake update` on the /etc/nixos *git* flake shells out to `git`;
         # the systemd default PATH has no git, so the unit needs it explicitly.
         # `nix` itself is invoked by absolute path (same as elsewhere here).
@@ -81,11 +79,6 @@
         serviceConfig = {
           Type = "oneshot";
           WorkingDirectory = "/etc/nixos";
-          # Refresh the lock, and if it actually changed, park the change on a
-          # dated review branch without disturbing the branch /etc/nixos is on
-          # (the user's normal `git pull origin main` workflow stays clean).
-          # Not pushed — a human reviews `git log auto/flake-update-*` and
-          # cherry-picks / fast-forwards deliberately.
           ExecStart = pkgs.writeShellScript "flake-lock-update" ''
             set -euo pipefail
             cd /etc/nixos
@@ -96,8 +89,6 @@
                   -c user.email=nixos-auto@predator "$@"
             }
 
-            orig=$(g rev-parse --abbrev-ref HEAD)
-
             /run/current-system/sw/bin/nix flake update --refresh
 
             if g diff --quiet -- flake.lock; then
@@ -105,13 +96,71 @@
               exit 0
             fi
 
-            br="auto/flake-update-$(date +%Y%m%d-%H%M%S)"
-            g checkout -b "$br"
             g commit -m "flake.lock: weekly auto-update $(date -u +%Y-%m-%dT%H:%M:%SZ)" -- flake.lock
-            g checkout "$orig"
-            echo "updated flake.lock committed to branch $br (not pushed); /etc/nixos back on $orig"
+            echo "flake.lock updated and committed to $(g rev-parse --abbrev-ref HEAD)"
           '';
         };
+      };
+
+      "notify-reboot-needed" = {
+        description = "Notify user when a reboot is needed after auto-upgrade";
+        after = [ "nixos-upgrade.service" ];
+        wantedBy = [ "nixos-upgrade.service" ];
+        serviceConfig = {
+          Type = "oneshot";
+          User = "stoleyy";
+        };
+        environment.DBUS_SESSION_BUS_ADDRESS = "unix:path=/run/user/1000/bus";
+        script = ''
+          if [ "$(readlink /run/current-system)" != "$(readlink /nix/var/nix/profiles/system)" ]; then
+            ${pkgs.libnotify}/bin/notify-send \
+              --urgency=low \
+              --icon=system-software-update \
+              "System Update Ready" \
+              "A new generation has been built. Reboot to apply."
+          fi
+        '';
+      };
+
+      # Post-boot health check — if the new generation has critical failures,
+      # roll back the bootloader to the previous generation so the NEXT reboot
+      # returns to a known-good state. This is a software-level substitute for
+      # systemd-boot bootCounting (not yet in NixOS 25.11 stable).
+      "boot-health-check" = {
+        description = "Post-boot health check — auto-rollback on critical failures";
+        after = [
+          "multi-user.target"
+          "graphical.target"
+        ];
+        wantedBy = [ "graphical.target" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+        };
+        script = ''
+          sleep 60 # let services settle
+
+          FAILED=$(systemctl --failed --no-legend | wc -l)
+          BOOTED=$(readlink /run/booted-system)
+          CURRENT=$(readlink /run/current-system)
+
+          echo "Boot health check: $FAILED failed units"
+          echo "  booted:  $BOOTED"
+          echo "  current: $CURRENT"
+
+          if [ "$FAILED" -gt 3 ]; then
+            echo "CRITICAL: $FAILED units failed — rolling back bootloader to previous generation"
+            /run/current-system/sw/bin/nixos-rebuild boot --rollback 2>&1 || true
+            ${pkgs.libnotify}/bin/notify-send \
+              --urgency=critical \
+              --icon=dialog-warning \
+              "System Rolled Back" \
+              "$FAILED units failed after boot. Next reboot will use the previous generation." \
+              2>/dev/null || true
+          else
+            echo "Boot healthy — $FAILED failed units (threshold: 3)"
+          fi
+        '';
       };
     };
   };
