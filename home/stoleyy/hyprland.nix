@@ -473,77 +473,37 @@ in
   # Long-running Hyprland session services supervised by systemd for automatic
   # crash restart. These replace the equivalent exec-once entries.
   # swaync is managed by services.swaync.enable in swaync.nix (HM-native systemd unit).
-  systemd.user.services = {
-    swayosd = {
-      Unit = {
-        Description = "SwayOSD server";
-        After = [ "graphical-session.target" ];
-        PartOf = [ "graphical-session.target" ];
+  systemd.user.services =
+    let
+      # Shared service template for Hyprland session daemons.
+      # Restarts on crash up to 5 times in 60s, then gives up.
+      mkSessionService = desc: cmd: {
+        Unit = {
+          Description = desc;
+          After = [ "graphical-session.target" ];
+          PartOf = [ "graphical-session.target" ];
+          StartLimitBurst = 5;
+          StartLimitIntervalSec = 60;
+        };
+        Service = {
+          ExecStart = cmd;
+          Restart = "on-failure";
+          RestartSec = "5s";
+        };
+        Install.WantedBy = [ "graphical-session.target" ];
       };
-      Service = {
-        ExecStart = "${pkgs.swayosd}/bin/swayosd-server";
-        Restart = "on-failure";
-        RestartSec = "5s";
-      };
-      Install.WantedBy = [ "graphical-session.target" ];
+    in
+    {
+      swayosd = mkSessionService "SwayOSD server" "${pkgs.swayosd}/bin/swayosd-server";
+      cliphist-text = mkSessionService "Clipboard history (text)"
+        "${pkgs.wl-clipboard}/bin/wl-paste --type text --watch ${pkgs.cliphist}/bin/cliphist store --max-items 50";
+      cliphist-image = mkSessionService "Clipboard history (images)"
+        "${pkgs.wl-clipboard}/bin/wl-paste --type image --watch ${pkgs.cliphist}/bin/cliphist store --max-items 50";
+      wl-clip-persist = mkSessionService "Persist clipboard on app close"
+        "${pkgs.wl-clip-persist}/bin/wl-clip-persist --clipboard regular";
+      pyprland = mkSessionService "Pyprland scratchpad daemon"
+        "${pkgs.pyprland}/bin/pypr";
     };
-
-    cliphist-text = {
-      Unit = {
-        Description = "Clipboard history (text)";
-        After = [ "graphical-session.target" ];
-        PartOf = [ "graphical-session.target" ];
-      };
-      Service = {
-        ExecStart = "${pkgs.wl-clipboard}/bin/wl-paste --type text --watch ${pkgs.cliphist}/bin/cliphist store --max-items 50";
-        Restart = "on-failure";
-        RestartSec = "5s";
-      };
-      Install.WantedBy = [ "graphical-session.target" ];
-    };
-
-    cliphist-image = {
-      Unit = {
-        Description = "Clipboard history (images)";
-        After = [ "graphical-session.target" ];
-        PartOf = [ "graphical-session.target" ];
-      };
-      Service = {
-        ExecStart = "${pkgs.wl-clipboard}/bin/wl-paste --type image --watch ${pkgs.cliphist}/bin/cliphist store --max-items 50";
-        Restart = "on-failure";
-        RestartSec = "5s";
-      };
-      Install.WantedBy = [ "graphical-session.target" ];
-    };
-
-    wl-clip-persist = {
-      Unit = {
-        Description = "Persist clipboard on app close";
-        After = [ "graphical-session.target" ];
-        PartOf = [ "graphical-session.target" ];
-      };
-      Service = {
-        ExecStart = "${pkgs.wl-clip-persist}/bin/wl-clip-persist --clipboard regular";
-        Restart = "on-failure";
-        RestartSec = "5s";
-      };
-      Install.WantedBy = [ "graphical-session.target" ];
-    };
-
-    pyprland = {
-      Unit = {
-        Description = "Pyprland scratchpad daemon";
-        After = [ "graphical-session.target" ];
-        PartOf = [ "graphical-session.target" ];
-      };
-      Service = {
-        ExecStart = "${pkgs.pyprland}/bin/pypr";
-        Restart = "on-failure";
-        RestartSec = "5s";
-      };
-      Install.WantedBy = [ "graphical-session.target" ];
-    };
-  };
 
   # HyDE-inspired hyprlock layout — time top-right, greeting center, input bottom.
   programs.hyprlock = {
