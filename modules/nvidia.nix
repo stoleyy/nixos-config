@@ -11,9 +11,7 @@
       libva
       libvdpau-va-gl
     ];
-    # F12: pkgsi686Linux.nvidia-vaapi-driver removed — package has no 32-bit build,
-    # would block predator evaluation. extraPackages32 left empty for future 32-bit deps.
-    extraPackages32 = [ ];
+    # extraPackages32: empty — nvidia-vaapi-driver has no 32-bit build.
   };
 
   hardware.nvidia = {
@@ -63,15 +61,6 @@
     # exceed the default cap; the driver then prunes old entries, causing
     # recompilation stutter. Well-documented fix (DXVK #4014, GamingOnLinux).
     __GL_SHADER_DISK_CACHE_SKIP_CLEANUP = "1";
-    #
-    # REMOVED (evidence-based audit):
-    # - __GL_GSYNC_ALLOWED / __GL_VRR_ALLOWED: Hyprland controls VRR at the
-    #   DRM/KMS level (misc:vrr). These OpenGL/GLX env vars can CONFLICT with
-    #   the compositor's VRR management. Hyprland wiki recommends VRR_ALLOWED=0.
-    # - __GL_THREADED_OPTIMIZATIONS: OpenGL-only. Irrelevant for Vulkan/DXVK
-    #   (all Proton games). Can hurt perf or crash some titles (Phoronix).
-    # - __GL_YIELD=USLEEP: Solves X11-era OpenGL compositor contention.
-    #   Irrelevant on Wayland where Hyprland composites via Vulkan.
   };
 
   # PAT write-combining: ensures the driver uses Page Attribute Tables for

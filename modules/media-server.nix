@@ -22,6 +22,39 @@
 # Inter-service wiring is done through each service's WebUI.
 # Migrate to sops-nix once the age key is bootstrapped.
 
+let
+  # Common systemd hardening options shared by all media services.
+  # Per-service blocks merge this with // and override individual keys as needed.
+  hardeningDefaults = {
+    NoNewPrivileges = true;
+    PrivateTmp = true;
+    PrivateDevices = true;
+    ProtectSystem = "strict";
+    ProtectKernelModules = true;
+    ProtectKernelTunables = true;
+    ProtectKernelLogs = true;
+    ProtectControlGroups = true;
+    ProtectClock = true;
+    ProtectHostname = true;
+    ProtectProc = "invisible";
+    ProcSubset = "pid";
+    RestrictRealtime = true;
+    RestrictSUIDSGID = true;
+    RestrictNamespaces = true;
+    LockPersonality = true;
+    CapabilityBoundingSet = "";
+    SystemCallFilter = [ "@system-service" ];
+    SystemCallArchitectures = "native";
+    MemoryDenyWriteExecute = true;
+    # Default address families — *arr services and Bazarr only need these three.
+    # qBittorrent and Jellyfin extend this list below.
+    RestrictAddressFamilies = [
+      "AF_INET"
+      "AF_INET6"
+      "AF_UNIX"
+    ];
+  };
+in
 {
   # ---------- shared media group ----------
   users = {
@@ -118,212 +151,84 @@
         bindsTo = [ "wg-quick-protonvpn.service" ];
         after = [ "wg-quick-protonvpn.service" ];
         wantedBy = lib.mkForce [ ];
-        serviceConfig = {
+        serviceConfig = hardeningDefaults // {
           ProtectHome = lib.mkForce false;
           ProtectSystem = lib.mkForce "strict";
+          PrivateTmp = lib.mkForce true;
           ReadWritePaths = [
             "/var/lib/qbittorrent"
             "/home/stoleyy/games/media"
           ];
-          PrivateTmp = lib.mkForce true;
-          NoNewPrivileges = true;
-          PrivateDevices = true;
-          ProtectKernelModules = true;
-          ProtectKernelTunables = true;
-          ProtectKernelLogs = true;
-          ProtectControlGroups = true;
-          ProtectClock = true;
-          RestrictRealtime = true;
-          RestrictSUIDSGID = true;
-          LockPersonality = true;
-          RestrictNamespaces = true;
-          ProtectHostname = true;
-          ProtectProc = "invisible";
-          ProcSubset = "pid";
+          # qBittorrent needs AF_NETLINK for network interface binding (VPN).
           RestrictAddressFamilies = [
             "AF_INET"
             "AF_INET6"
             "AF_UNIX"
             "AF_NETLINK"
           ];
-          CapabilityBoundingSet = "";
-          SystemCallFilter = [ "@system-service" ];
-          SystemCallArchitectures = "native";
-          MemoryDenyWriteExecute = true;
         };
       };
 
       # Jellyfin: upstream has most hardening; add the full sandboxing stack.
       # PrivateDevices omitted — Jellyfin needs /dev/dri for NVENC GPU transcoding.
+      # MemoryDenyWriteExecute omitted: .NET CoreCLR JIT requires W+X pages.
       jellyfin = {
         wantedBy = lib.mkForce [ ];
-        serviceConfig = {
-          ProtectSystem = "strict";
+        serviceConfig = hardeningDefaults // {
+          PrivateDevices = lib.mkForce false;
+          MemoryDenyWriteExecute = lib.mkForce false;
           ReadWritePaths = [
             "/var/lib/jellyfin"
             "/home/stoleyy/games/media"
           ];
-          NoNewPrivileges = true;
-          PrivateTmp = true;
-          ProtectKernelModules = true;
-          ProtectKernelTunables = true;
-          ProtectKernelLogs = true;
-          ProtectControlGroups = true;
-          ProtectClock = true;
-          RestrictRealtime = true;
-          RestrictSUIDSGID = true;
-          LockPersonality = true;
-          RestrictNamespaces = true;
-          ProtectHostname = true;
-          ProtectProc = "invisible";
-          ProcSubset = "pid";
+          # Jellyfin needs AF_NETLINK for network interface enumeration.
           RestrictAddressFamilies = [
             "AF_INET"
             "AF_INET6"
             "AF_UNIX"
             "AF_NETLINK"
           ];
-          CapabilityBoundingSet = "";
-          SystemCallFilter = [ "@system-service" ];
-          SystemCallArchitectures = "native";
-          # MemoryDenyWriteExecute omitted: .NET CoreCLR JIT requires W+X pages
         };
       };
 
+      # MemoryDenyWriteExecute omitted for *arr/.NET/Mono JIT (W+X pages needed).
       sonarr = {
         wantedBy = lib.mkForce [ ];
-        serviceConfig = {
-          ProtectSystem = "strict";
+        serviceConfig = hardeningDefaults // {
+          MemoryDenyWriteExecute = lib.mkForce false;
           ReadWritePaths = [
             "/var/lib/sonarr"
             "/home/stoleyy/games/media"
           ];
-          NoNewPrivileges = true;
-          PrivateTmp = true;
-          PrivateDevices = true;
-          ProtectKernelModules = true;
-          ProtectKernelTunables = true;
-          ProtectKernelLogs = true;
-          ProtectControlGroups = true;
-          ProtectClock = true;
-          RestrictRealtime = true;
-          RestrictSUIDSGID = true;
-          LockPersonality = true;
-          RestrictNamespaces = true;
-          ProtectHostname = true;
-          ProtectProc = "invisible";
-          ProcSubset = "pid";
-          RestrictAddressFamilies = [
-            "AF_INET"
-            "AF_INET6"
-            "AF_UNIX"
-          ];
-          CapabilityBoundingSet = "";
-          SystemCallFilter = [ "@system-service" ];
-          SystemCallArchitectures = "native";
-          # MemoryDenyWriteExecute omitted: .NET/Mono JIT requires W+X pages
         };
       };
 
       radarr = {
         wantedBy = lib.mkForce [ ];
-        serviceConfig = {
-          ProtectSystem = "strict";
+        serviceConfig = hardeningDefaults // {
+          MemoryDenyWriteExecute = lib.mkForce false;
           ReadWritePaths = [
             "/var/lib/radarr"
             "/home/stoleyy/games/media"
           ];
-          NoNewPrivileges = true;
-          PrivateTmp = true;
-          PrivateDevices = true;
-          ProtectKernelModules = true;
-          ProtectKernelTunables = true;
-          ProtectKernelLogs = true;
-          ProtectControlGroups = true;
-          ProtectClock = true;
-          RestrictRealtime = true;
-          RestrictSUIDSGID = true;
-          LockPersonality = true;
-          RestrictNamespaces = true;
-          ProtectHostname = true;
-          ProtectProc = "invisible";
-          ProcSubset = "pid";
-          RestrictAddressFamilies = [
-            "AF_INET"
-            "AF_INET6"
-            "AF_UNIX"
-          ];
-          CapabilityBoundingSet = "";
-          SystemCallFilter = [ "@system-service" ];
-          SystemCallArchitectures = "native";
-          # MemoryDenyWriteExecute omitted: .NET/Mono JIT requires W+X pages
         };
       };
 
       prowlarr = {
         wantedBy = lib.mkForce [ ];
-        serviceConfig = {
-          ProtectSystem = "strict";
+        serviceConfig = hardeningDefaults // {
+          MemoryDenyWriteExecute = lib.mkForce false;
           ReadWritePaths = [ "/var/lib/prowlarr" ];
-          NoNewPrivileges = true;
-          PrivateTmp = true;
-          PrivateDevices = true;
-          ProtectKernelModules = true;
-          ProtectKernelTunables = true;
-          ProtectKernelLogs = true;
-          ProtectControlGroups = true;
-          ProtectClock = true;
-          RestrictRealtime = true;
-          RestrictSUIDSGID = true;
-          LockPersonality = true;
-          RestrictNamespaces = true;
-          ProtectHostname = true;
-          ProtectProc = "invisible";
-          ProcSubset = "pid";
-          RestrictAddressFamilies = [
-            "AF_INET"
-            "AF_INET6"
-            "AF_UNIX"
-          ];
-          CapabilityBoundingSet = "";
-          SystemCallFilter = [ "@system-service" ];
-          SystemCallArchitectures = "native";
-          # MemoryDenyWriteExecute omitted: .NET/Mono JIT requires W+X pages
         };
       };
 
       bazarr = {
         wantedBy = lib.mkForce [ ];
-        serviceConfig = {
-          ProtectSystem = "strict";
+        serviceConfig = hardeningDefaults // {
           ReadWritePaths = [
             "/var/lib/bazarr"
             "/home/stoleyy/games/media"
           ];
-          NoNewPrivileges = true;
-          PrivateTmp = true;
-          PrivateDevices = true;
-          ProtectKernelModules = true;
-          ProtectKernelTunables = true;
-          ProtectKernelLogs = true;
-          ProtectControlGroups = true;
-          ProtectClock = true;
-          RestrictRealtime = true;
-          RestrictSUIDSGID = true;
-          LockPersonality = true;
-          RestrictNamespaces = true;
-          ProtectHostname = true;
-          ProtectProc = "invisible";
-          ProcSubset = "pid";
-          RestrictAddressFamilies = [
-            "AF_INET"
-            "AF_INET6"
-            "AF_UNIX"
-          ];
-          CapabilityBoundingSet = "";
-          SystemCallFilter = [ "@system-service" ];
-          SystemCallArchitectures = "native";
-          MemoryDenyWriteExecute = true;
         };
       };
     };

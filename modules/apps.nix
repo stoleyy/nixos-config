@@ -47,7 +47,6 @@
     nix-output-monitor
 
     # Media
-    # easyeffects removed — owned by home-manager services.easyeffects in home/stoleyy/audio.nix
     libreoffice-fresh
 
     # VPN

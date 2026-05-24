@@ -1,15 +1,15 @@
 { pkgs, ... }:
 
 # Periodic update wiring so the system doesn't slowly turn into a
-# fossilized snapshot. Two timers:
-#   1. Weekly `nixos-rebuild boot` — pulls /etc/nixos from main and builds
-#      the next generation. Manual reboot still required (allowReboot=false).
+# fossilized snapshot. Three timers:
+#   1. Weekly `nixos-rebuild boot` (system.autoUpgrade) — pulls nixpkgs and
+#      builds the next generation. Manual reboot still required (allowReboot=false).
 #   2. Weekly `nix flake update` — bumps flake.lock for nixpkgs / home-manager
 #      / other inputs, then commits the updated lock to a branch named
 #      `auto/flake-update-<timestamp>` for review (NOT pushed automatically;
 #      /etc/nixos is left back on its original branch, working tree clean).
-#   3. Weekly nix GC — deletes store paths older than 14 days. Keeps recent
-#      generations for rollback while preventing unbounded disk growth.
+#   3. Weekly CVE scan (vulnix) — scans the running closure for known CVEs.
+#      Output goes to journal: journalctl -u vulnix-scan
 #
 # Wazuh and OPNsense are NOT auto-updated — both have plugin/version
 # compatibility surfaces that require human eyeballs on release notes.
@@ -52,17 +52,6 @@
           Persistent = true;
         };
       };
-      # Flatpak auto-update: weekly, after the flake-lock-update timer.
-      # Steam (Flatpak) and any other Flatpak apps stay current without manual pulls.
-      "flatpak-update" = {
-        description = "Weekly Flatpak update";
-        wantedBy = [ "timers.target" ];
-        timerConfig = {
-          OnCalendar = "Sun 05:00";
-          RandomizedDelaySec = "30min";
-          Persistent = true;
-        };
-      };
       "vulnix-scan" = {
         description = "Weekly CVE scan of the running NixOS closure";
         wantedBy = [ "timers.target" ];
@@ -75,13 +64,6 @@
     };
 
     services = {
-      "flatpak-update" = {
-        description = "Update all Flatpak applications";
-        serviceConfig = {
-          Type = "oneshot";
-          ExecStart = "${pkgs.flatpak}/bin/flatpak update -y --noninteractive";
-        };
-      };
       "vulnix-scan" = {
         description = "Scan running system closure for known CVEs (vulnix)";
         serviceConfig = {

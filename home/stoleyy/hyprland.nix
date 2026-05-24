@@ -95,7 +95,6 @@ in
 
   wayland.windowManager.hyprland = {
     enable = true;
-    xwayland.enable = true;
     # systemd.enable = false: exec-once is the single source of truth for service
     # startup. Avoids hyprland-session.target race conditions on NVIDIA.
     systemd.enable = false;
@@ -117,11 +116,11 @@ in
 
     settings = {
       env = [
-        "LIBVA_DRIVER_NAME,nvidia"
-        "__GLX_VENDOR_LIBRARY_NAME,nvidia"
-
-        "__GL_GSYNC_ALLOWED,1"
-        "__GL_VRR_ALLOWED,1"
+        # LIBVA_DRIVER_NAME and __GLX_VENDOR_LIBRARY_NAME are set system-wide
+        # in modules/nvidia.nix via environment.sessionVariables — no duplication.
+        # __GL_GSYNC_ALLOWED / __GL_VRR_ALLOWED removed: Hyprland controls VRR
+        # at the DRM/KMS level (misc:vrr = 2); these OpenGL env vars conflict
+        # with the compositor's VRR management (see nvidia.nix audit comment).
         "NIXOS_OZONE_WL,1"
         "MOZ_ENABLE_WAYLAND,1"
         "ELECTRON_OZONE_PLATFORM_HINT,auto"
@@ -176,11 +175,9 @@ in
         gaps_in = 3;
         gaps_out = 8;
         border_size = 2;
-        "col.active_border" = "rgba(${theme.stripHash c.green}ff) rgba(${
-          theme.stripHash c.yellow
-        }ff) 45deg";
-        "col.inactive_border" =
-          "rgba(${theme.stripHash c.bg1}cc) rgba(${theme.stripHash c.bg2}cc) 45deg";
+        "col.active_border" =
+          "rgba(${theme.stripHash c.green}ff) rgba(${theme.stripHash c.yellow}ff) 45deg";
+        "col.inactive_border" = "rgba(${theme.stripHash c.bg1}cc) rgba(${theme.stripHash c.bg2}cc) 45deg";
         layout = "dwindle";
         resize_on_border = true;
         snap.enabled = true;
@@ -194,7 +191,6 @@ in
         active_opacity = 0.90;
         inactive_opacity = 0.80;
         fullscreen_opacity = 1;
-        dim_inactive = false;
         dim_special = 0.3;
         # Blur cost scales with output area; at 4K, passes=3/size=6 burns
         # 4-6 ms/frame of the 240 Hz budget and produces visible stutter
@@ -219,7 +215,7 @@ in
         "blur, waybar"
       ];
 
-      # HyDE-inspired animation curves — wind for general, winIn/winOut for
+      # Sanctuary animation curves — wind for general, winIn/winOut for
       # open/close with distinct overshoot, liner for borders.
       animations = {
         enabled = true;
@@ -242,10 +238,7 @@ in
       };
 
       input = {
-        kb_layout = "us";
-        follow_mouse = 1;
-        sensitivity = 0;
-        accel_profile = "flat";
+        accel_profile = "flat"; # Raw input — no acceleration curve (FPS gaming standard)
       };
 
       cursor = {
@@ -347,7 +340,7 @@ in
           };
         };
 
-        # Motion trails in Sanctuary blue. Cheap visual flair on 4K@240Hz.
+        # Motion trails in Sanctuary accent. Cheap visual flair on 4K@240Hz.
         hyprtrails = {
           color = "rgba(${theme.stripHash c.green}aa)";
           bezier_step = 0.025;
@@ -355,15 +348,6 @@ in
           history_points = 20;
           history_step = 2;
         };
-      };
-
-      # Hyprland 0.46+ removed `render.explicit_sync` — it's automatic now,
-      # always on when the NVIDIA driver supports it. Removed.
-      # Hyprland 0.46+ refactored `gestures.workspace_swipe(_fingers)` away.
-      # Desktop has no touchpad anyway so the block is gone.
-
-      debug = {
-        disable_logs = true;
       };
 
       "$mod" = "SUPER";

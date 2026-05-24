@@ -6,18 +6,8 @@
 }:
 
 let
-  # Convert "#RRGGBB" to [R G B] integer list for Chromium theme JSON
-  hexToRgb =
-    hex:
-    let
-      h = builtins.substring 1 6 hex;
-    in
-    [
-      (builtins.fromTOML "v=0x${builtins.substring 0 2 h}").v
-      (builtins.fromTOML "v=0x${builtins.substring 2 2 h}").v
-      (builtins.fromTOML "v=0x${builtins.substring 4 2 h}").v
-    ];
   c = theme.colors;
+  inherit (theme) hexToRgb;
 in
 {
   imports = [

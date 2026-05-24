@@ -111,7 +111,6 @@
     };
   };
 
-  # sops-nix: decrypt secrets at activation using the host SSH Ed25519 key.
   sops = {
     defaultSopsFile = ../../secrets/secrets.yaml;
     defaultSopsFormat = "yaml";
@@ -144,11 +143,6 @@
   #   managerAddress = "wazuh.lan";
   #   registrationPasswordFile = config.sops.secrets.wazuh-agent-registration-password.path;
   # };
-
-  # Old prose note (kept for context, now stale): the previous setup used
-  # protonvpn-gui (modules/apps.nix) with credentials in SecretService.
-  # We've migrated to wg-quick above; the GUI stays installed as a fallback
-  # for ad-hoc server picking, but the main tunnel is kernel-managed.
 
   # Ensure mount-point directories exist with correct ownership before systemd
   # mounts the filesystems declared in hardware-configuration.nix.

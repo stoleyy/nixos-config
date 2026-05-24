@@ -30,7 +30,7 @@ in
       colorScheme = "DeltaruneSanctuary";
       cursor = {
         theme = "Bibata-Modern-Classic";
-        size = 24;
+        size = 32;
       };
       iconTheme = "Tela-circle-black-dark";
       clickItemTo = "open";

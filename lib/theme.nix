@@ -1,7 +1,7 @@
 # Deltarune Sanctuary — centralized theme definition.
 # Single source of truth for colors, font, and sizing across all modules.
 # Passed to HM modules via extraSpecialArgs: { theme, ... }
-rec {
+{
   font = {
     name = "JetBrainsMono Nerd Font";
     size = 13;
@@ -10,6 +10,18 @@ rec {
   # Strip the leading "#" from a hex color string: "#C8CAE0" → "C8CAE0"
   # Use in contexts that need bare hex (rgba(), Spicetify, etc.)
   stripHash = color: builtins.substring 1 6 color;
+
+  # Convert "#RRGGBB" to [R G B] integer list for Chromium theme JSON
+  hexToRgb =
+    hex:
+    let
+      h = builtins.substring 1 6 hex;
+    in
+    [
+      (builtins.fromTOML "v=0x${builtins.substring 0 2 h}").v
+      (builtins.fromTOML "v=0x${builtins.substring 2 2 h}").v
+      (builtins.fromTOML "v=0x${builtins.substring 4 2 h}").v
+    ];
 
   colors = {
     bg0 = "#000000";

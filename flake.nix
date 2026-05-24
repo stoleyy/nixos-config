@@ -57,7 +57,7 @@
     }@inputs:
     let
       system = "x86_64-linux";
-      inherit ((import ./lib { inherit inputs; })) mkHost;
+      inherit (import ./lib { inherit inputs; }) mkHost;
     in
     {
       nixosConfigurations.predator = mkHost {

@@ -1,6 +1,6 @@
 # Helper factory for declaring NixOS hosts.
 
-{ inputs, ... }:
+{ inputs }:
 
 {
   mkHost =

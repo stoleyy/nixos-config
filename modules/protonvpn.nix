@@ -133,12 +133,6 @@ in
       ];
     };
 
-    # Kill switch: install nftables rules at boot, independent of wg-quick
-    # state. Even if the tunnel never comes up, non-VPN traffic is blocked.
-    networking.firewall.extraInputRules = lib.mkIf cfg.killSwitch ''
-      # nothing extra for input — default deny-all is already in place
-    '';
-
     # Outbound kill switch via a dedicated systemd-managed nftables table.
     # Existing as a separate `table inet protonvpn_killswitch` keeps it
     # decoupled from NixOS's main firewall table — easier to inspect/disable.
