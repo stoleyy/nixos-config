@@ -41,30 +41,40 @@ let
   # ($CURRENT_IP, $BEST_IP) are literal strings in Nix — they appear
   # verbatim in the generated script and expand at runtime via the
   # unquoted heredoc.
-  rotateScript = pkgs.replaceVars ../scripts/protonvpn-rotate.sh {
-    path = binPath;
-    poolFile = toString rotateCfg.poolFile;
-    hysteresis = toString rotateCfg.hysteresisMs;
-    killswitchBoth = mkKillswitchTable [
-      "$CURRENT_IP"
-      "$BEST_IP"
-    ];
-    killswitchCurrent = mkKillswitchTable [ "$CURRENT_IP" ];
-    killswitchBest = mkKillswitchTable [ "$BEST_IP" ];
-  };
+  rotateScript = pkgs.runCommandLocal "protonvpn-rotate.sh" { } ''
+    cp ${
+      pkgs.replaceVars ../scripts/protonvpn-rotate.sh {
+        path = binPath;
+        poolFile = toString rotateCfg.poolFile;
+        hysteresis = toString rotateCfg.hysteresisMs;
+        killswitchBoth = mkKillswitchTable [
+          "$CURRENT_IP"
+          "$BEST_IP"
+        ];
+        killswitchCurrent = mkKillswitchTable [ "$CURRENT_IP" ];
+        killswitchBest = mkKillswitchTable [ "$BEST_IP" ];
+      }
+    } $out
+    chmod +x $out
+  '';
 
-  probeScript = pkgs.replaceVars ../scripts/protonvpn-probe.sh {
-    path = lib.makeBinPath (
-      with pkgs;
-      [
-        nftables
-        jq
-        wireguard-tools
-        gawk
-      ]
-    );
-    poolFile = toString rotateCfg.poolFile;
-  };
+  probeScript = pkgs.runCommandLocal "protonvpn-probe.sh" { } ''
+    cp ${
+      pkgs.replaceVars ../scripts/protonvpn-probe.sh {
+        path = lib.makeBinPath (
+          with pkgs;
+          [
+            nftables
+            jq
+            wireguard-tools
+            gawk
+          ]
+        );
+        poolFile = toString rotateCfg.poolFile;
+      }
+    } $out
+    chmod +x $out
+  '';
 in
 {
   options.modules.protonvpn.autoRotate = {
