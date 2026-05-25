@@ -51,14 +51,14 @@ in
         font-size:        16px;
       }
       window {
-        background-color: ${colors.black}EB;
+        background-color: alpha(${colors.black}, 0.92);
       }
       button {
         color:            ${colors.fg0};
-        background-color: ${colors.bg1}99;
+        background-color: alpha(${colors.bg1}, 0.6);
         border-style:     solid;
         border-width:     2px;
-        border-color:     ${colors.bg2}CC;
+        border-color:     alpha(${colors.bg2}, 0.8);
         border-radius:    14px;
         margin:           14px;
         padding:          12px;
@@ -67,7 +67,7 @@ in
       button:focus,
       button:active,
       button:hover {
-        background-color: ${colors.green}59;
+        background-color: alpha(${colors.green}, 0.35);
         border-color:     ${colors.green};
         outline-style:    none;
       }

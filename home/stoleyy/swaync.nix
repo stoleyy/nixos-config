@@ -62,9 +62,9 @@ in
 
       .control-center,
       .notification-row .notification-background {
-        background:    ${colors.bg1}F2;
+        background:    alpha(${colors.bg1}, 0.95);
         color:         ${colors.fg0};
-        border:        1px solid ${colors.green}59;
+        border:        1px solid alpha(${colors.green}, 0.35);
         border-radius: 14px;
       }
 
@@ -114,7 +114,7 @@ in
       }
 
       .widget-title button {
-        background:    ${colors.bg2}99;
+        background:    alpha(${colors.bg2}, 0.6);
         color:         ${colors.fg0};
         border:        none;
         border-radius: 8px;
@@ -123,7 +123,7 @@ in
       }
 
       .widget-title button:hover {
-        background: ${colors.green}4D;
+        background: alpha(${colors.green}, 0.3);
       }
 
       .widget-dnd > switch:checked {
@@ -132,7 +132,7 @@ in
       }
 
       .close-button {
-        background:    ${colors.green}80;
+        background:    alpha(${colors.green}, 0.5);
         color:         ${colors.fg0};
         border:        none;
         border-radius: 6px;

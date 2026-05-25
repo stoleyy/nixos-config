@@ -43,6 +43,9 @@ in
     wl-screenrec
 
     # Sidecar daily-driver tools
+    xfce.thunar # Lightweight GTK file manager
+    xfce.thunar-volman # Removable media integration
+    xfce.tumbler # Thumbnail service for Thunar
     yazi # TUI file manager (Kitty graphics-protocol previews)
     walker # Unified launcher (apps + clipboard + emoji + calc + window switch)
     rofi-bluetooth # OLED-friendly keyboard-only BT pairing
@@ -89,7 +92,24 @@ in
   # below means no HM systemd service for it).
   xdg.configFile."hypr/hypridle.conf".text = ''
     general {
+        lock_cmd = pidof hyprlock || hyprlock
+        before_sleep_cmd = loginctl lock-session
         after_sleep_cmd = hyprctl dispatch dpms on
+    }
+
+    # OLED burn-in prevention: blank the display after 5 minutes idle.
+    # More aggressive than LCD — static UI elements (waybar, workspace
+    # indicators) cause permanent damage on OLED over time.
+    listener {
+        timeout = 300
+        on-timeout = hyprctl dispatch dpms off
+        on-resume = hyprctl dispatch dpms on
+    }
+
+    # Lock after 10 minutes idle.
+    listener {
+        timeout = 600
+        on-timeout = loginctl lock-session
     }
   '';
 
@@ -137,10 +157,11 @@ in
       ];
 
       exec-once = [
-        # Signal systemd that the graphical session is live (hyprland's
-        # systemd.enable is off to avoid NVIDIA race conditions, so we
-        # activate the target manually for waybar/swaync/etc).
-        "systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP && systemctl --user start graphical-session.target"
+        # Signal systemd that the graphical session is live. systemd 258+
+        # sets RefuseManualStart=yes on graphical-session.target, so we can't
+        # start it directly. Instead we start our own hyprland-session.target
+        # which BindsTo it (defined in systemd.user.targets below).
+        "systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP && systemctl --user start hyprland-session.target"
 
         # One-shots and self-supervising daemons. Long-running services
         # are managed by systemd user units (see systemd.user.services below)
@@ -240,10 +261,14 @@ in
 
       input = {
         accel_profile = "flat"; # Raw input — no acceleration curve (FPS gaming standard)
+        sensitivity = 0; # Neutral — let the mouse DPI drive it (Superlight 2 HERO 2 sensor)
       };
 
       cursor = {
-        no_hardware_cursors = true;
+        # Hardware cursors offload cursor rendering to the GPU's display engine,
+        # saving a compositor pass each frame. Driver 580.x on NVIDIA handles
+        # this correctly now. If cursors glitch or vanish, revert to true.
+        no_hardware_cursors = false;
       };
 
       dwindle = {
@@ -355,7 +380,7 @@ in
       "$terminal" = "ghostty";
       "$browser" = "brave";
       "$launcher" = "rofi -show drun";
-      "$filemanager" = "dolphin";
+      "$filemanager" = "thunar";
 
       bind = [
         "$mod, Return, exec, $terminal"
@@ -471,6 +496,20 @@ in
         # Zen Browser — slight transparency to match the Hyprland rice.
         "opacity 0.95 override 0.90 override, class:^(zen(-browser)?)$"
       ];
+    };
+  };
+
+  # hyprland-session.target — systemd 258+ compatible session activation.
+  # graphical-session.target has RefuseManualStart=yes, so we can't start it
+  # directly from exec-once. This target acts as the bridge: exec-once starts
+  # it, and BindsTo pulls in graphical-session.target (which pulls in waybar,
+  # swaync, cliphist, etc.).
+  systemd.user.targets.hyprland-session = {
+    Unit = {
+      Description = "Hyprland compositor session";
+      BindsTo = [ "graphical-session.target" ];
+      After = [ "graphical-session-pre.target" ];
+      Wants = [ "graphical-session-pre.target" ];
     };
   };
 

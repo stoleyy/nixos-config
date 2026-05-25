@@ -1,7 +1,25 @@
-{ theme, ... }:
+{ pkgs, theme, ... }:
 
 let
   inherit (theme) colors;
+
+  gpuScript = pkgs.writeShellScript "waybar-gpu" ''
+    smi=/run/current-system/sw/bin/nvidia-smi
+    read -r temp power util <<< \
+      "$($smi --query-gpu=temperature.gpu,power.draw,utilization.gpu \
+         --format=csv,noheader,nounits 2>/dev/null | tr ',' ' ')"
+    temp=''${temp:-0}; power=''${power:-0}; util=''${util:-0}
+    printf '{"text":"󰢮 %s°C","tooltip":"GPU: %s°C | %.0fW | %s%%","class":"gpu"}\n' \
+      "$temp" "$temp" "$power" "$util"
+  '';
+
+  vpnScript = pkgs.writeShellScript "waybar-vpn" ''
+    if ${pkgs.iproute2}/bin/ip link show protonvpn &>/dev/null; then
+      printf '{"text":"󰒄","tooltip":"ProtonVPN: connected","class":"connected"}\n'
+    else
+      printf '{"text":"󰦞","tooltip":"VPN disconnected","class":"disconnected"}\n'
+    fi
+  '';
 in
 {
   programs.waybar = {
@@ -29,13 +47,15 @@ in
           "custom/separator"
           "tray"
           "custom/separator"
+          "custom/vpn"
           "network"
           "bluetooth"
           "pulseaudio"
           "custom/separator"
-          "cpu"
-          "memory"
+          "group/hardware"
           "custom/separator"
+          "disk"
+          "systemd-failed-units"
           "idle_inhibitor"
           "custom/notification"
         ];
@@ -169,22 +189,76 @@ in
           spacing = 8;
           icon-size = 14;
         };
+
+        # ── New modules ──
+
+        "custom/vpn" = {
+          exec = toString vpnScript;
+          return-type = "json";
+          interval = 10;
+          format = "{}";
+        };
+
+        "custom/gpu" = {
+          exec = toString gpuScript;
+          return-type = "json";
+          interval = 5;
+          format = "{}";
+        };
+
+        # Hardware drawer — CPU visible, mem/temp/gpu expand on hover.
+        "group/hardware" = {
+          orientation = "inherit";
+          drawer = {
+            transition-duration = 300;
+            transition-left-to-right = true;
+          };
+          modules = [
+            "cpu"
+            "memory"
+            "temperature"
+            "custom/gpu"
+          ];
+        };
+
+        temperature = {
+          interval = 5;
+          critical-threshold = 85;
+          format = " {temperatureC}°C";
+          format-critical = " {temperatureC}°C";
+        };
+
+        disk = {
+          interval = 30;
+          format = "󰋊 {percentage_used}%";
+          path = "/";
+          tooltip-format = "Root: {used} / {total} ({percentage_used}%)\nFree: {free}";
+        };
+
+        # Hidden when all units are OK — only appears on failure.
+        systemd-failed-units = {
+          hide-on-ok = true;
+          format = "  {nr_failed}";
+          format-ok = "";
+          system = true;
+          user = true;
+        };
       };
     };
 
     # Deltarune Sanctuary — floating island bar with glow accents.
     style = ''
-      @define-color bg        ${colors.black}00;
-      @define-color mod-bg    ${colors.bg1}BF;
-      @define-color mod-bg2   ${colors.bg2}8C;
+      @define-color bg        transparent;
+      @define-color mod-bg    alpha(${colors.bg1}, 0.75);
+      @define-color mod-bg2   alpha(${colors.bg2}, 0.55);
       @define-color fg        ${colors.fg0};
       @define-color fg-dim    ${colors.fg2};
       @define-color fg-bright ${colors.fg1};
       @define-color accent    ${colors.yellow};
       @define-color accent2   ${colors.green};
       @define-color accent3   ${colors.blue};
-      @define-color glow      ${colors.yellow}40;
-      @define-color glow-h    ${colors.yellow}73;
+      @define-color glow      alpha(${colors.yellow}, 0.25);
+      @define-color glow-h    alpha(${colors.yellow}, 0.45);
 
       * {
         font-family: "${theme.font.name}";
@@ -225,7 +299,7 @@ in
         border-radius: 12px;
         padding:       0 6px;
         margin:        4px 4px;
-        border:        1px solid ${colors.green}33;
+        border:        1px solid alpha(${colors.green}, 0.2);
       }
 
       #workspaces button {
@@ -247,12 +321,12 @@ in
         background:  @glow-h;
         color:       @fg;
         font-weight: bold;
-        border:      1px solid ${colors.yellow}66;
+        border:      1px solid alpha(${colors.yellow}, 0.4);
         box-shadow:  0 0 8px @glow;
       }
 
       #workspaces button.urgent {
-        background: ${colors.red}80;
+        background: alpha(${colors.red}, 0.5);
         color:      @fg;
       }
 
@@ -264,7 +338,7 @@ in
         margin:        4px 4px;
         color:         @fg-dim;
         font-style:    italic;
-        border:        1px solid ${colors.green}26;
+        border:        1px solid alpha(${colors.green}, 0.15);
       }
 
       /* ── Clock (center island) ── */
@@ -276,8 +350,8 @@ in
         color:         @accent;
         font-weight:   bold;
         font-size:     14px;
-        border:        1px solid ${colors.yellow}40;
-        box-shadow:    0 0 12px ${colors.yellow}26;
+        border:        1px solid alpha(${colors.yellow}, 0.25);
+        box-shadow:    0 0 12px alpha(${colors.yellow}, 0.15);
       }
 
       /* ── Right modules (shared base) ── */
@@ -299,7 +373,7 @@ in
       /* ── Separator (thin dim pipe) ── */
       #custom-separator {
         background: @mod-bg;
-        color:      ${colors.muted}66;
+        color:      alpha(${colors.muted}, 0.4);
         padding:    0 2px;
         margin:     4px 0;
         font-size:  10px;
@@ -311,7 +385,7 @@ in
         margin-left:   4px;
         padding:       0 14px;
         color:         @accent;
-        border:        1px solid ${colors.yellow}26;
+        border:        1px solid alpha(${colors.yellow}, 0.15);
       }
 
       /* ── Tray ── */
@@ -381,11 +455,52 @@ in
       }
 
       #clock:hover {
-        box-shadow: 0 0 16px ${colors.yellow}59;
+        box-shadow: 0 0 16px alpha(${colors.yellow}, 0.35);
       }
 
       #workspaces button.active:hover {
         box-shadow: 0 0 14px @glow-h;
+      }
+
+      /* ── VPN indicator ── */
+      #custom-vpn {
+        background: @mod-bg;
+        padding:    0 8px;
+        margin:     4px 0;
+        border-radius: 12px 0 0 12px;
+      }
+      #custom-vpn.connected { color: @accent2; }
+      #custom-vpn.disconnected { color: ${colors.red}; }
+
+      /* ── GPU (inside drawer) ── */
+      #custom-gpu {
+        color: @fg-dim;
+      }
+
+      /* ── Temperature ── */
+      #temperature {
+        color: @fg-dim;
+      }
+      #temperature.critical {
+        color: ${colors.red};
+      }
+
+      /* ── Disk ── */
+      #disk {
+        background:    @mod-bg;
+        padding:       0 10px;
+        margin:        4px 0;
+        border-radius: 12px 0 0 12px;
+        color:         @fg-dim;
+      }
+
+      /* ── Failed units (only visible when degraded) ── */
+      #systemd-failed-units.degraded {
+        background: @mod-bg;
+        padding:    0 10px;
+        margin:     4px 0;
+        color:      ${colors.red};
+        font-weight: bold;
       }
     '';
   };

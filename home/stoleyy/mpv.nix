@@ -13,6 +13,29 @@ _:
 #   when the output is in HDR mode — the closest Plasma has to Windows
 #   "Auto HDR" for video. No-op when watching native HDR / when KWin is
 #   in SDR mode.
+let
+  videoTypes = [
+    "video/mp4"
+    "video/x-matroska"
+    "video/webm"
+    "video/avi"
+    "video/x-msvideo"
+    "video/x-flv"
+    "video/quicktime"
+    "video/mpeg"
+    "video/ogg"
+    "video/3gpp"
+    "video/3gpp2"
+    "video/x-m4v"
+    "video/mp2t"
+  ];
+  mpvAssoc = builtins.listToAttrs (
+    map (t: {
+      name = t;
+      value = "mpv.desktop";
+    }) videoTypes
+  );
+in
 {
   programs.mpv = {
     enable = true;
@@ -29,5 +52,26 @@ _:
       video-sync = "display-resample";
       deband = "yes";
     };
+  };
+
+  xdg.mimeApps = {
+    enable = true;
+    defaultApplications = mpvAssoc;
+  };
+
+  xdg.desktopEntries.mpv = {
+    name = "mpv Media Player";
+    genericName = "Multimedia Player";
+    exec = "mpv -- %U";
+    icon = "mpv";
+    terminal = false;
+    type = "Application";
+    categories = [
+      "AudioVideo"
+      "Audio"
+      "Video"
+      "Player"
+    ];
+    mimeType = videoTypes;
   };
 }
