@@ -46,6 +46,8 @@
     libreoffice-fresh
 
     # VPN
+    vopono # ephemeral per-app VPN namespaces: `vopono exec --provider custom firefox`
+
     # Proton's official GTK client. Drives kernel WireGuard through
     # NetworkManager (proton-vpn-network-manager is bundled), so the data
     # path is the in-kernel `wireguard` module — same as wg-quick — with the

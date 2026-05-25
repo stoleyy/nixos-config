@@ -1,4 +1,4 @@
-# Kernel package, sysctl tuning, THP, and NVMe I/O scheduler.
+# Kernel package, sysctl tuning, THP, NVMe I/O scheduler, sched-ext.
 { pkgs, config, ... }:
 
 {
@@ -124,4 +124,13 @@
   services.udev.extraRules = ''
     ACTION=="add|change", KERNEL=="nvme[0-9]n[0-9]", ATTR{queue/scheduler}="none"
   '';
+
+  # sched-ext (SCHED_CLASS_EXT) — pluggable BPF schedulers for Linux 6.12+.
+  # scx_lavd is the latency-aware variant: prioritises interactive/gaming threads
+  # over background work (builds, downloads). Lower input latency on i7-13700K.
+  # Confirm via: zgrep SCHED_CLASS_EXT /proc/config.gz
+  services.scx = {
+    enable = true;
+    scheduler = "scx_lavd";
+  };
 }

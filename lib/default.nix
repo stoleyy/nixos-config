@@ -54,6 +54,8 @@
         ../modules/protonvpn-rotate.nix # quality-based server rotation
         ../modules/containers.nix # Podman/OCI runtime
         ../modules/media-server.nix # Jellyfin, *arr stack, qBittorrent
+        ../modules/monitoring.nix # ntfy, beszel, gatus, vector
+        ../modules/transcode.nix # systemd.paths NVENC watch folder
         ../modules/update-routines.nix # weekly rebuild, flake bump, vulnix
 
         # ── External modules ──

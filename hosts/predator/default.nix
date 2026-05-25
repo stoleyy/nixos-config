@@ -9,6 +9,23 @@
 {
   imports = [ ./hardware-configuration.nix ];
 
+  # ── Build-time assertions — catch real pitfalls at eval, not at boot ──
+  assertions = [
+    {
+      # LOAD-BEARING: Intel VMD must be force-loaded in initrd for root NVMe
+      # discovery on this board. Moving it to availableKernelModules or removing
+      # it = unbootable system (PR #8 bricked, #14 fixed). See CLAUDE.md.
+      assertion = builtins.elem "vmd" config.boot.initrd.kernelModules;
+      message = "CRITICAL: 'vmd' missing from boot.initrd.kernelModules — system will not boot (NVMe root unreachable)";
+    }
+    {
+      # ProtonVPN kill-switch relies on nftables. If someone switches to iptables,
+      # the killswitch rules silently don't apply.
+      assertion = config.networking.nftables.enable;
+      message = "nftables must be enabled — ProtonVPN kill-switch and media-server firewall rules require it";
+    }
+  ];
+
   boot.loader = {
     systemd-boot = {
       enable = true;

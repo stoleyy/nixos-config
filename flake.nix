@@ -47,6 +47,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Multi-language formatter — `nix fmt` runs nixfmt + shfmt in one pass;
+    # `nix flake check` catches unformatted files.
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
   };
 
   outputs =
@@ -57,7 +64,18 @@
     }@inputs:
     let
       system = "x86_64-linux";
+      pkgs = nixpkgs.legacyPackages.${system};
       inherit (import ./lib { inherit inputs; }) mkHost;
+
+      # treefmt: unified `nix fmt` for nix + shell files, with `nix flake check` integration.
+      treefmtEval = inputs.treefmt-nix.lib.evalModule pkgs {
+        projectRootFile = "flake.nix";
+        programs = {
+          nixfmt.enable = true; # nixfmt-rfc-style
+          shfmt.enable = true; # POSIX/Bash formatter
+          statix.enable = true; # Nix linter/fixer
+        };
+      };
     in
     {
       nixosConfigurations.predator = mkHost {
@@ -71,7 +89,11 @@
         ];
       };
 
-      formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt-rfc-style;
+      # `nix fmt` — runs nixfmt + shfmt + statix in one pass.
+      formatter.${system} = treefmtEval.config.build.wrapper;
+
+      # `nix flake check` — catches unformatted/unlinted files.
+      checks.${system}.formatting = treefmtEval.config.build.check inputs.self;
 
       # Local dev/lint harness. Enter with `nix develop`.
       # - Eval + LSP:     nixd, nil
@@ -80,8 +102,8 @@
       # - Search:         manix (option lookup)
       # - Build UX:       nix-output-monitor (pretty build logs)
       # - Security:       vulnix (CVE scan), gitleaks (secrets), shellcheck (hooks)
-      devShells.${system}.default = nixpkgs.legacyPackages.${system}.mkShell {
-        packages = with nixpkgs.legacyPackages.${system}; [
+      devShells.${system}.default = pkgs.mkShell {
+        packages = with pkgs; [
           nixd
           nil
           nixfmt-rfc-style
@@ -97,6 +119,7 @@
           shellcheck
           flake-checker
           sops
+          nurl # URL → fetchFromGitHub/fetchurl with correct hash
         ];
       };
     };

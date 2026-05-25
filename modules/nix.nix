@@ -22,6 +22,12 @@ _:
       auto-optimise-store = true;
       keep-outputs = true;
       keep-derivations = true;
+
+      # Cache resilience — prevent builds stalling on a downed substituter.
+      # Nix's next-substituter fallback degrades on TCP-refused (NixOS/nix#6901);
+      # a 5 s connect-timeout is mandatory mitigation for sometimes-on caches.
+      connect-timeout = 5;
+      fallback = true;
     };
 
     optimise = {

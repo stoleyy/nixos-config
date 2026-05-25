@@ -176,4 +176,27 @@
   # an unsandboxed service account) can't even invoke sudo to attempt privesc.
   # stoleyy is in `wheel` already (see modules/base.nix users.users.stoleyy).
   security.sudo.execWheelOnly = true;
+
+  # USBGuard — block unknown USB devices by default, allowlist known peripherals.
+  # New devices are rejected until explicitly allowed with `usbguard allow-device <id>`.
+  # Minor annoyance when plugging in new hardware = feature, not bug.
+  services.usbguard = {
+    enable = true;
+    # Default policy for devices plugged in after boot.
+    insertedDevicePolicy = "reject";
+    # Devices present at boot are allowed (root hubs, built-in controllers).
+    presentDevicePolicy = "allow";
+    presentControllerPolicy = "allow";
+    # Initial allowlist — generated from `lsusb` on this box (2026-05-24).
+    # Format: allow id <vendor>:<product> name "<desc>"
+    rules = ''
+      allow id 1d6b:0002 name "Linux Foundation 2.0 root hub" with-interface equals { 09:00:00 }
+      allow id 1d6b:0003 name "Linux Foundation 3.0 root hub" with-interface equals { 09:00:00 }
+      allow id 046d:c54d name "Logitech USB Receiver"
+      allow id 0461:4e99 name "Acer Elite USB Keyboard"
+      allow id 8087:0033 name "Intel AX211 Bluetooth"
+    '';
+    IPCAllowedUsers = [ "root" ];
+    IPCAllowedGroups = [ "wheel" ];
+  };
 }

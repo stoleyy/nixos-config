@@ -1,4 +1,5 @@
 # NVIDIA proprietary driver — production track, open=false (Ada workaround), VAAPI, Vulkan, modesetting.
+# Also: LACT GPU monitor daemon, adaptive TDP timer.
 {
   config,
   pkgs,
@@ -83,4 +84,35 @@
     options nvidia NVreg_UsePageAttributeTable=1
   '';
 
+  # LACT — persistent GPU monitoring daemon (clocks, fans, power, temp history).
+  # On NVIDIA: monitoring + CLI control; full undervolt/OC is AMD-only.
+  services.lact.enable = true;
+
+  # Adaptive TDP — poll GPU temp every 30 s, throttle power limit when hot.
+  # RTX 4070 valid range: 100–200 W (nvidia-smi reports this). 200 W is stock
+  # TDP; 160 W drops ~5% perf but keeps the GPU well under thermal throttle
+  # on the G80SD's 4K@240Hz during extended sessions.
+  systemd.services.nvidia-tdp = {
+    description = "NVIDIA adaptive TDP (temp-reactive power limit)";
+    after = [ "nvidia-persistenced.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = pkgs.writeShellScript "nvidia-tdp" ''
+        smi=/run/current-system/sw/bin/nvidia-smi
+        temp=$($smi --query-gpu=temperature.gpu --format=csv,noheader 2>/dev/null || echo 0)
+        if [ "$temp" -gt 75 ]; then
+          $smi -pl 160
+        else
+          $smi -pl 200
+        fi
+      '';
+    };
+  };
+  systemd.timers.nvidia-tdp = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnBootSec = "30s";
+      OnUnitActiveSec = "30s";
+    };
+  };
 }
