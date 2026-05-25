@@ -89,11 +89,46 @@
         ];
       };
 
+      # Disaster recovery installer ISO — `nix build .#installer`
+      # Boots with NetworkManager, SSH, sops, disko tools pre-installed.
+      nixosConfigurations.installer = nixpkgs.lib.nixosSystem {
+        inherit system;
+        modules = [ ./hosts/predator/installer.nix ];
+      };
+      packages.${system}.installer =
+        inputs.self.nixosConfigurations.installer.config.system.build.isoImage;
+
       # `nix fmt` — runs nixfmt + shfmt + statix in one pass.
       formatter.${system} = treefmtEval.config.build.wrapper;
 
       # `nix flake check` — catches unformatted/unlinted files.
       checks.${system}.formatting = treefmtEval.config.build.check inputs.self;
+
+      # `nix run .#<app>` — operational commands as flake apps.
+      # Discoverable via `nix flake show`.
+      apps.${system} =
+        let
+          flakeRef = "/etc/nixos#predator";
+          mkApp = name: script: {
+            type = "app";
+            program = toString (pkgs.writeShellScript name script);
+          };
+        in
+        {
+          rebuild = mkApp "rebuild" "sudo nixos-rebuild switch --flake ${flakeRef}";
+          test = mkApp "test-config" "sudo nixos-rebuild test --flake ${flakeRef}";
+          diff = mkApp "diff-config" ''
+            new=$(nixos-rebuild build --flake ${flakeRef} --no-link --print-out-paths 2>/dev/null)
+            ${pkgs.nvd}/bin/nvd diff /run/current-system "$new"
+          '';
+          gc = mkApp "gc" ''sudo ${pkgs.nh}/bin/nh clean all --keep "''${1:-3}"'';
+          audit = mkApp "audit" ''
+            echo "=== CVE scan ===" && ${pkgs.vulnix}/bin/vulnix -S 2>/dev/null || true
+            echo "=== Secrets ===" && ${pkgs.gitleaks}/bin/gitleaks detect --no-banner --no-git -s /etc/nixos 2>/dev/null || true
+            echo "=== Failed units ===" && systemctl --failed
+            echo "=== Closure size ===" && nix path-info -Sh /run/current-system
+          '';
+        };
 
       # Local dev/lint harness. Enter with `nix develop`.
       # - Eval + LSP:     nixd, nil
@@ -103,6 +138,19 @@
       # - Build UX:       nix-output-monitor (pretty build logs)
       # - Security:       vulnix (CVE scan), gitleaks (secrets), shellcheck (hooks)
       devShells.${system}.default = pkgs.mkShell {
+        # Pre-commit hook: install once with `nix develop`, then `install-hooks`.
+        # Runs treefmt on staged files before each commit.
+        shellHook = ''
+          install-hooks() {
+            mkdir -p .git/hooks
+            cat > .git/hooks/pre-commit <<'HOOK'
+          #!/bin/sh
+          exec nix fmt 2>/dev/null
+          HOOK
+            chmod +x .git/hooks/pre-commit
+            echo "Pre-commit hook installed."
+          }
+        '';
         packages = with pkgs; [
           nixd
           nil

@@ -29,6 +29,14 @@ in
           device = 1;
           nv_powermizer_mode = 1; # force NVIDIA powermizer to max-perf while gaming
         };
+        # GPU clock unlock: signal the nvidia-undervolt timer (modules/nvidia.nix)
+        # to release the clock lock while gaming. The timer picks up the flag
+        # within 15 s and unlocks full boost (210-3105 MHz).
+        # No sudo needed — the flag file is the only IPC.
+        custom = {
+          start = "${pkgs.coreutils}/bin/touch ${host.gamemodeFlagFile}";
+          end = "${pkgs.coreutils}/bin/rm -f ${host.gamemodeFlagFile}";
+        };
       };
     };
 

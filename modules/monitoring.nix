@@ -1,9 +1,15 @@
 # Self-monitoring: ntfy notifications on failure, beszel metrics hub, gatus service probes, vector log pipeline.
-{ pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 let
-  # Services that should notify on failure. Each gets unitConfig.OnFailure
-  # pointing to the ntfy notification template below.
+  ntfyUrl = "http://localhost:2586";
+  hostname = config.networking.hostName;
+
   monitoredServices = [
     "wg-quick-protonvpn"
     "protonvpn-rotate"
@@ -15,7 +21,7 @@ let
     "qbittorrent"
     "bazarr"
     "ollama"
-    "nvidia-tdp"
+    "nvidia-undervolt"
     "nvidia-persistenced"
     "lact"
     "scx"
@@ -26,35 +32,41 @@ let
       name: lib.nameValuePair name { unitConfig.OnFailure = [ "ntfy-failure@%n.service" ]; }
     ) monitoredServices
   );
+
+  # Gatus endpoint factory — eliminates the 6 near-identical HTTP blocks.
+  mkHttpEndpoint =
+    { name, port }:
+    {
+      inherit name;
+      url = "http://localhost:${toString port}";
+      interval = "5m";
+      conditions = [ "[STATUS] == any(200, 302)" ];
+    };
 in
 {
   # ── ntfy-sh: local push notification server ──
-  # Receives failure alerts from systemd units via the template below.
   # Web UI at http://localhost:2586, subscribe to "alerts" topic.
   # Mobile: install ntfy app, point at http://<LAN-IP>:2586, subscribe to "alerts".
   services.ntfy-sh = {
     enable = true;
     settings = {
       listen-http = ":2586";
-      base-url = "http://localhost:2586";
+      base-url = ntfyUrl;
     };
   };
 
-  # ── OnFailure notification template + monitored service overrides ──
-  # ntfy-failure@<unit>.service is instantiated by systemd when a monitored
-  # unit fails. %i expands to the failed unit name.
+  # ── OnFailure notification template ──
   systemd.services = monitorOverrides // {
     "ntfy-failure@" = {
       description = "Notify on failure of %i";
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = "${pkgs.curl}/bin/curl -s -d 'Unit %i failed on predator' -H 'Title: Service Failure' -H 'Priority: high' -H 'Tags: rotating_light' http://localhost:2586/alerts";
+        ExecStart = "${pkgs.curl}/bin/curl -s -d 'Unit %i failed on ${hostname}' -H 'Title: Service Failure' -H 'Priority: high' -H 'Tags: rotating_light' ${ntfyUrl}/alerts";
       };
     };
   };
 
   # ── Beszel: lightweight monitoring hub + agent ──
-  # Single-host setup: hub serves the dashboard, agent reports metrics.
   # Dashboard at http://localhost:8090 (first visit creates admin account).
   #
   # First-time setup:
@@ -70,74 +82,47 @@ in
     agent = {
       enable = true;
       smartmon.enable = true;
-      # KEY comes from the hub after adding a system. Agent won't start
-      # until this file exists and contains KEY=<ssh-ed25519 ...>.
       environmentFile = "/etc/beszel-agent.env";
     };
   };
 
   # ── Gatus: declarative service health probes ──
   # Status page at http://localhost:8080.
+  # Media services are on-demand (wantedBy=[]) — Gatus only probes always-on services.
+  # OnFailure handles media service crash alerts instead.
   services.gatus = {
     enable = true;
     settings = {
       web.port = 8080;
-      endpoints = [
-        {
-          name = "Jellyfin";
-          url = "http://localhost:8096";
-          interval = "5m";
-          conditions = [ "[STATUS] == any(200, 302)" ];
-        }
-        {
-          name = "Sonarr";
-          url = "http://localhost:8989";
-          interval = "5m";
-          conditions = [ "[STATUS] == any(200, 302)" ];
-        }
-        {
-          name = "Radarr";
-          url = "http://localhost:7878";
-          interval = "5m";
-          conditions = [ "[STATUS] == any(200, 302)" ];
-        }
-        {
-          name = "Prowlarr";
-          url = "http://localhost:9696";
-          interval = "5m";
-          conditions = [ "[STATUS] == any(200, 302)" ];
-        }
-        {
-          name = "qBittorrent";
-          url = "http://localhost:6881";
-          interval = "5m";
-          conditions = [ "[STATUS] == any(200, 302)" ];
-        }
-        {
-          name = "Bazarr";
-          url = "http://localhost:6767";
-          interval = "5m";
-          conditions = [ "[STATUS] == any(200, 302)" ];
-        }
-        {
-          name = "Ollama";
-          url = "http://localhost:11434";
-          interval = "5m";
-          conditions = [ "[STATUS] == 200" ];
-        }
-        {
-          name = "DNS (Quad9)";
-          url = "9.9.9.9";
-          dns = {
-            query-name = "cloudflare.com";
-            query-type = "A";
-          };
-          interval = "2m";
-          conditions = [ "[DNS_RCODE] == NOERROR" ];
-        }
-      ];
+      endpoints =
+        map mkHttpEndpoint [
+          {
+            name = "Ollama";
+            port = 11434;
+          }
+          {
+            name = "Beszel Hub";
+            port = 8090;
+          }
+          {
+            name = "ntfy";
+            port = 2586;
+          }
+        ]
+        ++ [
+          {
+            name = "DNS";
+            url = "9.9.9.9";
+            dns = {
+              query-name = "cloudflare.com";
+              query-type = "A";
+            };
+            interval = "2m";
+            conditions = [ "[DNS_RCODE] == NOERROR" ];
+          }
+        ];
       alerting.ntfy = {
-        url = "http://localhost:2586";
+        url = ntfyUrl;
         topic = "alerts";
         default-alert = {
           enabled = true;
@@ -150,8 +135,7 @@ in
   };
 
   # ── Vector: structured log pipeline ──
-  # Tails systemd journal, enriches with unit metadata, writes to
-  # /var/log/vector/ as structured JSON. Validated at build time.
+  # Tails journald (priority ≤ 4) → structured JSON at /var/log/vector/.
   services.vector = {
     enable = true;
     journaldAccess = true;
@@ -177,7 +161,6 @@ in
     };
   };
 
-  # Ensure vector log directory exists.
   systemd.tmpfiles.rules = [
     "d /var/log/vector 0750 vector vector -"
   ];

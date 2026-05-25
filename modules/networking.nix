@@ -26,7 +26,7 @@ _:
   };
 
   # ── DNS architecture ──
-  # dnscrypt-proxy (port 5353) → latency-ranked resolver pool via wp2 algorithm.
+  # dnscrypt-proxy (port 5300) → latency-ranked resolver pool via wp2 algorithm.
   # systemd-resolved (port 53) → local cache, DNSSEC validation, forwards to dnscrypt.
   # This gives us adaptive multi-resolver selection (zero custom code) PLUS
   # local caching and DNSSEC, without losing Quad9's threat-blocking.

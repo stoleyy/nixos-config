@@ -88,31 +88,58 @@
   # On NVIDIA: monitoring + CLI control; full undervolt/OC is AMD-only.
   services.lact.enable = true;
 
-  # Adaptive TDP — poll GPU temp every 30 s, throttle power limit when hot.
-  # RTX 4070 valid range: 100–200 W (nvidia-smi reports this). 200 W is stock
-  # TDP; 160 W drops ~5% perf but keeps the GPU well under thermal throttle
-  # on the G80SD's 4K@240Hz during extended sessions.
-  systemd.services.nvidia-tdp = {
-    description = "NVIDIA adaptive TDP (temp-reactive power limit)";
-    after = [ "nvidia-persistenced.service" ];
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = pkgs.writeShellScript "nvidia-tdp" ''
-        smi=/run/current-system/sw/bin/nvidia-smi
-        temp=$($smi --query-gpu=temperature.gpu --format=csv,noheader 2>/dev/null || echo 0)
-        if [ "$temp" -gt 75 ]; then
-          $smi -pl 160
-        else
-          $smi -pl 200
-        fi
-      '';
+  # Adaptive GPU undervolt — clock lock + GameMode unlock + state cache.
+  #
+  # Three states, polled every 15 s (skips re-apply if unchanged):
+  #   Gaming (flag):    full clocks (210-3105), 200 W — GameMode sets the flag
+  #   Normal (<75°C):   210-2100 MHz, 200 W — daily undervolt
+  #   Hot    (≥75°C):   210-1800 MHz, 160 W — thermal safety net
+  #
+  # RTX 4070 power range: 100-200 W. Clock range: 210-3105 MHz.
+  systemd.services.nvidia-undervolt =
+    let
+      smi = "/run/current-system/sw/bin/nvidia-smi";
+      cache = "/tmp/nvidia-undervolt-state";
+    in
+    {
+      description = "NVIDIA adaptive undervolt (clock lock + power limit)";
+      after = [ "nvidia-persistenced.service" ];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = pkgs.writeShellScript "nvidia-undervolt" ''
+          temp=$(${smi} --query-gpu=temperature.gpu --format=csv,noheader 2>/dev/null || echo 0)
+
+          if [ -f "${host.gamemodeFlagFile}" ]; then
+            state=gaming
+          elif [ "$temp" -gt 75 ]; then
+            state=hot
+          else
+            state=normal
+          fi
+
+          # Skip if state hasn't changed since last run.
+          [ "$state" = "$(cat ${cache} 2>/dev/null)" ] && exit 0
+
+          case $state in
+            gaming) ${smi} -rgc;          ${smi} -pl 200 ;;
+            hot)    ${smi} -lgc 210,1800; ${smi} -pl 160 ;;
+            normal) ${smi} -lgc 210,2100; ${smi} -pl 200 ;;
+          esac
+          echo "$state" > ${cache}
+        '';
+        ExecStop = pkgs.writeShellScript "nvidia-undervolt-reset" ''
+          ${smi} -rgc
+          ${smi} -rpl
+          rm -f ${cache}
+        '';
+        RemainAfterExit = true;
+      };
     };
-  };
-  systemd.timers.nvidia-tdp = {
+  systemd.timers.nvidia-undervolt = {
     wantedBy = [ "timers.target" ];
     timerConfig = {
-      OnBootSec = "30s";
-      OnUnitActiveSec = "30s";
+      OnBootSec = "15s";
+      OnUnitActiveSec = "15s";
     };
   };
 }
