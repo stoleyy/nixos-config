@@ -249,7 +249,7 @@
       # Without it gamescope cannot find a display when launched as a
       # standalone session (exits code 1 instantly).
       #
-      # --prefer-output pins the connector (only HDMI-A-1 is connected).
+      # --prefer-output pins the connector (DP-2).
       # --prefer-vk-device selects the RTX 4070 (10de:2786) for Vulkan
       # compositing, skipping the simpledrm device.
       #
@@ -259,7 +259,7 @@
       # Re-enable after NVIDIA ships DRM HDR support (driver 570+ had
       # partial; watch for full atomic HDR in 585+/open-gpu-kernel-modules).
       #
-      # --adaptive-sync: VRR works in Hyprland on this HDMI 2.1 link.
+      # --adaptive-sync: VRR / G-Sync Compatible works natively on DP.
       # gamescope DRM backend may or may not honour it — left enabled;
       # if it causes issues remove it (session will still boot).
       programs.steam.gamescopeSession = {
@@ -267,7 +267,7 @@
           "--backend"
           "drm"
           "--prefer-output"
-          "HDMI-A-1"
+          "DP-2"
           "--prefer-vk-device"
           "10de:2786"
           "--output-width"

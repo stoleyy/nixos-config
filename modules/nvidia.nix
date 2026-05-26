@@ -68,6 +68,12 @@
     # exceed the default cap; the driver then prunes old entries, causing
     # recompilation stutter. Well-documented fix (DXVK #4014, GamingOnLinux).
     __GL_SHADER_DISK_CACHE_SKIP_CLEANUP = "1";
+    # Cap pre-render queue to 1 frame — reduces input latency by ~4-8 ms at
+    # 240 Hz. Slight throughput tradeoff but imperceptible at this refresh rate.
+    __GL_MaxFramesAllowed = "1";
+    # Prevent the driver from busy-waiting on vsync; uses usleep() instead,
+    # freeing CPU cycles on the i7-13700K for game threads.
+    __GL_YIELD = "USLEEP";
   };
 
   # PAT write-combining: ensures the driver uses Page Attribute Tables for

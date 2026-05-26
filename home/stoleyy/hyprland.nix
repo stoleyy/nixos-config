@@ -167,9 +167,7 @@ in
         # are managed by systemd user units (see systemd.user.services below)
         # for automatic crash restart.
 
-        # Wallpaper Engine wallpaper (workshop ID 3510055857) via the native
-        # linux-wallpaperengine. Pinned to HDMI-A-1; --silent mutes audio.
-        "linux-wallpaperengine --silent --screen-root HDMI-A-1 3510055857"
+        # Wallpaper Engine: managed by systemd (see systemd.user.services below).
         # waybar managed by systemd (programs.waybar.systemd.enable in waybar.nix)
         "nm-applet --indicator"
         "cliphist wipe"
@@ -186,10 +184,10 @@ in
       ];
 
       monitor = [
-        # Samsung Odyssey OLED G80SD on HDMI-A-1: 4K @ 240 Hz, 10-bit colour.
-        # HDMI 2.1 with DSC is required to carry 4K@240@10bit; the RTX 4070 +
-        # G80SD support it. If the link can't sustain 10-bit, drop `,bitdepth,10`.
-        "HDMI-A-1,3840x2160@240,auto,1,bitdepth,10"
+        # Samsung Odyssey OLED G80SD on DP-2: 4K @ 240 Hz, 10-bit colour.
+        # DP 1.4 with DSC carries 4K@240@10bit natively. If the link can't
+        # sustain 10-bit, drop `,bitdepth,10`.
+        "DP-2,3840x2160@240,auto,1,bitdepth,10"
         # Wildcard fallback for any other connected output.
         ",preferred,auto,1"
       ];
@@ -262,6 +260,7 @@ in
       input = {
         accel_profile = "flat"; # Raw input — no acceleration curve (FPS gaming standard)
         sensitivity = 0; # Neutral — let the mouse DPI drive it (Superlight 2 HERO 2 sensor)
+        scroll_factor = 3.0; # 3x scroll distance per wheel notch
       };
 
       cursor = {
@@ -485,8 +484,13 @@ in
         "keepaspectratio, title:^(Picture-in-Picture)$"
         "float, class:^(xdg-desktop-portal-gtk)$"
         "size 70% 70%, class:^(xdg-desktop-portal-gtk)$"
-        # Tearing path for Steam game windows — lower input latency.
+        # Tearing path — lower input latency for all games (Steam, Wine, Lutris,
+        # gamescope, non-Steam games added via game-install pipeline).
         "immediate, class:^(steam_app_.*)$"
+        "immediate, class:^(wine)$"
+        "immediate, class:^(lutris)$"
+        "immediate, class:^(gamescope)$"
+        "immediate, class:^(.*.exe)$"
         # Force full opacity on video/media players.
         "opacity 1.0 override 1.0 override, class:^(mpv)$"
         "opacity 1.0 override 1.0 override, class:^(vlc)$"
@@ -542,6 +546,25 @@ in
       cliphist-image = mkSessionService "Clipboard history (images)" "${pkgs.wl-clipboard}/bin/wl-paste --type image --watch ${pkgs.cliphist}/bin/cliphist store --max-items 50";
       wl-clip-persist = mkSessionService "Persist clipboard on app close" "${pkgs.wl-clip-persist}/bin/wl-clip-persist --clipboard regular";
       pyprland = mkSessionService "Pyprland scratchpad daemon" "${pkgs.pyprland}/bin/pypr";
+      wallpaper-engine = {
+        Unit = {
+          Description = "Wallpaper Engine (linux-wallpaperengine)";
+          After = [ "hyprland-session.target" ];
+          PartOf = [ "hyprland-session.target" ];
+          StartLimitBurst = 5;
+          StartLimitIntervalSec = 60;
+        };
+        Service = {
+          Environment = [
+            "XDG_SESSION_TYPE=wayland"
+            "XDG_CURRENT_DESKTOP=Hyprland"
+          ];
+          ExecStart = "${pkgs.linux-wallpaperengine}/bin/linux-wallpaperengine --silent --screen-root DP-2 3510055857";
+          Restart = "on-failure";
+          RestartSec = "5s";
+        };
+        Install.WantedBy = [ "hyprland-session.target" ];
+      };
     };
 
   # HyDE-inspired hyprlock layout — time top-right, greeting center, input bottom.
