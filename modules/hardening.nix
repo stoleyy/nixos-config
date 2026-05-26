@@ -88,6 +88,10 @@
       # Prevent auto-loading of TTY line disciplines — kernel exploit vector
       # (e.g. SLCAN, N_GSM). Lynis KRNL-6000.
       "dev.tty.ldisc_autoload" = 0;
+
+      # KSPP: restrict perf_event to root — prevents unprivileged profiling
+      # of kernel memory addresses, strengthening kptr_restrict=2 above.
+      "kernel.perf_event_paranoid" = 3;
     };
 
     # F-20: boot params that harden even the stock kernel.
@@ -155,6 +159,28 @@
       install sctp /bin/true
       install rds /bin/true
       install tipc /bin/true
+      install ax25 /bin/true
+      install netrom /bin/true
+      install rose /bin/true
+      install adfs /bin/true
+      install affs /bin/true
+      install bfs /bin/true
+      install befs /bin/true
+      install cramfs /bin/true
+      install efs /bin/true
+      install exofs /bin/true
+      install freevxfs /bin/true
+      install f2fs /bin/true
+      install hfs /bin/true
+      install hpfs /bin/true
+      install jfs /bin/true
+      install minix /bin/true
+      install nilfs2 /bin/true
+      install omfs /bin/true
+      install qnx4 /bin/true
+      install qnx6 /bin/true
+      install sysv /bin/true
+      install ufs /bin/true
       install n_gsm /bin/true
       install n_hdlc /bin/true
       install can_raw /bin/true
@@ -195,6 +221,15 @@
       allow id 046d:c54d name "Logitech USB Receiver"
       allow id 0461:4e99 name "Acer Elite USB Keyboard"
       allow id 8087:0033 name "Intel AX211 Bluetooth"
+      # Sony DualShock 4
+      allow id 054c:05c4
+      allow id 054c:09cc
+      # Sony DualSense (PS5)
+      allow id 054c:0ce6
+      # Sony DualSense Edge
+      allow id 054c:0df2
+      # USB mass storage (flash drives, external HDDs) — interface class 08:**
+      allow with-interface equals { 08:*:* }
     '';
     IPCAllowedUsers = [ "root" ];
     IPCAllowedGroups = [ "wheel" ];

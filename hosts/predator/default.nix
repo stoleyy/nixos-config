@@ -24,6 +24,12 @@
       assertion = config.networking.nftables.enable;
       message = "nftables must be enabled — ProtonVPN kill-switch and media-server firewall rules require it";
     }
+    {
+      # RTX 4070 (Ada) crash-loops Plasma Wayland and SDDM Wayland greeter with
+      # the open kernel module (driver 580.x). See modules/nvidia.nix:26-31.
+      assertion = !config.hardware.nvidia.open;
+      message = "hardware.nvidia.open must be false — open kernel module crash-loops Plasma Wayland on this RTX 4070 (Ada)";
+    }
   ];
 
   boot.loader = {
@@ -48,22 +54,12 @@
     }
   ];
 
-  # Intentional host data mounts live HERE, not appended to the generated
-  # hardware-configuration.nix — nixos-generate-config clobbers hand-added
-  # fileSystems entries (see CLAUDE.md Pitfalls). Both are keyed by UUID; the
-  # physical device node is deliberately NOT asserted — repo history
-  # contradicted itself (nvme0n1p2 vs nvme1n1p2 across files/commits). If a
-  # node is ever needed, confirm on the box with `blkid`, never from here.
-  #
-  # /home/stoleyy/games — Steam/Lutris library (former NTFS games partition,
-  # reformatted ext4). Pre-#37 it was never flake-declared, so every real
-  # `nixos-rebuild switch` dropped it: switch-to-configuration stopped the old
-  # generation's mount unit and the new generation declared none (observed
-  # 2026-05-16, breaking Steam/Lutris). nofail + device-timeout so a
-  # missing/slow disk degrades to a boot warning instead of a hard
-  # "Dependency failed for /home/stoleyy/games" stop.
+  # Intentional host data mounts live HERE, not in hardware-configuration.nix.
+  # Both are LUKS-encrypted (opened in initrd via hardware-configuration.nix)
+  # and referenced by their /dev/mapper names. nofail + device-timeout so a
+  # LUKS failure degrades to a boot warning instead of a hard stop.
   fileSystems."${host.gamesDir}" = {
-    device = "/dev/disk/by-uuid/efd6d32e-54f9-4e6d-965f-67279a31da47";
+    device = "/dev/mapper/cryptgames";
     fsType = "ext4";
     options = [
       "noatime"
@@ -72,14 +68,9 @@
     ];
   };
 
-  # /data — former Windows NVMe, wiped + reformatted ext4. by-UUID sidesteps
-  # the by-label ambiguity that kept this out of the flake in #37 (two ext4
-  # partitions briefly shared label "data"); the UUID is unambiguous. Same
-  # nofail + device-timeout degradation contract as games above.
-  # Former Windows NVMe (nvme1n1) — wiped and repartitioned as a single ext4.
-  # General-purpose data partition (backups, media, project archives).
+  # /data — LUKS-encrypted general-purpose partition (backups, media, archives).
   fileSystems."${host.dataDir}" = {
-    device = "/dev/disk/by-uuid/88c50d98-1905-405d-a9c2-5ce522c9ad77";
+    device = "/dev/mapper/cryptdata";
     fsType = "ext4";
     options = [
       "noatime"
@@ -125,7 +116,7 @@
     # killSwitch defaults to true
     autoRotate = {
       enable = true;
-      interval = "5min"; # quality check interval (only swaps on degradation)
+      interval = "15min"; # quality check interval (only swaps on degradation)
       hysteresisMs = 20; # only swap if new server is 20ms+ faster
       refreshPool = {
         enable = true;
@@ -201,13 +192,10 @@
 
     # Verbose boot + tracing tools for diagnosing kernel/driver issues.
     # Select "debug" from the systemd-boot menu.
-    # nomodeset disables KMS/DRM so Stage 1 errors print to the plain VGA
-    # console instead of being swallowed by the NVIDIA framebuffer.
     debug.configuration = {
       boot.kernelParams = [
         "loglevel=7"
         "debug"
-        "nomodeset"
       ];
       environment.systemPackages = with pkgs; [
         strace
@@ -322,6 +310,24 @@
         audit.enable = lib.mkForce false;
         apparmor.enable = lib.mkForce false;
       };
+
+      # Media-stack services already use wantedBy=mkForce[] (on-demand only).
+      # Disabling them via enable=mkForce false would break user/group
+      # declarations in media-server.nix. They won't run unless manually started.
+
+      # Start GPU at full clocks — entire session is gaming
+      systemd.services.nvidia-undervolt.serviceConfig.ExecStart = lib.mkForce (
+        pkgs.writeShellScript "nvidia-undervolt-gaming" ''
+          /run/current-system/sw/bin/nvidia-smi -rgc 2>/dev/null || true
+          /run/current-system/sw/bin/nvidia-smi -pl 200 2>/dev/null || true
+          sleep infinity
+        ''
+      );
+
+      # Auto-clean old gamescope session logs
+      systemd.tmpfiles.rules = [
+        "e /home/stoleyy/gamescope-session.log - - - 7d -"
+      ];
 
       # Performance kernel params. Appended to the base list; Linux
       # last-param-wins means init_on_alloc=0 overrides hardening.nix's =1.
