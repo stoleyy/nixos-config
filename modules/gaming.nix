@@ -90,8 +90,7 @@ in
   environment.systemPackages = with pkgs; [
     gameInstall
     mangohud
-    heroic
-    lutris
+    # lutris: run on-demand via `nix run nixpkgs#lutris` (4.6 GiB savings)
     prismlauncher
     adwsteamgtk
   ];

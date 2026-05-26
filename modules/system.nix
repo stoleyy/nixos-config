@@ -61,17 +61,18 @@ _:
 
     coredump.enable = false;
 
-    # intel_pstate active mode: pin EPP=balance_performance (kernel HWP
-    # default; set explicitly for determinism — best desktop burst + sustained
-    # throughput, idle unaffected since HWP floors at min P-state) and enable
-    # hwp_dynamic_boost (raises the min P-state on I/O wakeups → sub-ms ramp,
-    # makes powersave feel identical to the perf governor for desktop bursts;
-    # active+HWP only, no downside, sysfs-only — there is no module/boot param
-    # for it). Gaming unaffected — GameMode's performance governor overrides
-    # EPP in hardware while a game runs.
+    # intel_pstate active mode: pin EPP=balance_performance and enable
+    # hwp_dynamic_boost (sub-ms ramp, makes powersave feel identical to
+    # performance for desktop bursts). Gaming unaffected — GameMode's
+    # performance governor overrides EPP while a game runs.
+    #
+    # Runs AFTER power-profiles-daemon to override PPD's default power-saver
+    # EPP stamp. PPD is pulled in by Plasma deps but has no business
+    # throttling a plugged-in desktop.
     services.cpu-power-tuning = {
       description = "CPU EPP + HWP dynamic boost (cold idle, snappy bursts)";
       wantedBy = [ "multi-user.target" ];
+      after = [ "power-profiles-daemon.service" ];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
@@ -84,6 +85,11 @@ _:
       '';
     };
   };
+
+  # Disable PPD — pulled in by Plasma deps, defaults to power-saver which
+  # throttles all 24 threads on a plugged-in desktop. cpu-power-tuning
+  # handles EPP directly.
+  services.power-profiles-daemon.enable = false;
 
   # Reactive GC — prevents build failures from full disk.
   # min-free triggers an automatic store GC when free space drops below 500 MB;

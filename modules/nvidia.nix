@@ -109,43 +109,38 @@
     in
     {
       description = "NVIDIA adaptive undervolt (clock lock + power limit)";
+      wantedBy = [ "multi-user.target" ];
       after = [ "nvidia-persistenced.service" ];
       serviceConfig = {
-        Type = "oneshot";
+        Type = "simple";
         ExecStart = pkgs.writeShellScript "nvidia-undervolt" ''
-          temp=$(${smi} --query-gpu=temperature.gpu --format=csv,noheader 2>/dev/null || echo 0)
+          while true; do
+            temp=$(${smi} --query-gpu=temperature.gpu --format=csv,noheader 2>/dev/null || echo 0)
 
-          if [ -f "${host.gamemodeFlagFile}" ]; then
-            state=gaming
-          elif [ "$temp" -gt 75 ]; then
-            state=hot
-          else
-            state=normal
-          fi
+            if [ -f "${host.gamemodeFlagFile}" ]; then
+              state=gaming
+            elif [ "$temp" -gt 75 ]; then
+              state=hot
+            else
+              state=normal
+            fi
 
-          # Skip if state hasn't changed since last run.
-          [ "$state" = "$(cat ${cache} 2>/dev/null)" ] && exit 0
+            # Skip if state hasn't changed since last run.
+            if [ "$state" != "$(cat ${cache} 2>/dev/null)" ]; then
+              case $state in
+                gaming) ${smi} -rgc;          ${smi} -pl 200 ;;
+                hot)    ${smi} -lgc 210,1800; ${smi} -pl 160 ;;
+                normal) ${smi} -lgc 210,2100; ${smi} -pl 200 ;;
+              esac
+              echo "$state" > ${cache}
+            fi
 
-          case $state in
-            gaming) ${smi} -rgc;          ${smi} -pl 200 ;;
-            hot)    ${smi} -lgc 210,1800; ${smi} -pl 160 ;;
-            normal) ${smi} -lgc 210,2100; ${smi} -pl 200 ;;
-          esac
-          echo "$state" > ${cache}
+            sleep 15
+          done
         '';
-        ExecStop = pkgs.writeShellScript "nvidia-undervolt-reset" ''
-          ${smi} -rgc
-          ${smi} -rpl
-          rm -f ${cache}
-        '';
-        RemainAfterExit = true;
+        Restart = "on-failure";
+        RestartSec = "5s";
       };
     };
-  systemd.timers.nvidia-undervolt = {
-    wantedBy = [ "timers.target" ];
-    timerConfig = {
-      OnBootSec = "15s";
-      OnUnitActiveSec = "15s";
-    };
-  };
+  # Timer removed — service runs its own 15s loop.
 }

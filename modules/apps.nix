@@ -43,7 +43,7 @@
     delta
 
     # Media
-    libreoffice-fresh
+    # libreoffice: run on-demand via `nix run nixpkgs#libreoffice-fresh` (2.6 GiB savings)
 
     # VPN
     vopono # ephemeral per-app VPN namespaces: `vopono exec --provider custom firefox`

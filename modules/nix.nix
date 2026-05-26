@@ -30,10 +30,7 @@ _:
       fallback = true;
     };
 
-    optimise = {
-      automatic = true;
-      dates = [ "03:45" ];
-    };
+    # optimise: deduplicated — weekly schedule lives in system.nix only.
 
     # Nix builds run at idle CPU scheduling — `nh os switch` doesn't block gaming/work.
     daemonCPUSchedPolicy = "idle";

@@ -27,6 +27,6 @@
     git
     vim
     wget
-    chipsec
+    # chipsec: run on-demand via `nix shell nixpkgs#chipsec` (189 MiB closure savings)
   ];
 }

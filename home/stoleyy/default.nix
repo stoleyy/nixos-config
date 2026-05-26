@@ -109,12 +109,7 @@ in
     packages = with pkgs; [
       qbittorrent
       keepassxc
-      proton-pass
-      tor-browser
       claude-code
-      vesktop
-      telegram-desktop
-      protonmail-desktop
       dwt1-shell-color-scripts
     ];
   };

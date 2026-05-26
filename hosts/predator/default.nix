@@ -35,6 +35,8 @@
       # Re-enable after upgrading to 25.17+:
       # bootCounting = { enable = true; trials = 2; };
     };
+    # Skip boot menu — hold Space to show it when needed. Saves ~5s.
+    timeout = 0;
     efi.canTouchEfiVariables = true;
   };
 

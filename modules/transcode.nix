@@ -6,7 +6,7 @@ let
   transcodeScript = pkgs.writeShellApplication {
     name = "auto-transcode";
     runtimeInputs = [
-      pkgs.ffmpeg-full
+      pkgs.ffmpeg
       pkgs.findutils
       pkgs.coreutils
     ];

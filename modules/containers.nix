@@ -8,7 +8,7 @@
 {
   virtualisation = {
     podman = {
-      enable = true;
+      enable = false; # no active containers (Wazuh commented out); re-enable when needed
       dockerCompat = true; # `docker` CLI = podman
       defaultNetwork.settings.dns_enabled = true; # container hostnames resolve
       autoPrune = {

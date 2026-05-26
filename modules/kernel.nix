@@ -1,5 +1,5 @@
 # Kernel package, sysctl tuning, THP, NVMe I/O scheduler, sched-ext.
-{ pkgs, config, ... }:
+{ pkgs, ... }:
 
 {
   boot = {
@@ -17,10 +17,8 @@
     # Ref: NVIDIA/open-gpu-kernel-modules#1113
     kernelPackages = pkgs.linuxPackages;
 
-    # chipsec.ko — userspace CLI added to environment.systemPackages in base.nix.
-    # `sudo chipsec_util spi dump` / `sudo chipsec_main` for platform security
-    # and firmware diagnostics. Module is built against the running kernel.
-    extraModulePackages = [ config.boot.kernelPackages.chipsec ];
+    # chipsec.ko removed — run on-demand via `nix shell nixpkgs#chipsec`.
+    extraModulePackages = [ ];
 
     # Stop Linux throttling Proton games that trip split-lock atomics.
     # Merges with the NVIDIA DRM params declared in modules/nvidia.nix.

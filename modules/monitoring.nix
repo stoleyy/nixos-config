@@ -1,37 +1,12 @@
 # Self-monitoring: ntfy notifications on failure, beszel metrics hub, gatus service probes, vector log pipeline.
+# All services currently disabled — flip enables back when a remote sink or dashboard is set up.
 {
   config,
-  pkgs,
-  lib,
   ...
 }:
 
 let
   ntfyUrl = "http://localhost:2586";
-  hostname = config.networking.hostName;
-
-  monitoredServices = [
-    "wg-quick-protonvpn"
-    "protonvpn-rotate"
-    "protonvpn-pool-refresh"
-    "jellyfin"
-    "sonarr"
-    "radarr"
-    "prowlarr"
-    "qbittorrent"
-    "bazarr"
-    "ollama"
-    "nvidia-undervolt"
-    "nvidia-persistenced"
-    "lact"
-    "scx"
-  ];
-
-  monitorOverrides = builtins.listToAttrs (
-    map (
-      name: lib.nameValuePair name { unitConfig.OnFailure = [ "ntfy-failure@%n.service" ]; }
-    ) monitoredServices
-  );
 
   # Gatus endpoint factory — eliminates the 6 near-identical HTTP blocks.
   mkHttpEndpoint =
@@ -48,7 +23,7 @@ in
   # Web UI at http://localhost:2586, subscribe to "alerts" topic.
   # Mobile: install ntfy app, point at http://<LAN-IP>:2586, subscribe to "alerts".
   services.ntfy-sh = {
-    enable = true;
+    enable = false;
     settings = {
       listen-http = ":2586";
       base-url = ntfyUrl;
@@ -56,15 +31,17 @@ in
   };
 
   # ── OnFailure notification template ──
-  systemd.services = monitorOverrides // {
-    "ntfy-failure@" = {
-      description = "Notify on failure of %i";
-      serviceConfig = {
-        Type = "oneshot";
-        ExecStart = "${pkgs.curl}/bin/curl -s -d 'Unit %i failed on ${hostname}' -H 'Title: Service Failure' -H 'Priority: high' -H 'Tags: rotating_light' ${ntfyUrl}/alerts";
-      };
-    };
-  };
+  # Disabled: ntfy-sh is off; OnFailure hooks would fire into nothing.
+  # Re-enable when ntfy-sh is turned back on.
+  # systemd.services = monitorOverrides // {
+  #   "ntfy-failure@" = {
+  #     description = "Notify on failure of %i";
+  #     serviceConfig = {
+  #       Type = "oneshot";
+  #       ExecStart = "${pkgs.curl}/bin/curl -s -d 'Unit %i failed on ${hostname}' -H 'Title: Service Failure' -H 'Priority: high' -H 'Tags: rotating_light' ${ntfyUrl}/alerts";
+  #     };
+  #   };
+  # };
 
   # ── Beszel: lightweight monitoring hub + agent ──
   # Dashboard at http://localhost:8090 (first visit creates admin account).
@@ -76,11 +53,11 @@ in
   #   4. sudo systemctl restart beszel-agent
   services.beszel = {
     hub = {
-      enable = true;
+      enable = false;
       port = 8090;
     };
     agent = {
-      enable = true;
+      enable = false;
       smartmon.enable = true;
       environmentFile = "/etc/beszel-agent.env";
     };
@@ -91,7 +68,7 @@ in
   # Media services are on-demand (wantedBy=[]) — Gatus only probes always-on services.
   # OnFailure handles media service crash alerts instead.
   services.gatus = {
-    enable = true;
+    enable = false;
     settings = {
       web.port = 8080;
       endpoints =
@@ -137,7 +114,7 @@ in
   # ── Vector: structured log pipeline ──
   # Tails journald (priority ≤ 4) → structured JSON at /var/log/vector/.
   services.vector = {
-    enable = true;
+    enable = false;
     journaldAccess = true;
     settings = {
       sources.journal = {

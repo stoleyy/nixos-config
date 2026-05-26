@@ -138,7 +138,7 @@
           RemainAfterExit = true;
         };
         script = ''
-          sleep 60 # let services settle
+          sleep 10 # brief settle; graphical.target ordering handles most deps
 
           FAILED=$(systemctl --failed --no-legend | wc -l)
           BOOTED=$(readlink /run/booted-system)
