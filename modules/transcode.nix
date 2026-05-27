@@ -56,7 +56,7 @@ in
       Type = "oneshot";
       ExecStart = "${transcodeScript}/bin/auto-transcode";
       User = host.user;
-      Group = "users";
+      Group = "transcode";
       Nice = 15;
       IOSchedulingClass = "idle";
     };
@@ -69,4 +69,6 @@ in
     "d ${host.dataDir}/transcode/done       0755 ${host.user} users -"
     "d ${host.dataDir}/transcode/processing 0755 ${host.user} users -"
   ];
+
+  users.groups.transcode = { };
 }

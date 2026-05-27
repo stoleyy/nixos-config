@@ -271,4 +271,11 @@ in
     allowedTCPPorts = [ 50000 ];
     allowedUDPPorts = [ 50000 ];
   };
+
+  assertions = [
+    {
+      assertion = config.modules.protonvpn.enable;
+      message = "modules.media-server requires modules.protonvpn.enable = true (VPN bind address needed for qBittorrent and arr services)";
+    }
+  ];
 }

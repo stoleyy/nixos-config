@@ -1,5 +1,10 @@
 # Unattended update pipeline — hands-off, Windows-style automatic maintenance.
-{ config, pkgs, ... }:
+{
+  config,
+  pkgs,
+  host,
+  ...
+}:
 
 # Three timers run weekly, fully unattended:
 #   1. Sun 03:00 — `nix flake update --refresh` bumps flake.lock for all inputs
@@ -108,7 +113,7 @@
         wantedBy = [ "nixos-upgrade.service" ];
         serviceConfig = {
           Type = "oneshot";
-          User = "stoleyy";
+          User = host.user;
         };
         environment.DBUS_SESSION_BUS_ADDRESS = "unix:path=/run/user/1000/bus";
         script = ''

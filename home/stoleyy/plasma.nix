@@ -76,10 +76,6 @@ in
         key = "Meta+T";
         command = "ghostty";
       };
-      "launch-spotify" = {
-        key = "Meta+P";
-        command = "spotify";
-      };
       "toggle-panel" = {
         key = "Meta+Z";
         command = "${togglePanel}";
@@ -219,7 +215,7 @@ in
       # monitor display config in `~/.local/share/kscreen/configs/<edid>/`
       # (kscreen JSON), not in kwinrc. To enable HDR + 10-bit + AdaptiveSync
       # for the G80SD: open System Settings → Display Configuration → click
-      # the HDMI-A-1 monitor → toggle "High Dynamic Range" and set "Adaptive
+      # the DP-2 monitor → toggle "High Dynamic Range" and set "Adaptive
       # Sync" to "Always". KWin then writes the per-output JSON; the mpv +
       # NVIDIA bits in this PR are the prerequisites that make HDR media +
       # G-Sync actually work once you've toggled it.

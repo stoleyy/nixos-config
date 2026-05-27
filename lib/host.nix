@@ -7,5 +7,6 @@ rec {
   mediaDir = "${gamesDir}/media";
   dataDir = "/data";
   # IPC flag: GameMode touches this to signal nvidia-undervolt to unlock clocks.
-  gamemodeFlagFile = "/tmp/gamemode-gpu-unlock";
+  # Kept in /run/gamemode (tmpfs) — correct lifetime for IPC; survives neither reboots nor crashes.
+  gamemodeFlagFile = "/run/gamemode/gpu-unlock";
 }

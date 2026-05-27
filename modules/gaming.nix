@@ -23,11 +23,13 @@ in
         };
         gpu = {
           apply_gpu_optimisations = "accept-responsibility";
-          # card1 = NVIDIA RTX 4070; card0 = simpledrm (no vendor file).
-          # Without this, GameMode tries card0 and logs:
-          # "Couldn't open vendor file at /sys/class/drm/card0/device/vendor"
+          # card1 = NVIDIA RTX 4070. simpledrm (card0) was removed by the
+          # nvidia-drm.fbdev=1 kernel param — only card1 exists now.
+          # nv_powermizer_mode fails silently on NVIDIA proprietary (sysfs GPU
+          # tuning is AMD-only); the nvidia-undervolt flag-file IPC in `custom`
+          # below is the actual GPU unlock mechanism.
           device = 1;
-          nv_powermizer_mode = 1; # force NVIDIA powermizer to max-perf while gaming
+          nv_powermizer_mode = 1;
         };
         # GPU clock unlock: signal the nvidia-undervolt timer (modules/nvidia.nix)
         # to release the clock lock while gaming. The timer picks up the flag
@@ -50,9 +52,23 @@ in
 
     steam = {
       enable = true;
+      # Opens UDP 27031-27036 + TCP 27036-27037 for Steam Remote Play (LAN streaming).
+      # These ports are automatically managed by the Steam NixOS module.
       remotePlay.openFirewall = true;
       gamescopeSession.enable = true;
       extraCompatPackages = with pkgs; [ proton-ge-bin ];
+      # Inject gamemode into Steam's FHS sandbox so libgamemode.so is visible
+      # to all games. Without this, gamemoderun inside Steam fails with
+      # "dlopen failed - libgamemode.so: cannot open shared object file".
+      # libgamemodeauto.so.0 is LD_PRELOAD'd into Steam → auto-registers
+      # every game with GameMode on launch (governor→performance, GPU unlock).
+      # No per-game launch options needed.
+      package = pkgs.steam.override {
+        extraPkgs = p: [ p.gamemode ];
+        extraProfile = ''
+          export LD_PRELOAD="''${LD_PRELOAD:+$LD_PRELOAD:}libgamemodeauto.so.0"
+        '';
+      };
       # Vetted nix-gaming SteamOS sysctl bundle: vm.max_map_count=2147483642
       # (fixes CS2/Hogwarts/DayZ/UE5 Proton crashes — default 65530 too low),
       # kernel.split_lock_mitigate=0, sched_cfs_bandwidth_slice_us,
@@ -86,6 +102,10 @@ in
   # Suppress Wine's verbose debug logging — measurable overhead for zero
   # diagnostic value during normal gameplay. Arch Wiki gaming page standard.
   environment.sessionVariables.WINEDEBUG = "-all";
+
+  # Create the tmpfs dir for the GameMode IPC flag file at boot.
+  # /run is tmpfs — this directory must exist before gamemode starts a game.
+  systemd.tmpfiles.rules = [ "d /run/gamemode 0755 ${host.user} users -" ];
 
   environment.systemPackages = with pkgs; [
     gameInstall
