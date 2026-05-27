@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!@bash@/bin/bash
 # Temporarily allow all pool server IPs through the kill switch so the
 # rotation script can ping them. Runtime-dynamic because the pool IP
 # list comes from a JSON file. Base rules mirror lib/nftables.nix.

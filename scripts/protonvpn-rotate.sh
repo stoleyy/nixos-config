@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!@bash@/bin/bash
 # ProtonVPN quality-based server rotation.
 # Checks current connection health; only rotates if degraded.
 # Injected at build time: @path@, @poolFile@, @hysteresis@,
