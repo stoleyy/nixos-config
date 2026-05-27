@@ -41,7 +41,12 @@ _:
       enable = true;
       flake = "/etc/nixos";
       clean.enable = true;
-      clean.extraArgs = "--keep-since 7d --keep 5";
+      # Bumped from --keep 5 → 15 and 7d → 30d after a lanzaboote/nh-clean
+      # interaction left the box unbootable: nh-clean removed kernels still
+      # referenced by older lanzaboote UKIs (hash mismatch on next boot).
+      # Until lanzaboote learns to detect this, conservative retention =
+      # more fallback generations available in the systemd-boot menu.
+      clean.extraArgs = "--keep-since 30d --keep 15";
     };
 
     direnv = {

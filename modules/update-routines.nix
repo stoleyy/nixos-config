@@ -20,8 +20,14 @@
   # nh.clean (base.nix) handles store GC: --keep-since 7d --keep 5.
   # nix.gc is intentionally absent — both active simultaneously cause an eval conflict.
 
+  # Disabled after lanzaboote/Secure Boot rollout: unattended `operation = "boot"`
+  # cycles silently produce new generations whose UKI ↔ kernel signing must be
+  # verified before reboot, and we don't yet have a post-upgrade `sbctl verify`
+  # gate that aborts the upgrade if signing failed. Re-enable once 3 manual
+  # rebuild cycles with SB on have completed cleanly AND a sign-verify
+  # post-hook is in place. Until then, run `sudo nh os switch` manually.
   system.autoUpgrade = {
-    enable = true;
+    enable = false;
     flake = "/etc/nixos";
     flags = [
       "-L" # full logs in journal
