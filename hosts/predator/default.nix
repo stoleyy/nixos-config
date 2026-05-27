@@ -30,19 +30,34 @@
       assertion = !config.hardware.nvidia.open;
       message = "hardware.nvidia.open must be false — open kernel module crash-loops Plasma Wayland on this RTX 4070 (Ada)";
     }
+    {
+      # lanzaboote and systemd-boot both write to the ESP; if both are enabled,
+      # they fight and one silently wins, usually producing an unsignable boot
+      # chain that bricks on next reboot. Use `lib.mkForce false` on
+      # systemd-boot.enable when enabling lanzaboote. `or false` keeps this
+      # assertion safe when the lanzaboote module isn't imported.
+      assertion = !(config.boot.loader.systemd-boot.enable && (config.boot.lanzaboote.enable or false));
+      message = "lanzaboote and systemd-boot cannot both be enabled — set systemd-boot.enable = lib.mkForce false";
+    }
   ];
 
   boot.loader = {
     systemd-boot = {
       enable = true;
-      configurationLimit = 10;
+      # Bumped from 10 → 20 after a lanzaboote/nh-clean interaction left the
+      # box unbootable: nh removed kernels that older UKIs still referenced
+      # by hash, and the menu didn't have enough fallback generations to pick
+      # a working one. More retention = more rescue options without rescue USB.
+      configurationLimit = 20;
       editor = false;
       # bootCounting — available in nixpkgs master but not 25.11 stable.
       # Re-enable after upgrading to 25.17+:
       # bootCounting = { enable = true; trials = 2; };
     };
-    # Skip boot menu — hold Space to show it when needed. Saves ~5s.
-    timeout = 0;
+    # 3 s gives just enough window to hit Space/arrow and pick a previous
+    # generation when the default entry is broken. The autologin chain hides
+    # this from normal use, so the UX cost is invisible.
+    timeout = 3;
     efi.canTouchEfiVariables = true;
   };
 
@@ -232,7 +247,7 @@
                 gamescopeSession = pkgs.callPackage ../../packages/gamescope-session.nix { inherit host; };
               in
               "${gamescopeSession}";
-            user = host.user;
+            inherit (host) user;
           };
         };
 

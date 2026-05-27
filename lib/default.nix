@@ -48,6 +48,7 @@
         ../modules/hardening.nix # CIS/KSPP sysctl, AppArmor
         ../modules/auditd.nix # syscall/FIM audit → Wazuh
         ../modules/wazuh-agent.nix # HIDS agent
+        ../modules/secureboot-verify.nix # post-activation sbctl verify gate
         # ../modules/wazuh-manager.nix # disabled — pending cert bootstrap
 
         # ── Networking services ──
