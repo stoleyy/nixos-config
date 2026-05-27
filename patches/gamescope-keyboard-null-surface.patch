@@ -1,0 +1,21 @@
+--- a/src/wlserver.cpp
++++ b/src/wlserver.cpp
+@@ -2198,6 +2198,15 @@ void wlserver_keyboardfocus( struct wlr_surface *surface, bool bConstrain )
+ {
+ 	assert( wlserver_is_lock_held() );
+
++	// Guard against NULL surface — can happen at startup when USB HID
++	// keyboard events arrive before any window surface exists (race with
++	// Logitech receivers, etc.).  wlroots' wlr_seat_keyboard_notify_enter()
++	// asserts surface != NULL; the correct API for "no surface" is
++	// wlr_seat_keyboard_clear_focus().
++	if ( !surface )
++	{
++		wlr_seat_keyboard_clear_focus( wlserver.wlr.seat );
++		wlserver.kb_focus_surface = nullptr;
++		return;
++	}
++
+ 	if (wlserver.kb_focus_surface != surface) {
+ 		auto old_wl_surf = get_wl_surface_info( wlserver.kb_focus_surface );
+ 		if (old_wl_surf && old_wl_surf->xdg_surface && old_wl_surf->xdg_surface->xdg_surface && old_wl_surf->xdg_surface->xdg_surface->toplevel)
