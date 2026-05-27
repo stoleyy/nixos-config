@@ -1,0 +1,27 @@
+title = "stoleyy/nixos-config gitleaks config"
+
+# All built-in detection rules stay active. Only confirmed false positives
+# are suppressed below.
+[extend]
+useDefault = true
+
+[allowlist]
+  description = "Known-safe patterns — not plaintext secrets"
+  regexTarget = "line"
+  regexes = [
+    # WireGuard SERVER public key in hosts/predator/default.nix.
+    # Public keys are designed to be shared; the matching private key lives
+    # encrypted in secrets/secrets.yaml (AES256-GCM, decryptable only with
+    # the host's age key). The option is named 'serverPublicKey' by the
+    # ProtonVPN module interface — not renameable without touching the module.
+    '''(?i)serverPublicKey\s*=''',
+  ]
+  paths = [
+    # sops-encrypted secrets file — every value is ENC[AES256_GCM,...] ciphertext.
+    # Key names (e.g. protonvpn-private-key) look suspicious but the values
+    # are opaque blobs; the plaintext is never committed to the repo.
+    '''secrets/secrets\.yaml''',
+    # sops YAML layout file — contains age *public* keys (recipients) only.
+    # No private key material lives here.
+    '''\.sops\.yaml''',
+  ]
