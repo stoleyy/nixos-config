@@ -6,13 +6,19 @@
 #   Strings may be literal IPs (Nix-evaluated) or shell variable references
 #   like "$CURRENT_IP" (rendered verbatim; the caller's heredoc expands them).
 
-{ lib }:
+{
+  lib,
+  lanCidr ? "192.168.1.0/24",
+}:
 
 {
   mkKillswitchTable =
     allowedIPs:
     let
-      endpointRules = lib.concatMapStringsSep "\n      " (ip: "ip daddr ${ip} accept") allowedIPs;
+      # Generate rules for both IPv4 and IPv6 endpoints. Detect address family
+      # by checking for a colon (IPv6) vs dot (IPv4).
+      mkRule = ip: if lib.hasInfix ":" ip then "ip6 daddr ${ip} accept" else "ip daddr ${ip} accept";
+      endpointRules = lib.concatMapStringsSep "\n      " mkRule allowedIPs;
     in
     ''
       table inet protonvpn_killswitch {
@@ -21,7 +27,7 @@
           # allow loopback
           oifname "lo" accept
           # allow LAN (printer, OPNsense, Wazuh dashboard, etc.)
-          ip daddr 192.168.1.0/24 accept
+          ip daddr ${lanCidr} accept
           # allow link-local + multicast for DHCP/mDNS bootstrap
           ip daddr 169.254.0.0/16 accept
           ip daddr 224.0.0.0/4 accept
