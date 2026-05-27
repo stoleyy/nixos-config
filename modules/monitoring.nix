@@ -1,9 +1,6 @@
 # Self-monitoring: ntfy notifications on failure, beszel metrics hub, gatus service probes, vector log pipeline.
 # All services currently disabled — flip enables back when a remote sink or dashboard is set up.
-{
-  config,
-  ...
-}:
+_:
 
 let
   ntfyUrl = "http://localhost:2586";
