@@ -15,6 +15,11 @@ useDefault = true
     # the host's age key). The option is named 'serverPublicKey' by the
     # ProtonVPN module interface — not renameable without touching the module.
     '''(?i)serverPublicKey\s*=''',
+    # dnscrypt-proxy minisign PUBLIC verification key in modules/networking.nix.
+    # This is the upstream DNSCrypt project's published public key, used to
+    # verify the signed public-resolvers.md list. It is intentionally public
+    # (published in dnscrypt-proxy README and shipped as default).
+    '''(?i)minisign_key\s*=''',
   ]
   paths = [
     # sops-encrypted secrets file — every value is ENC[AES256_GCM,...] ciphertext.
