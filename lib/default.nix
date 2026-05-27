@@ -48,7 +48,8 @@
         ../modules/hardening.nix # CIS/KSPP sysctl, AppArmor
         ../modules/auditd.nix # syscall/FIM audit → Wazuh
         ../modules/wazuh-agent.nix # HIDS agent
-        ../modules/secureboot-verify.nix # post-activation sbctl verify gate
+        # DISABLED — script runs sbctl verify against raw kernel files that lanzaboote owns; sbctl sign -s on those corrupts the lanzaboote UKI hash. Re-enable only after rewriting the script to scope to /boot/EFI/Linux/*.efi UKIs only.
+        # ../modules/secureboot-verify.nix # post-activation sbctl verify gate
         # ../modules/wazuh-manager.nix # disabled — pending cert bootstrap
 
         # ── Networking services ──
