@@ -1,4 +1,9 @@
-{ pkgs, theme, ... }:
+{
+  pkgs,
+  theme,
+  host,
+  ...
+}:
 
 let
   inherit (theme) colors stripHash;
@@ -46,7 +51,7 @@ in
     xfce.thunar # Lightweight GTK file manager
     xfce.thunar-volman # Removable media integration
     xfce.tumbler # Thumbnail service for Thunar
-    yazi # TUI file manager (Kitty graphics-protocol previews)
+    yazi # TUI file manager (Ghostty graphics-protocol previews)
     walker # Unified launcher (apps + clipboard + emoji + calc + window switch)
     rofi-bluetooth # OLED-friendly keyboard-only BT pairing
     nwg-look # Wayland-native GTK theme verifier
@@ -388,7 +393,7 @@ in
         "$mod, A,      exec, walker" # unified launcher (apps + clipboard + emoji)
         "$mod, E,      exec, $filemanager"
         "$mod, Y,      exec, $terminal -e yazi" # TUI file manager (ghostty graphics)
-        "$mod, L,      exec, hyprlock"
+        "$mod CTRL, L,  exec, hyprlock"
         "$mod, V,      exec, cliphist list | rofi -dmenu | cliphist decode | wl-copy"
         "$mod SHIFT, P, exec, hyprpicker -a"
         "$mod CTRL, P, exec, hyprprop | wl-copy" # window props -> clipboard
@@ -407,8 +412,29 @@ in
         "$mod, Q,      killactive"
         "$mod, F,      fullscreen"
         "$mod, P,      pseudo"
-        "$mod, J,      togglesplit"
         "$mod SHIFT, Space, togglefloating"
+
+        # Vim-style focus (hjkl)
+        "$mod, H, movefocus, l"
+        "$mod, J, movefocus, d"
+        "$mod, K, movefocus, u"
+        "$mod, L, movefocus, r" # overrides hyprlock — use SUPER+CTRL+L instead
+
+        # Vim-style move window
+        "$mod SHIFT, H, movewindow, l"
+        "$mod SHIFT, J, movewindow, d"
+        "$mod SHIFT, K, movewindow, u"
+        "$mod SHIFT, L, movewindow, r"
+
+        # Tab-style window cycling
+        "$mod, Tab,       cyclenext"
+        "$mod SHIFT, Tab, cyclenext, prev"
+        "ALT, Tab,        cyclenext"
+        "ALT SHIFT, Tab,  cyclenext, prev"
+
+        # Workspace scroll (SUPER + mouse wheel)
+        "$mod, mouse_down, workspace, e+1"
+        "$mod, mouse_up,   workspace, e-1"
         "$mod SHIFT, N, exec, swaync-client -t"
 
         "$mod, left,  movefocus, l"
@@ -497,8 +523,17 @@ in
         "opacity 1.0 override 1.0 override, class:^(com.stremio.stremio)$"
         "opacity 1.0 override 1.0 override, title:^(Picture-in-Picture)$"
         "opacity 1.0 override 1.0 override, class:^(brave-browser)$"
-        # Zen Browser — slight transparency to match the Hyprland rice.
-        "opacity 0.95 override 0.90 override, class:^(zen(-browser)?)$"
+        # ── Qubes-style trust domain borders ──
+        # Green = sensitive/credentials (vault, KeePassXC)
+        "bordercolor rgb(2E7D32), class:^(brave-vault)$"
+        "bordercolor rgb(2E7D32), class:^(org.keepassxc.KeePassXC)$"
+        # Indigo = standard daily use (personal)
+        "bordercolor rgb(0A094E), class:^(brave-personal)$"
+        # Red = untrusted (LAN blocked, don't trust)
+        "bordercolor rgb(C62828), class:^(brave-untrusted)$"
+        "bordercolor rgb(C62828), class:^(discord)$"
+        # Orange = ephemeral (wiped on exit)
+        "bordercolor rgb(F57C00), class:^(brave-disposable)$"
       ];
     };
   };
@@ -559,7 +594,7 @@ in
             "XDG_SESSION_TYPE=wayland"
             "XDG_CURRENT_DESKTOP=Hyprland"
           ];
-          ExecStart = "${pkgs.linux-wallpaperengine}/bin/linux-wallpaperengine --silent --screen-root DP-2 3510055857";
+          ExecStart = "${pkgs.linux-wallpaperengine}/bin/linux-wallpaperengine --silent --screen-root ${host.monitor} 3510055857";
           Restart = "on-failure";
           RestartSec = "5s";
         };

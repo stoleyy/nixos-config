@@ -82,6 +82,8 @@
   networking.hostName = "predator";
 
   # OpenRGB — RGB controller for this Intel-platform host.
+  # Server binds to 0.0.0.0:6742 (no --server-host flag exists).
+  # Blocked from LAN access via networking.nix firewall (port not opened).
   services.hardware.openrgb = {
     enable = true;
     motherboard = "intel";
@@ -105,6 +107,12 @@
   # Private key managed by sops-nix (encrypted in secrets/secrets.yaml).
   sops.secrets.protonvpn-private-key = {
     owner = "root";
+    mode = "0400";
+    # Restart WireGuard when the secret rotates so the new key takes effect immediately.
+    restartUnits = [ "wg-quick-protonvpn.service" ];
+  };
+  sops.secrets.github-pat = {
+    owner = "stoleyy";
     mode = "0400";
   };
   modules.protonvpn = {
@@ -239,7 +247,7 @@
       # Without it gamescope cannot find a display when launched as a
       # standalone session (exits code 1 instantly).
       #
-      # --prefer-output pins the connector (DP-2).
+      # --prefer-output pins the connector (host.monitor = DP-2).
       # --prefer-vk-device selects the RTX 4070 (10de:2786) for Vulkan
       # compositing, skipping the simpledrm device.
       #
@@ -257,7 +265,7 @@
           "--backend"
           "drm"
           "--prefer-output"
-          "DP-2"
+          host.monitor
           "--prefer-vk-device"
           "10de:2786"
           "--output-width"

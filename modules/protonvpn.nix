@@ -28,7 +28,13 @@ let
   # endpoint IP (without port) extracted for the kill-switch rule
   endpointHost = builtins.head (lib.splitString ":" cfg.serverEndpoint);
 
-  inherit (import ../lib/nftables.nix { inherit lib; }) mkKillswitchTable;
+  inherit
+    (import ../lib/nftables.nix {
+      inherit lib;
+      inherit (cfg) lanCidr;
+    })
+    mkKillswitchTable
+    ;
 in
 {
   options.modules.protonvpn = {
@@ -66,15 +72,16 @@ in
       type = lib.types.path;
       default = "/var/lib/protonvpn/privkey";
       description = ''
-        Path to a root-owned mode-0400 file containing only the WireGuard
-        private key (just the base64 string, no quotes, no header). NixOS
-        won't read this file — wg-quick does at activation time. See
-        docs/protonvpn-wg-setup.md for the one-liner to create it safely.
-
-        Upgrade path: switch this to `config.sops.secrets.<name>.path` once
-        sops-nix is wired up (Tier 2.1 in the optimization roadmap). At that
-        point the private key lives encrypted in secrets.yaml.
+        Path to the WireGuard private key file. Set to
+        `config.sops.secrets.protonvpn-private-key.path` in hosts/predator/default.nix
+        so the key is decrypted from secrets.yaml by sops-nix at activation.
       '';
+    };
+
+    lanCidr = lib.mkOption {
+      type = lib.types.str;
+      default = "192.168.1.0/24";
+      description = "LAN CIDR allowed through the kill switch (printer, router, etc.)";
     };
 
     killSwitch = lib.mkOption {
@@ -99,6 +106,10 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    systemd.tmpfiles.rules = [
+      "d /var/lib/protonvpn 0755 root root -"
+    ];
+
     # Sanity: refuse to evaluate if required fields aren't set. Catches the
     # common mistake of toggling `enable = true` without populating the
     # Proton-side values.

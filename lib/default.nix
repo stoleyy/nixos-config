@@ -29,6 +29,7 @@
         ../modules/kernel.nix # kernel pin, sysctl, THP, NVMe scheduler
         ../modules/hardware.nix # microcode, bluetooth, zram
         ../modules/fan-control.nix # it87 driver + fancontrol (Predator PO3-650)
+        ../modules/nvidia.nix # NVIDIA RTX 4070 (Ada) — proprietary driver, VAAPI, undervolt
         ../modules/networking.nix # NetworkManager, nftables, resolved
 
         # ── Desktop & UX ──
@@ -41,9 +42,9 @@
         # ── Applications ──
         ../modules/apps.nix # Brave, Zen, CLI tools, ProtonVPN GUI
         ../modules/gaming.nix # Steam, GameMode, gamescope, game-install
-        ../modules/ollama.nix # local LLM inference (CUDA)
 
         # ── Security & monitoring ──
+        ../modules/compartments.nix # Qubes-style GID isolation + firejail offline vault
         ../modules/hardening.nix # CIS/KSPP sysctl, AppArmor
         ../modules/auditd.nix # syscall/FIM audit → Wazuh
         ../modules/wazuh-agent.nix # HIDS agent
@@ -54,6 +55,7 @@
         ../modules/protonvpn-rotate.nix # quality-based server rotation
         ../modules/containers.nix # Podman/OCI runtime
         ../modules/media-server.nix # Jellyfin, *arr stack, qBittorrent
+        ../modules/ollama.nix # local LLM runtime (enable = false; flip to enable)
         ../modules/monitoring.nix # ntfy, beszel, gatus, vector
         ../modules/transcode.nix # systemd.paths NVENC watch folder
         ../modules/update-routines.nix # weekly rebuild, flake bump, vulnix
@@ -70,6 +72,7 @@
             backupFileExtension = "backup";
             extraSpecialArgs = {
               inherit inputs;
+              host = import ../lib/host.nix;
               theme = import ../lib/theme.nix;
             };
             sharedModules = [

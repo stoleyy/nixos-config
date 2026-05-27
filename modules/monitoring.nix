@@ -1,6 +1,11 @@
 # Self-monitoring: ntfy notifications on failure, beszel metrics hub, gatus service probes, vector log pipeline.
 # All services currently disabled — flip enables back when a remote sink or dashboard is set up.
-{ ... }:
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}:
 
 let
   ntfyUrl = "http://localhost:2586";
@@ -28,17 +33,14 @@ in
   };
 
   # ── OnFailure notification template ──
-  # Disabled: ntfy-sh is off; OnFailure hooks would fire into nothing.
-  # Re-enable when ntfy-sh is turned back on.
-  # systemd.services = monitorOverrides // {
-  #   "ntfy-failure@" = {
-  #     description = "Notify on failure of %i";
-  #     serviceConfig = {
-  #       Type = "oneshot";
-  #       ExecStart = "${pkgs.curl}/bin/curl -s -d 'Unit %i failed on ${hostname}' -H 'Title: Service Failure' -H 'Priority: high' -H 'Tags: rotating_light' ${ntfyUrl}/alerts";
-  #     };
-  #   };
-  # };
+  # flip ntfy-sh enable above to activate; add OnFailure = "ntfy-failure@%n" to any service.
+  systemd.services."ntfy-failure@" = {
+    description = "Notify on failure of %i";
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.curl}/bin/curl -s -d 'Unit %i failed on ${config.networking.hostName}' -H 'Title: Service Failure' -H 'Priority: high' -H 'Tags: rotating_light' ${ntfyUrl}/alerts";
+    };
+  };
 
   # ── Beszel: lightweight monitoring hub + agent ──
   # Dashboard at http://localhost:8090 (first visit creates admin account).
@@ -135,7 +137,9 @@ in
     };
   };
 
-  systemd.tmpfiles.rules = [
+  # Only create the vector log dir when vector is enabled; avoids creating
+  # an orphaned dir owned by the vector user when the service is disabled.
+  systemd.tmpfiles.rules = lib.optionals config.services.vector.enable [
     "d /var/log/vector 0750 vector vector -"
   ];
 }
