@@ -2,7 +2,7 @@
 # reference /dev/mapper/* names. User data mounts (games, /data) live in
 # hosts/predator/default.nix for nofail + device-timeout handling.
 #
-# UUID placeholders (LUKS-ROOT-UUID, etc.) are replaced by the migration
+# UUID placeholders (6ebbc3fa-7297-48d3-bf7d-6d2a5a3fcb9c, etc.) are replaced by the migration
 # script after cryptsetup luksFormat. See docs/superpowers/specs/2026-05-26-luks-migration-design.md.
 {
   config,
@@ -34,17 +34,17 @@
       luks.devices = {
         # Passphrase-prompted at boot. Single prompt — the only interactive unlock.
         cryptroot = {
-          device = "/dev/disk/by-uuid/LUKS-ROOT-UUID";
+          device = "/dev/disk/by-uuid/6ebbc3fa-7297-48d3-bf7d-6d2a5a3fcb9c";
           allowDiscards = true; # TRIM for SSD performance
         };
         # Auto-unlocked by keyfile embedded in the initrd.
         cryptgames = {
-          device = "/dev/disk/by-uuid/LUKS-GAMES-UUID";
+          device = "/dev/disk/by-uuid/9cb83a31-102e-440f-9fea-f6c86dbefea8";
           keyFile = "/luks-keyfile";
           allowDiscards = true;
         };
         cryptdata = {
-          device = "/dev/disk/by-uuid/LUKS-DATA-UUID";
+          device = "/dev/disk/by-uuid/25748fb8-febe-42af-9a95-98980ca89751";
           keyFile = "/luks-keyfile";
           allowDiscards = true;
         };
@@ -68,11 +68,11 @@
   };
 
   fileSystems."/boot" = {
-    device = "/dev/disk/by-uuid/BOOT-UUID";
+    device = "/dev/disk/by-uuid/22B6-803C";
     fsType = "vfat";
     options = [
-      "fmask=0022"
-      "dmask=0022"
+      "fmask=0077"
+      "dmask=0077"
     ];
   };
 
