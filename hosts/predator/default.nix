@@ -256,6 +256,20 @@
         power-profiles-daemon.enable = lib.mkForce false;
       };
 
+      # Force xdg-desktop-portal OFF for the greetd/gamescope session.
+      #
+      # Chicken-and-egg: Steam's CEF requests org.freedesktop.portal.Desktop
+      # during startup, the portal tries to activate its backends (gtk + kde),
+      # both backends abort because there is no display yet (gamescope hasn't
+      # opened one — that requires Steam to launch first), portal hangs 120 s,
+      # Steam gives up, gamescope's primary child dies, session ends at TTY.
+      #
+      # With portal disabled, Steam's StartServiceByName fails immediately
+      # (NameHasNoOwner instead of NoReply timeout) and Steam falls back to
+      # non-portal code paths. Big Picture loses screencast/file-picker portal
+      # integration, but those are non-essential for gaming.
+      xdg.portal.enable = lib.mkForce false;
+
       # Gamescope display config: 4K @ 240 Hz OLED + VRR.
       #
       # --backend drm is REQUIRED — the NixOS module does not add it.
