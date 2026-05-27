@@ -65,7 +65,7 @@ echo
 echo "=== hwmon devices after driver load ==="
 for d in /sys/class/hwmon/hwmon*/; do
   name=$(cat "${d}name" 2>/dev/null || echo "?")
-  fans=$(ls "$d" 2>/dev/null | grep -c "^fan" || true)
-  pwms=$(ls "$d" 2>/dev/null | grep -c "^pwm" || true)
+  fans=0; for f in "${d}"fan*; do [ -e "$f" ] && fans=$((fans+1)); done
+  pwms=0; for f in "${d}"pwm*; do [ -e "$f" ] && pwms=$((pwms+1)); done
   echo "$d -> $name (fans:$fans pwm:$pwms)"
 done

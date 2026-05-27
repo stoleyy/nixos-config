@@ -7,9 +7,9 @@ is `/etc/nixos`, not this clone.**
 ## Hardware
 
 - Intel i7-13700K, 64 GB RAM
-- NVIDIA RTX 4070 (Ada) — uses the `open` kernel module + `production` driver
-- Samsung Odyssey OLED G80SD on **HDMI-A-1** at 3840x2160@240Hz, 10-bit
-  (XBGR2101010), VRR active
+- NVIDIA RTX 4070 (Ada) — uses the proprietary (`open = false`) kernel module + `production` driver
+- Samsung Odyssey OLED G80SD on **DP-2** at 3840x2160@240Hz, 10-bit
+  (XBGR2101010), VRR active (G-Sync Compatible via DP)
 - Root: `/dev/nvme0n1p4` ext4, ~294 GB (grown from 47.8 GB via GParted Live)
 - Games library: ext4 at `/home/stoleyy/games`, ~1.5 TiB (formerly an NTFS
   partition; reformatted in the post-Windows migration, flake-declared by-UUID)
@@ -24,13 +24,16 @@ is `/etc/nixos`, not this clone.**
   lives here, not in `flake.nix`**
 - `hosts/predator/` — per-host hardware config
   (`hardware-configuration.nix`, `default.nix`)
-- `modules/*.nix` — system modules (base, networking, desktop, audio, fonts,
-  gaming, apps, hardening, hyprland, theming, ollama, containers, wazuh-agent,
-  protonvpn, auditd, update-routines). `wazuh-manager.nix` exists but is
-  commented out in `lib/default.nix` pending cert bootstrap.
+- `modules/*.nix` — system modules. Active (imported in `lib/default.nix`): base, nix,
+  nix-ld, system, kernel, hardware, fan-control, nvidia, networking, desktop, hyprland,
+  audio, fonts, theming, apps, gaming, compartments, hardening, auditd, wazuh-agent,
+  protonvpn, protonvpn-rotate, containers, media-server, monitoring, transcode,
+  update-routines. Not imported: `ollama.nix` (disable-only stub), `wazuh-manager.nix`
+  (disabled — pending cert bootstrap).
 - `home/stoleyy/*.nix` — home-manager modules; `home/stoleyy/default.nix`
-  imports them all (shell, ai, terminal, editor, browser, git, gpg, audio,
-  hyprland, waybar, rofi, swaync, wlogout, gtk, plasma, spicetify, ghostty, mpv)
+  imports them all (shell, ai, openhuman, claude-proxy, editor, browser, git,
+  gpg, audio, hyprland, waybar, rofi, swaync, wlogout, gtk, plasma, spicetify,
+  ghostty, mpv)
 - `overlays/` — auto-imported via `overlays/default.nix` (any `*.nix` dropped
   in becomes an overlay; a non-`.nix` file aborts evaluation by design)
 - `docs/` — operational runbooks (runbook.md, opnsense-ethname-setup.md,
@@ -239,7 +242,7 @@ These rules are non-negotiable and override all other instructions:
 - **Gamescope standalone session needs `--backend drm`** — the NixOS
   `programs.steam.gamescopeSession` module does NOT add it. Without it
   gamescope exits code 1 instantly (no compositor to attach to). Also add
-  `--prefer-output HDMI-A-1` and `--prefer-vk-device 10de:2786`.
+  `--prefer-output DP-2` and `--prefer-vk-device 10de:2786`.
 - **Gamescope `--hdr-enabled` crashes on NVIDIA DRM** — driver 580.x does
   not expose `HDR_OUTPUT_METADATA` atomic property. gamescope #2081
   (3.16.17). DRM-backend HDR requires NVIDIA's Color Pipeline API (preview
@@ -272,9 +275,9 @@ These rules are non-negotiable and override all other instructions:
   the cached last-session — reboot (or pick from the dropdown) to switch. A
   stale `state.conf` predating this change must be cleared once on the box:
   `rm -f ~/.local/share/sddm/state.conf`.
-- **sops-nix age key not bootstrapped** — `.sops.yaml` still has the
-  placeholder `age1REPLACE_WITH_OUTPUT_OF_SSH_TO_AGE`. Until the real host
-  key is generated (`ssh-to-age < /etc/ssh/ssh_host_ed25519_key.pub`) and
-  `sops updatekeys secrets/secrets.yaml` is run, all `sops.secrets.*`
-  references will fail at activation. Do not add sops secret references to
-  modules until bootstrapped.
+- **sops-nix is fully bootstrapped** — real age key in `.sops.yaml`, two
+  secrets encrypted in `secrets/secrets.yaml` (`protonvpn-private-key`,
+  `github-pat`), both actively used via `sops.secrets.*` in
+  `hosts/predator/default.nix`. To add a new secret: run
+  `sops secrets/secrets.yaml`, add the key, then declare it in
+  `hosts/predator/default.nix`.

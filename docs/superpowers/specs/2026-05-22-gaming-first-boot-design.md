@@ -1,7 +1,7 @@
 # Gaming-First Boot Architecture + Automated Game Pipeline
 
 **Date:** 2026-05-22
-**Status:** Pending implementation
+**Status:** Implemented (2026-05-26)
 
 ---
 
@@ -17,7 +17,7 @@
 ## Hardware context
 
 - RTX 4070 (Ada), proprietary driver (`open = false`), production package
-- Samsung Odyssey OLED G80SD on HDMI-A-1: 3840x2160 @ 240 Hz, 10-bit, VRR
+- Samsung Odyssey OLED G80SD on DP-2: 3840x2160 @ 240 Hz, 10-bit, VRR
 - Games library: `/home/stoleyy/games` (ext4, ~1.5 TiB, UUID-mounted)
 - Data drive: `/data` (ext4, general storage)
 - Native Steam has a known CEF crash (`error_code=1002`) in desktop mode — Steam runs via Flatpak (`com.valvesoftware.Steam`) for the Hyprland session

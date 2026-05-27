@@ -45,8 +45,6 @@ for cd in /sys/class/thermal/cooling_device*/; do
   for tz in /sys/class/thermal/thermal_zone*/; do
     for cdev in "${tz}"cdev*/; do
       [ -d "$cdev" ] || continue
-      linked=$(readlink -f "${cdev}type" 2>/dev/null || true)
-      cdev_type=$(cat "${cdev}type" 2>/dev/null || echo "?")
       if [ -L "${cdev%/}" ]; then
         target=$(readlink "${cdev%/}" 2>/dev/null || echo "?")
         [[ "$target" == *"$name"* ]] && echo "  -> bound to $(basename "$tz")"
@@ -71,6 +69,5 @@ echo "=== WMI DEVICE DETAILS ==="
 for wmi in /sys/bus/wmi/devices/*/; do
   guid=$(basename "$wmi")
   driver=$(readlink "${wmi}driver" 2>/dev/null || echo "unbound")
-  modalias=$(cat "${wmi}modalias" 2>/dev/null || echo "?")
   echo "$guid driver=$driver"
 done

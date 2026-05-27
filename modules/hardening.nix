@@ -92,6 +92,18 @@
       # KSPP: restrict perf_event to root — prevents unprivileged profiling
       # of kernel memory addresses, strengthening kptr_restrict=2 above.
       "kernel.perf_event_paranoid" = 3;
+
+      # Reverse path filtering: loose mode (2) validates source addresses but
+      # allows asymmetric routing (required for WireGuard VPN). NixOS's
+      # `checkReversePath = "loose"` configures nftables rules but does NOT
+      # set the sysctl; the kernel default is 0 (disabled). Pinned explicitly.
+      "net.ipv4.conf.all.rp_filter" = 2;
+      "net.ipv4.conf.default.rp_filter" = 2;
+
+      # Restrict SysRq to sync + remount-ro + reboot only (176 = 128+32+16).
+      # Default is 1 (all enabled) which allows raw keyboard access to kernel
+      # functions including process kill, log level change, and OOM trigger.
+      "kernel.sysrq" = 176;
     };
 
     # F-20: boot params that harden even the stock kernel.
@@ -126,8 +138,6 @@
       "befs"
       "cramfs"
       "efs"
-      # erofs intentionally NOT blacklisted — Flatpak's freedesktop runtime 23.08+
-      # uses EROFS for image layers; blacklisting breaks Flatpak updates.
       "exofs"
       "freevxfs"
       "f2fs"
