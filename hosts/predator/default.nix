@@ -126,10 +126,10 @@
     # Restart WireGuard when the secret rotates so the new key takes effect immediately.
     restartUnits = [ "wg-quick-protonvpn.service" ];
   };
-  sops.secrets.github-pat = {
-    owner = "stoleyy";
-    mode = "0400";
-  };
+  # TODO: add github-pat to secrets.yaml before re-enabling —   sops.secrets.github-pat = {
+  # TODO: add github-pat to secrets.yaml before re-enabling —     owner = "stoleyy";
+  # TODO: add github-pat to secrets.yaml before re-enabling —     mode = "0400";
+  # TODO: add github-pat to secrets.yaml before re-enabling —   };
   modules.protonvpn = {
     enable = true;
     privateKeyFile = config.sops.secrets.protonvpn-private-key.path;
