@@ -1,0 +1,8 @@
+# gitleaks false positives (fingerprints from `gitleaks detect --no-git`).
+#
+# DNSCrypt public-resolvers minisign PUBLIC key. Published by the DNSCrypt
+# project so clients can verify the downloaded resolver list — public keys are
+# meant to be distributed, so this is not a secret. gitleaks' generic-api-key
+# rule only trips on the string's entropy.
+# https://github.com/DNSCrypt/dnscrypt-resolvers
+modules/networking.nix:generic-api-key:62

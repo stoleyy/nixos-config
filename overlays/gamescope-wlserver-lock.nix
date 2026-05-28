@@ -10,7 +10,7 @@
 #    before any window surface exists → wlserver_keyboardfocus() passes
 #    NULL to wlr_seat_keyboard_notify_enter() which asserts surface != NULL.
 #    Fix: NULL guard that calls wlr_seat_keyboard_clear_focus() instead.
-final: prev: {
+_final: prev: {
   gamescope = prev.gamescope.overrideAttrs (old: {
     patches = (old.patches or [ ]) ++ [
       # Mouse input race (upstream PR #2023)
