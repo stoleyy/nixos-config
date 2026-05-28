@@ -523,6 +523,8 @@ in
         "opacity 1.0 override 1.0 override, class:^(com.stremio.stremio)$"
         "opacity 1.0 override 1.0 override, title:^(Picture-in-Picture)$"
         "opacity 1.0 override 1.0 override, class:^(brave-browser)$"
+        "opacity 1.0 override 1.0 override, class:^(greenlight-desktop)$"
+        "opaque, class:^(greenlight-desktop)$"
         # ── Qubes-style trust domain borders ──
         # Green = sensitive/credentials (vault, KeePassXC)
         "bordercolor rgb(2E7D32), class:^(brave-vault)$"

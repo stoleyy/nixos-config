@@ -1,8 +1,7 @@
 #!@bash@/bin/bash
 # ProtonVPN quality-based server rotation.
 # Checks current connection health; only rotates if degraded.
-# Injected at build time: @path@, @poolFile@, @hysteresis@,
-# @killswitchBoth@, @killswitchCurrent@, @killswitchBest@
+# Injected at build time: path, poolFile, hysteresis, killswitch tables.
 
 set -euo pipefail
 export PATH="@path@:$PATH"
