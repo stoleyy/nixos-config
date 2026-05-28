@@ -41,6 +41,13 @@
     steam-hardware.enable = true;
   };
 
+  # RTX 4070 drives the only display (DP-2); transcode uses NVENC. The iGPU
+  # has no role and only confuses Proton's Vulkan device selection (games can
+  # enumerate and pick i915 instead of the 4070 → low NVIDIA util, low FPS).
+  # Console/greeter run on NVIDIA via nvidia-drm.fbdev=1 (nvidia.nix:55), so
+  # blacklisting i915 is safe and reversible.
+  boot.blacklistedKernelModules = [ "i915" ];
+
   # Compressed-RAM swap (64 GB box).
   #
   # Algorithm: lz4 — 3× the throughput (7,943 vs 2,612 MiB/s) and 3× lower

@@ -23,12 +23,12 @@ in
         };
         gpu = {
           apply_gpu_optimisations = "accept-responsibility";
-          # card1 = NVIDIA RTX 4070. simpledrm (card0) was removed by the
-          # nvidia-drm.fbdev=1 kernel param — only card1 exists now.
-          # nv_powermizer_mode fails silently on NVIDIA proprietary (sysfs GPU
-          # tuning is AMD-only); the nvidia-undervolt flag-file IPC in `custom`
-          # below is the actual GPU unlock mechanism.
-          device = 1;
+          # card0 = NVIDIA RTX 4070 (i915 blacklisted in hardware.nix; only
+          # NVIDIA DRM card present). nv_powermizer_mode fails silently on
+          # NVIDIA proprietary (sysfs GPU tuning is AMD-only); the
+          # nvidia-undervolt util-based IPC in `custom` below is the actual
+          # GPU unlock mechanism.
+          device = 0;
           nv_powermizer_mode = 1;
         };
         # GPU clock unlock: signal the nvidia-undervolt timer (modules/nvidia.nix)

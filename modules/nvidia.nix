@@ -74,6 +74,12 @@
     # Prevent the driver from busy-waiting on vsync; uses usleep() instead,
     # freeing CPU cycles on the i7-13700K for game threads.
     __GL_YIELD = "USLEEP";
+    # Proton/DXVK/VKD3D pick a Vulkan device themselves; with the Intel iGPU
+    # present they can land on it (low NVIDIA util, low FPS). Pin both to the
+    # discrete card. Belt-and-suspenders with boot.blacklistedKernelModules
+    # = ["i915"] in hardware.nix, but safe to keep even if i915 is absent.
+    DXVK_FILTER_DEVICE_NAME = "NVIDIA";
+    VKD3D_FILTER_DEVICE_NAME = "NVIDIA";
   };
 
   # PAT write-combining: ensures the driver uses Page Attribute Tables for
@@ -94,13 +100,18 @@
   # On NVIDIA: monitoring + CLI control; full undervolt/OC is AMD-only.
   services.lact.enable = true;
 
-  # Adaptive GPU undervolt — clock lock + GameMode unlock + state cache.
+  # Adaptive GPU undervolt — clock lock + utilization/GameMode unlock + state cache.
   #
-  # Three states, polled every 15 s (skips re-apply if unchanged):
-  #   Gaming (flag):    full clocks (210-3105), 200 W — GameMode sets the flag
-  #   Normal (<75°C):   210-2100 MHz, 200 W — daily undervolt
-  #   Hot    (≥75°C):   210-1800 MHz, 160 W — thermal safety net
+  # Three states, polled every 5 s (skips re-apply if unchanged):
+  #   Gaming (flag OR util>50%): full clocks (210-3105), 200 W
+  #     GameMode sets the flag-file; GPU utilization >50% catches Proton games
+  #     where libgamemode.so is not visible inside the pressure-vessel container
+  #     (steam-runtime#814) so the flag is never created. A 6-poll grace period
+  #     (~30 s) prevents premature downclocking on momentary load drops.
+  #   Normal (<75°C):            210-2100 MHz, 200 W — daily undervolt
+  #   Hot    (≥75°C):            210-1800 MHz, 160 W — thermal safety net
   #
+  # gaming-tuned specialisation overrides ExecStart with mkForce (always-unlocked).
   # RTX 4070 power range: 100-200 W. Clock range: 210-3105 MHz.
   systemd.services.nvidia-undervolt =
     let
@@ -114,12 +125,18 @@
       serviceConfig = {
         Type = "simple";
         ExecStart = pkgs.writeShellScript "nvidia-undervolt" ''
+          grace=0
           while true; do
-            temp=$(${smi} --query-gpu=temperature.gpu --format=csv,noheader 2>/dev/null || echo 0)
+            read -r temp util <<< \
+              "$(${smi} --query-gpu=temperature.gpu,utilization.gpu \
+                 --format=csv,noheader,nounits 2>/dev/null | tr ',' ' ')"
+            temp=''${temp:-0}; util=''${util:-0}
 
-            if [ -f "${host.gamemodeFlagFile}" ]; then
-              state=gaming
-            elif [ "$temp" -gt 75 ]; then
+            if [ -f "${host.gamemodeFlagFile}" ] || [ "''${util}" -gt 50 ]; then
+              state=gaming; grace=6
+            elif [ "''${grace}" -gt 0 ]; then
+              state=gaming; grace=$((grace - 1))
+            elif [ "''${temp}" -gt 75 ]; then
               state=hot
             else
               state=normal
@@ -135,12 +152,12 @@
               echo "$state" > ${cache}
             fi
 
-            sleep 15
+            sleep 5
           done
         '';
         Restart = "on-failure";
         RestartSec = "5s";
       };
     };
-  # Timer removed — service runs its own 15s loop.
+  # Timer removed — service runs its own poll loop.
 }
