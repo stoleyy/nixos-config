@@ -94,12 +94,18 @@
   # On NVIDIA: monitoring + CLI control; full undervolt/OC is AMD-only.
   services.lact.enable = true;
 
-  # Adaptive GPU undervolt — clock lock + GameMode unlock + state cache.
+  # Adaptive GPU power/thermal management — full boost + thermal clamp + cache.
   #
   # Three states, polled every 15 s (skips re-apply if unchanged):
   #   Gaming (flag):    full clocks (210-3105), 200 W — GameMode sets the flag
-  #   Normal (<75°C):   210-2100 MHz, 200 W — daily undervolt
+  #   Normal (<75°C):   full clocks (210-3105), 200 W — GPU self-manages boost
   #   Hot    (≥75°C):   210-1800 MHz, 160 W — thermal safety net
+  #
+  # "Normal" no longer clock-locks: the old 210-2100 cap throttled Steam/Proton
+  # games to ~2100 MHz because GameMode can't set its flag inside pressure-vessel
+  # (steam-runtime#814), so the unlock never fired. Letting the GPU's own boost
+  # algorithm self-manage restores full clocks under load; idle is unaffected (it
+  # floors at ~210 MHz regardless). "gaming" is now equivalent to "normal".
   #
   # RTX 4070 power range: 100-200 W. Clock range: 210-3105 MHz.
   systemd.services.nvidia-undervolt =
@@ -130,7 +136,7 @@
               case $state in
                 gaming) ${smi} -rgc;          ${smi} -pl 200 ;;
                 hot)    ${smi} -lgc 210,1800; ${smi} -pl 160 ;;
-                normal) ${smi} -lgc 210,2100; ${smi} -pl 200 ;;
+                normal) ${smi} -rgc;          ${smi} -pl 200 ;;
               esac
               echo "$state" > ${cache}
             fi
