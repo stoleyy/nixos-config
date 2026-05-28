@@ -76,6 +76,11 @@ let
         cp "${themePath name domain}/manifest.json" "$THEME_DIR/1.0/"
       fi
 
+      # Seed initial preferences — Brave reads this once on first launch
+      if [ ! -f "$DATA_DIR/initial_preferences" ]; then
+        printf '{"brave":{"sidebar":{"sidebar_show_option":2},"vertical_tabs":{"floating":true}}}\n' > "$DATA_DIR/initial_preferences"
+      fi
+
       ${
         if domain ? isolated && domain.isolated then
           ''exec sg untrusted -c "brave --user-data-dir=\"$DATA_DIR\" --class=brave-${name} $*"''

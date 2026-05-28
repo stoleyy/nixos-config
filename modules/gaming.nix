@@ -58,16 +58,22 @@ in
       gamescopeSession.enable = true;
       extraCompatPackages = with pkgs; [ proton-ge-bin ];
       # Inject gamemode into Steam's FHS sandbox so libgamemode.so is visible
-      # to all games. Without this, gamemoderun inside Steam fails with
-      # "dlopen failed - libgamemode.so: cannot open shared object file".
-      # libgamemodeauto.so.0 is LD_PRELOAD'd into Steam → auto-registers
-      # every game with GameMode on launch (governor→performance, GPU unlock).
-      # No per-game launch options needed.
+      # to games launched via `gamemoderun %command%` in Steam launch options.
       package = pkgs.steam.override {
         extraPkgs = p: [ p.gamemode ];
-        extraProfile = ''
-          export LD_PRELOAD="''${LD_PRELOAD:+$LD_PRELOAD:}libgamemodeauto.so.0"
-        '';
+        # Force Mesa software rendering for Steam's CEF UI (steamwebhelper).
+        # Without this, the CEF GPU process tries NVIDIA OpenGL inside the
+        # steam runtime container and hits glibc ABI incompatibilities
+        # (__malloc_hook removed in glibc 2.34+), causing steamwebhelper to
+        # never serve its IPC websocket → Steam times out → "Failed to connect
+        # to websocket" / crash. Games still use NVIDIA via Vulkan/Proton.
+        extraEnv = {
+          LIBGL_ALWAYS_SOFTWARE = "1";
+          __GLX_VENDOR_LIBRARY_NAME = "mesa";
+        };
+        # Steam 1779918128+ fixed browser_subprocess_path in CEF — no LD_PRELOAD hack
+        # needed. Gamemode for games is handled by gamemoderun via launch options or
+        # the libgamemodeauto.so.0 that gamemode adds to the FHS env (extraPkgs above).
       };
       # Vetted nix-gaming SteamOS sysctl bundle: vm.max_map_count=2147483642
       # (fixes CS2/Hogwarts/DayZ/UE5 Proton crashes — default 65530 too low),
@@ -113,5 +119,8 @@ in
     # lutris: run on-demand via `nix run nixpkgs#lutris` (4.6 GiB savings)
     prismlauncher
     adwsteamgtk
+    (callPackage ../packages/greenlight.nix { })
   ];
+
+  environment.sessionVariables.ELECTRON_OZONE_PLATFORM_HINT = "auto";
 }
