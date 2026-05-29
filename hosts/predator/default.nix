@@ -209,6 +209,10 @@
     # Plasma as their daily driver, flip defaultSession in modules/desktop.nix
     # and remove this specialisation.
     plasma.configuration = {
+      # Bring the KDE Plasma 6 desktop into this generation only. The default
+      # (Hyprland) generation leaves modules.plasma.enable at its false default,
+      # so plasma6 + the home-manager Plasma config live exclusively here.
+      modules.plasma.enable = true;
       services.displayManager.defaultSession = lib.mkForce "plasma";
       services.displayManager.autoLogin.enable = lib.mkForce false;
     };

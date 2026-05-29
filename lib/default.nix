@@ -59,9 +59,7 @@
         # ── Networking services ──
         ../modules/protonvpn.nix # WireGuard tunnel + kill switch
         ../modules/protonvpn-rotate.nix # quality-based server rotation
-        ../modules/containers.nix # Podman/OCI runtime
-        ../modules/media-server.nix # Jellyfin, *arr stack, qBittorrent
-        ../modules/ollama.nix # local LLM runtime (enable = false; flip to enable)
+        ../modules/media-server.nix # Jellyfin, *arr stack, qBittorrent (gated: modules.mediaServer.enable)
         ../modules/monitoring.nix # ntfy, beszel, gatus, vector
         ../modules/transcode.nix # systemd.paths NVENC watch folder
         ../modules/update-routines.nix # weekly rebuild, flake bump, vulnix

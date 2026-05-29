@@ -52,7 +52,6 @@ in
     xfce.thunar-volman # Removable media integration
     xfce.tumbler # Thumbnail service for Thunar
     yazi # TUI file manager (Ghostty graphics-protocol previews)
-    walker # Unified launcher (apps + clipboard + emoji + calc + window switch)
     rofi-bluetooth # OLED-friendly keyboard-only BT pairing
     nwg-look # Wayland-native GTK theme verifier
 
@@ -390,7 +389,6 @@ in
         "$mod, Return, exec, $terminal"
         "$mod, B,      exec, $browser"
         "$mod, Space,  exec, $launcher"
-        "$mod, A,      exec, walker" # unified launcher (apps + clipboard + emoji)
         "$mod, E,      exec, $filemanager"
         "$mod, Y,      exec, $terminal -e yazi" # TUI file manager (ghostty graphics)
         "$mod CTRL, L,  exec, hyprlock"
