@@ -22,7 +22,7 @@ reach another — is only partially met, because every "domain" shares one UID
 
 | Impact ↓ \ Likelihood → | Low | Medium | High |
 |---|---|---|---|
-| **Critical** | 🟠 W5 evil-maid / boot | 🔴 W2 same-UID blast radius | 🔴 W1 pirated-game execution |
+| **Critical** | 🟠 W5 evil-maid / boot | 🟠 W2 same-UID blast radius (browser FS-jailed) | 🔴 W1 pirated-game execution |
 | **High** | 🟡 W8 disko DR drift | 🟠 W6 supply chain · 🟠 W7 user→root | 🔴 W3 gaming-mode blackout |
 | **Moderate** | 🟢 W9 LAN services | — | 🟠 W4 detect-without-alert |
 | **Low** | — | — | — |
@@ -34,7 +34,7 @@ reach another — is only partially met, because every "domain" shares one UID
 | ID | Weakpoint | L×I | Status | Notes |
 |---|---|---|---|---|
 | **W1** | Pirated game binaries run at full user privilege (Wine/Steam as `stoleyy`) | H×C 🔴 | **OPEN** — roadmap below | Highest-likelihood path to total user compromise |
-| **W2** | All trust domains share one UID + `$HOME` (Brave profiles, KeePassXC, keys) | M×C 🔴 | **OPEN** — roadmap below | Impact amplifier for W1 and any browser escape |
+| **W2** | All trust domains share one UID + `$HOME` (Brave profiles, KeePassXC, keys) | M×C 🔴→🟠 | **PARTIAL** — browser FS-jailed | Each Brave domain now runs in a bubblewrap tmpfs-`$HOME` jail (`home/stoleyy/browser.nix`): a browser RCE can no longer read sibling profiles, `~/.ssh`, `~/.gnupg`, or the KeePassXC `.kdbx`. Untrusted/disposable additionally get NO path to the password manager. Residual: a malicious *game* (W1) still runs as `stoleyy` and crosses everything |
 | **W3** | Gaming session shed AppArmor + auditd + IDS while running the most untrusted code | H×H 🔴 | **HARDENED** | AppArmor + auditd now kept ON in `gaming-tuned`; only the heavy net/log monitors stay shed |
 | **W4** | Detection recorded but nobody alerted (auditd/Suricata/CrowdSec on; sinks off) | H×M 🟠 | **HARDENED** | Loopback `ntfy-sh` enabled + `OnFailure` wired to VPN/DNS/Suricata/CrowdSec |
 | **W5** | Evil-maid: unencrypted `/boot`, no Secure Boot, unmeasured initrd, secondary-disk LUKS keyfile in initrd | L×C 🟠 | **ACCEPTED** | Low likelihood at home; Secure Boot bricked the box twice (lanzaboote disabled). Re-attempt deliberately, out of band |
@@ -71,15 +71,21 @@ interim, `firejail --private` the Wine step so a malicious installer can't read
 ## Already-strong (green — don't re-spend effort)
 
 Encrypted + anonymized DNS · MAC/hostname/IPv6 privacy · ProtonVPN fail-closed
-kill switch · no inbound SSH + default-deny firewall · KSPP/CIS kernel hardening ·
-USBGuard allowlist · KeePassXC `firejail --net=none` · WebRTC leak closed
-(`disable_non_proxied_udp`) · `untrusted` GID LAN-block + Tor egress ·
+kill switch · no inbound SSH + default-deny firewall · KSPP/CIS kernel hardening
+(+ max mmap ASLR entropy) · USBGuard allowlist · KeePassXC `firejail --net=none` ·
+WebRTC leak closed (`disable_non_proxied_udp`) · per-domain bubblewrap browser
+FS-jail (masks keys + sibling profiles) · `untrusted` + `vault` GID LAN-block ·
+Tor egress for untrusted/disposable · scoped graphene-hardened-malloc (browser) ·
 auditd/Suricata/CrowdSec/vector enabled.
 
 ## Roadmap for the 🔴 architectural cluster (W1 + W2)
 
-The only thing that meaningfully shrinks the hot cluster is a **real privilege
-boundary** under the games + untrusted apps. Options, least → most isolation:
+**Update:** W2's *browser* vector is now closed by the per-domain bubblewrap
+FS-jail (`home/stoleyy/browser.nix`) — a browser RCE can no longer read across
+domains or steal `~/.ssh`/`~/.gnupg`/the `.kdbx`. What remains of the hot cluster
+is the **games (W1)** path: pirated binaries still run as `stoleyy` with full
+`$HOME` access. The only thing that meaningfully shrinks *that* is a **real
+privilege boundary** under the games. Options, least → most isolation:
 
 1. **Dedicated low-privilege `gamer` UID** (recommended first step). Games + the
    `game-install` Wine step run as `gamer`, whose home is the games volume and
@@ -96,8 +102,9 @@ boundary** under the games + untrusted apps. Options, least → most isolation:
    inversely, for the games. True VM boundary — closest to Qubes — but the
    heaviest change (GPU passthrough/virgl, separate Nix closure).
 
-Until one of these lands, treat the window-frame colors as *labels, not
-isolation* (see CLAUDE.md pitfall).
+The browser window-frame colors now carry a real filesystem boundary (the bwrap
+jail), not just a label. The **games** path remains unconfined until one of the
+above lands — treat a running game as fully trusted (see CLAUDE.md pitfall).
 
 ## Validation status
 
