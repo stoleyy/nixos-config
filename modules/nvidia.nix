@@ -2,6 +2,7 @@
 # Also: LACT GPU monitor daemon, adaptive TDP timer.
 {
   config,
+  lib,
   pkgs,
   host,
   ...
@@ -157,7 +158,18 @@
         '';
         Restart = "on-failure";
         RestartSec = "5s";
+        # Bound the stop so shutdown can't stall on the systemd 90 s default if
+        # an nvidia-smi call is wedged in a driver ioctl during GPU teardown.
+        # Inherited by the gaming-tuned specialisation, which only mkForce's
+        # ExecStart (sleep infinity) and leaves the rest of serviceConfig.
+        TimeoutStopSec = "10s";
       };
     };
   # Timer removed — service runs its own poll loop.
+
+  # Bound the stop timeout on the upstream GPU daemons too. Any of these can
+  # hang during GPU teardown and otherwise force systemd to wait the full 90 s
+  # default before SIGKILL — the source of the slow shutdown.
+  systemd.services.nvidia-persistenced.serviceConfig.TimeoutStopSec = lib.mkForce "10s";
+  systemd.services.lact.serviceConfig.TimeoutStopSec = lib.mkForce "10s";
 }

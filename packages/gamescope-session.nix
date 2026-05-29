@@ -3,12 +3,21 @@
 {
   writeShellScript,
   libglvnd,
-  host,
 }:
 writeShellScript "gamescope-session" ''
-  # Thorough logging — survives reboots since it's in $HOME.
-  LOG=${host.home}/gamescope-session.log
-  exec > "$LOG" 2>&1
+  # Never let systemd's pager (loginctl/systemctl) attach to a TTY and block.
+  # The gaming-tuned session runs as the `gamer` user; if the log redirect
+  # below ever fails, stdout falls back to greetd's console TTY, where an
+  # un-suppressed pager (less) would deadlock the whole session on the
+  # `loginctl seat-status` call and gamescope would never launch.
+  export SYSTEMD_PAGER="" PAGER=cat
+
+  # Thorough logging — survives reboots since it's in the running user's $HOME.
+  # Must NOT hardcode stoleyy's home: this session runs as `gamer`, which has
+  # no access to /home/stoleyy (0700). Use the runtime $HOME (= /home/gamer
+  # via greetd's PAM session) and never abort if the log is unwritable.
+  LOG="''${HOME:-/home/gamer}/gamescope-session.log"
+  exec >>"$LOG" 2>&1 || exec 2>&1
   set -x
 
   echo "============================================"
