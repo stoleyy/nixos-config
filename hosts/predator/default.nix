@@ -246,7 +246,7 @@
           settings.default_session = {
             command =
               let
-                gamescopeSession = pkgs.callPackage ../../packages/gamescope-session.nix { inherit host; };
+                gamescopeSession = pkgs.callPackage ../../packages/gamescope-session.nix { };
               in
               "${gamescopeSession}";
             # W1/W2 containment: gaming mode runs as the low-privilege `gamer`
@@ -378,9 +378,11 @@
         ''
       );
 
-      # Auto-clean old gamescope session logs
+      # Auto-clean old gamescope session logs. Lives in gamer's $HOME because
+      # the gaming-tuned session runs as `gamer` (not stoleyy) — see the log
+      # path in packages/gamescope-session.nix.
       systemd.tmpfiles.rules = [
-        "e /home/stoleyy/gamescope-session.log - - - 7d -"
+        "e /home/gamer/gamescope-session.log - - - 7d -"
       ];
 
       # Performance kernel params. Appended to the base list; Linux

@@ -78,7 +78,8 @@ Boot topology (systemd-boot menu entries):
   exits or crashes, greetd auto-restarts it. Configured for 4K@240Hz OLED
   with VRR. HDR disabled (NVIDIA DRM limitation). Security monitoring
   (auditd, AppArmor) and PPD are disabled; CPU governor + EPP pinned to
-  `performance`. Session stderr is logged to `/home/stoleyy/gamescope-session.log`.
+  `performance`. Session stderr is logged to `/home/gamer/gamescope-session.log`
+  (the gaming-tuned session runs as the `gamer` user, not `stoleyy`).
   See `hosts/predator/default.nix`.
 - **Switching session**: in the default/plasma/debug entries, autologin
   skips the greeter. To reach the SDDM dropdown, log out without
