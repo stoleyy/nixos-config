@@ -32,9 +32,9 @@ _:
 #     declarative nixos-rebuild workflow. Leave audit mutable (`-e 1`,
 #     set by the module).
 {
-  security.auditd.enable = false;
+  security.auditd.enable = true;
   security.audit = {
-    enable = false;
+    enable = true;
     backlogLimit = 8192;
     failureMode = "printk"; # don't panic on full buffer; just log
     rules = [

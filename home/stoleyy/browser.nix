@@ -6,8 +6,14 @@
 # Domains:
 #   vault      (GREEN)  — banking, finance, sensitive accounts. Max lockdown.
 #   personal   (BLUE)   — daily browsing, YouTube, social media. Standard.
-#   untrusted  (RED)    — random links, sketchy sites. Aggressive isolation.
-#   disposable (ORANGE) — one-shot sessions, wiped on exit. Click unknown links.
+#   untrusted  (RED)    — random links, sketchy sites. LAN-blocked + Tor egress.
+#   disposable (ORANGE) — one-shot session, wiped on exit. LAN-blocked + Tor.
+#
+# Isolated domains (untrusted, disposable) launch via `sg untrusted`, so their
+# sockets are owned by the "untrusted" GID (LAN dropped by compartments.nix)
+# and they are pointed at the local Tor SOCKS proxy (modules/tor-isolation.nix)
+# for Tor-over-VPN egress. stoleyy must be in the `untrusted` group
+# (modules/base.nix) or `sg` refuses to switch into it.
 {
   pkgs,
   lib,
@@ -83,7 +89,11 @@ let
 
       ${
         if domain ? isolated && domain.isolated then
-          ''exec sg untrusted -c "brave --user-data-dir=\"$DATA_DIR\" --class=brave-${name} $*"''
+          # Isolated domains: switch to the "untrusted" GID (LAN dropped by
+          # modules/compartments.nix) AND route through the local Tor SOCKS
+          # proxy (modules/tor-isolation.nix) → Tor-over-VPN egress. Chromium
+          # does remote DNS over the socks5 proxy, so no DNS leak.
+          ''exec sg untrusted -c "brave --user-data-dir=\"$DATA_DIR\" --class=brave-${name} --proxy-server=socks5://127.0.0.1:9050 $*"''
         else
           ''exec brave --user-data-dir="$DATA_DIR" --class="brave-${name}" "$@"''
       }

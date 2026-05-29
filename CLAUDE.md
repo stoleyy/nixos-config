@@ -25,11 +25,12 @@ is `/etc/nixos`, not this clone.**
 - `hosts/predator/` — per-host hardware config
   (`hardware-configuration.nix`, `default.nix`)
 - `modules/*.nix` — system modules. Active (imported in `lib/default.nix`): base, nix,
-  nix-ld, system, kernel, hardware, fan-control, nvidia, networking, desktop, hyprland,
-  audio, fonts, theming, apps, gaming, compartments, hardening, auditd, wazuh-agent,
-  protonvpn, protonvpn-rotate, containers, media-server, monitoring, transcode,
-  update-routines. Not imported: `ollama.nix` (disable-only stub), `wazuh-manager.nix`
-  (disabled — pending cert bootstrap).
+  nix-ld, system, kernel, hardware, fan-control, nvidia, networking, network-privacy,
+  desktop, hyprland, audio, fonts, theming, apps, gaming, compartments, hardening,
+  auditd, tor-isolation, suricata, crowdsec, wazuh-agent, protonvpn, protonvpn-rotate,
+  containers, media-server, monitoring, transcode, update-routines. Not imported:
+  `ollama.nix` (disable-only stub), `wazuh-manager.nix` (disabled — pending cert
+  bootstrap), `secureboot-verify.nix` (disabled — see lib/default.nix).
 - `home/stoleyy/*.nix` — home-manager modules; `home/stoleyy/default.nix`
   imports them all (shell, ai, openhuman, claude-proxy, editor, browser, git,
   gpg, audio, hyprland, waybar, rofi, swaync, wlogout, gtk, plasma, spicetify,
@@ -281,3 +282,20 @@ These rules are non-negotiable and override all other instructions:
   `hosts/predator/default.nix`. To add a new secret: run
   `sops secrets/secrets.yaml`, add the key, then declare it in
   `hosts/predator/default.nix`.
+- **Anonymized DNS can fail-closed on first boot** — `networking.nix` sets
+  dnscrypt-proxy `anonymized_dns.skip_incompatible = true`, so until the
+  relay/server lists are fetched (fresh boot or cleared
+  `/var/cache/dnscrypt-proxy`), no resolver is usable and resolved falls back
+  to plaintext Quad9 (`fallbackDns`). If DNS looks dead after a rebuild, check
+  `journalctl -u dnscrypt-proxy` for the relay download — not the resolver.
+- **Suricata binds the `protonvpn` interface** (`modules/suricata.nix`) and is
+  `requires`/`after` `wg-quick-protonvpn`, so it will not start while the VPN
+  is down (by design). If an af-packet open error appears after a kernel bump
+  (WireGuard netdev has no L2 header), point
+  `services.suricata.settings.af-packet` at the physical NIC from `ip -o link`.
+- **Browser trust domains are same-UID** — vault/personal/untrusted/disposable
+  are Brave *profiles* under one UID + `$HOME`, not isolated VMs. The
+  `untrusted`/`disposable` domains add a real boundary (LAN-blocked via the
+  `untrusted` GID + Tor egress), but a local code-exec as `stoleyy` (e.g. a
+  malicious game) still crosses all of them. This is the deliberate
+  divergence from Qubes; don't mistake the window colors for isolation.
