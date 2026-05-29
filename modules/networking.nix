@@ -146,6 +146,9 @@ in
       enable = true;
       nssmdns4 = true;
       openFirewall = true; # needed for KDE Connect mDNS discovery
+      # Never announce the "predator" hostname/services over the VPN tunnel —
+      # mDNS is LAN-only by design. Belt-and-suspenders alongside the kill switch.
+      denyInterfaces = [ "protonvpn" ];
     };
   };
 
