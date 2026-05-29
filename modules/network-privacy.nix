@@ -10,13 +10,19 @@ _:
 
 {
   networking.networkmanager = {
-    # Re-randomize the L2 MAC on every connection activation. "random" (not
-    # "stable") means even the cloned MAC rotates, so the address seen on the
-    # wire is never the burned-in hardware MAC and never repeats across
-    # sessions. No OPNsense DHCP reservation depends on a fixed MAC here, so
-    # full randomization is free of LAN-policy breakage.
+    # Re-randomize the L2 MAC on every Wi-Fi connection activation. "random"
+    # (not "stable") means even the cloned MAC rotates, so the address seen on
+    # the wire is never the burned-in hardware MAC and never repeats across
+    # sessions. This is the real privacy use case — roaming onto untrusted APs.
     wifi.macAddress = "random";
-    ethernet.macAddress = "random";
+    # Wired link: keep the stable hardware MAC. This desktop sits behind the
+    # user's own OPNsense router; randomizing the ethernet MAC on every
+    # activation broke connectivity (gen 18 ok → gen 19 dead: the wired link
+    # got no usable DHCP lease/route, so wg-quick-protonvpn could never reach
+    # the Proton endpoint, the tunnel stayed down, and the fail-closed
+    # killswitch then blocked everything). MAC randomization buys ~nothing on
+    # one's own LAN, so preserve the permanent MAC here.
+    ethernet.macAddress = "preserve";
   };
 
   # Connection/device defaults that NetworkManager has no first-class NixOS
