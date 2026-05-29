@@ -30,7 +30,8 @@
         ../modules/hardware.nix # microcode, bluetooth, zram
         ../modules/fan-control.nix # it87 driver + fancontrol (Predator PO3-650)
         ../modules/nvidia.nix # NVIDIA RTX 4070 (Ada) — proprietary driver, VAAPI, undervolt
-        ../modules/networking.nix # NetworkManager, nftables, resolved
+        ../modules/networking.nix # NetworkManager, nftables, resolved, anonymized DNS
+        ../modules/network-privacy.nix # MAC randomization, DHCP hostname suppression, IPv6 privacy
 
         # ── Desktop & UX ──
         ../modules/desktop.nix # SDDM, Plasma 6, XDG portals
@@ -48,6 +49,9 @@
         ../modules/hardening.nix # CIS/KSPP sysctl, AppArmor
         ../modules/auditd.nix # syscall/FIM audit → Wazuh
         ../modules/wazuh-agent.nix # HIDS agent
+        ../modules/tor-isolation.nix # Tor SOCKS proxy for the untrusted browser domain
+        ../modules/suricata.nix # network IDS on the VPN (protonvpn) egress path
+        ../modules/crowdsec.nix # behavioral IPS — journald auth-abuse + local API
         # DISABLED — script runs sbctl verify against raw kernel files that lanzaboote owns; sbctl sign -s on those corrupts the lanzaboote UKI hash. Re-enable only after rewriting the script to scope to /boot/EFI/Linux/*.efi UKIs only.
         # ../modules/secureboot-verify.nix # post-activation sbctl verify gate
         # ../modules/wazuh-manager.nix # disabled — pending cert bootstrap

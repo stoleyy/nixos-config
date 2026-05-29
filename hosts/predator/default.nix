@@ -254,6 +254,14 @@
         # Disable PPD — pulled in by plasma6, conflicts with the explicit
         # governor service below. Without this, both fight over sysfs writes.
         power-profiles-daemon.enable = lib.mkForce false;
+
+        # Shed the network monitoring / obfuscation daemons for the
+        # pure-gaming session (same rationale as the auditd/apparmor
+        # disables below — this entry runs nothing network-facing).
+        suricata.enable = lib.mkForce false;
+        crowdsec.enable = lib.mkForce false;
+        vector.enable = lib.mkForce false;
+        tor.enable = lib.mkForce false;
       };
 
       # Force xdg-desktop-portal OFF for the greetd/gamescope session.

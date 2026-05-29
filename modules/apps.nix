@@ -64,13 +64,11 @@
     inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default
   ];
 
-  # Brave debloat via enterprise policy (managed via /etc/brave/policies/managed/).
-  # Disables: Rewards, Wallet (crypto), AI Chat (Leo), News, Talk, VPN, Tor mode,
-  # default-browser nag, P3A telemetry, and the new-tab "stats" tiles.
-  # Sync is the one deliberate exception to the debloat above — left
-  # enabled so the user's search engines, bookmarks, and passwords sync
-  # across devices via Brave Sync (brave://sync). Not telemetry; see
-  # SyncDisabled below.
+  # Brave debloat + privacy hardening via enterprise policy (managed via
+  # /etc/brave/policies/managed/). Applies browser-wide, to all four trust
+  # domains. Disables: Rewards, Wallet (crypto), AI Chat (Leo), News, Talk,
+  # VPN, Tor mode, default-browser nag, P3A telemetry, and the new-tab "stats"
+  # tiles — and hardens WebRTC IP handling (see WebRtcIPHandling below).
   environment.etc."brave/policies/managed/debloat.json".text = builtins.toJSON {
     BraveRewardsDisabled = true;
     BraveWalletDisabled = true;
@@ -84,6 +82,24 @@
     MetricsReportingEnabled = false;
     SearchSuggestEnabled = false;
     SyncDisabled = false; # deliberately enabled — user's cross-device sync (see note above)
+
+    # ── WebRTC IP-leak hardening (fingerprint / deanonymization) ──
+    # WebRTC can reveal your LOCAL (LAN) IP and bypass the VPN via STUN — a
+    # tracking + deanonymization vector that Brave's farbling does NOT cover.
+    # "disable_non_proxied_udp" is the leak-proof setting: it blocks ALL
+    # non-proxied WebRTC UDP, so no STUN probe can expose the local, VPN, or
+    # real IP on ANY profile — including the Tor-routed untrusted/disposable
+    # zones, where it also stops WebRTC from punching around the Tor circuit.
+    # Trade-off: in-browser WebRTC voice/video calls won't work — that is the
+    # intended sacrifice here (video calls are not used).
+    #
+    # Fingerprint randomization ("farbling") is left at Brave's default
+    # Standard level: upstream sunset the old "Strict" mode in 1.64, so
+    # Standard is the strongest in-Brave protection and nothing here disables
+    # it. True fingerprint *uniformity* would require Mullvad/Tor Browser —
+    # deliberately not used here (normalized on Brave for one consistent
+    # compartment model + sync).
+    WebRtcIPHandling = "disable_non_proxied_udp";
   };
 
   # Flatpak disabled — all apps are declaratively managed via Nix.

@@ -1,6 +1,12 @@
-# NetworkManager + nftables firewall, dnscrypt-proxy (adaptive DNS), systemd-resolved, ProtonVPN kill-switch support.
+# NetworkManager + nftables firewall, dnscrypt-proxy (adaptive + anonymized DNS), systemd-resolved, ProtonVPN kill-switch support.
 _:
 
+let
+  # PUBLIC minisign key for the DNSCrypt resolver/relay lists — safe to commit
+  # (it only authenticates the downloaded server lists, it is not a secret).
+  # Defined once and reused by every `sources.*` block below.
+  dnscryptMinisignKey = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
+in
 {
   networking = {
     networkmanager = {
@@ -52,6 +58,25 @@ _:
         dnscrypt_servers = true;
         doh_servers = true;
 
+        # ── Anonymized DNS / ODoH ──
+        # Relay every query through a third party so the resolver never sees
+        # this host's source IP. via = ["*"] lets dnscrypt-proxy auto-select
+        # relays (zero maintenance, no hard-coded relay names to rot).
+        # skip_incompatible = true drops any resolver that cannot be relayed
+        # instead of querying it directly — so there is no deanonymizing
+        # fallback to a naked DNSCrypt/DoH query. ODoH (oblivious DoH) servers
+        # are relay-only by design and layered in alongside.
+        odoh_servers = true;
+        anonymized_dns = {
+          routes = [
+            {
+              server_name = "*";
+              via = [ "*" ];
+            }
+          ];
+          skip_incompatible = true;
+        };
+
         # Source: community-maintained resolver list (default).
         sources.public-resolvers = {
           urls = [
@@ -59,7 +84,35 @@ _:
             "https://download.dnscrypt.info/resolvers-list/v3/public-resolvers.md"
           ];
           cache_file = "/var/cache/dnscrypt-proxy/public-resolvers.md";
-          minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
+          minisign_key = dnscryptMinisignKey;
+        };
+
+        # Relay list — required for the Anonymized DNS routing configured above.
+        sources.relays = {
+          urls = [
+            "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/relays.md"
+            "https://download.dnscrypt.info/resolvers-list/v3/relays.md"
+          ];
+          cache_file = "/var/cache/dnscrypt-proxy/relays.md";
+          minisign_key = dnscryptMinisignKey;
+        };
+
+        # ODoH (oblivious DoH) server + relay lists.
+        sources.odoh-servers = {
+          urls = [
+            "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/odoh-servers.md"
+            "https://download.dnscrypt.info/resolvers-list/v3/odoh-servers.md"
+          ];
+          cache_file = "/var/cache/dnscrypt-proxy/odoh-servers.md";
+          minisign_key = dnscryptMinisignKey;
+        };
+        sources.odoh-relays = {
+          urls = [
+            "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/odoh-relays.md"
+            "https://download.dnscrypt.info/resolvers-list/v3/odoh-relays.md"
+          ];
+          cache_file = "/var/cache/dnscrypt-proxy/odoh-relays.md";
+          minisign_key = dnscryptMinisignKey;
         };
 
         # Local cache — avoids redundant lookups hitting the network.

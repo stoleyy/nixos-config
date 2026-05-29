@@ -113,7 +113,7 @@ in
   # ── Vector: structured log pipeline ──
   # Tails journald (priority ≤ 4) → structured JSON at /var/log/vector/.
   services.vector = {
-    enable = false;
+    enable = true;
     journaldAccess = true;
     settings = {
       sources.journal = {
