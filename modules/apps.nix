@@ -68,7 +68,8 @@
   # /etc/brave/policies/managed/). Applies browser-wide, to all four trust
   # domains. Disables: Rewards, Wallet (crypto), AI Chat (Leo), News, Talk,
   # VPN, Tor mode, default-browser nag, P3A telemetry, and the new-tab "stats"
-  # tiles — and hardens WebRTC IP handling (see WebRtcIPHandling below).
+  # tiles; hardens WebRTC IP handling (WebRtcIPHandling); pins DNS to the OS
+  # resolver (DnsOverHttpsMode); and disables Brave Sync (SyncDisabled).
   environment.etc."brave/policies/managed/debloat.json".text = builtins.toJSON {
     BraveRewardsDisabled = true;
     BraveWalletDisabled = true;
@@ -81,7 +82,17 @@
     DefaultBrowserSettingEnabled = false;
     MetricsReportingEnabled = false;
     SearchSuggestEnabled = false;
-    SyncDisabled = false; # deliberately enabled — user's cross-device sync (see note above)
+    # Disable Brave Sync — it links your browsers across devices into one
+    # identity (a cross-device tracking beacon). Off = that linkage is gone;
+    # cost = no bookmark/password/search-engine sync across devices.
+    SyncDisabled = true;
+
+    # Pin DNS to the OS resolver: stop Brave's built-in Secure DNS (DoH) from
+    # silently upgrading to a public provider (Cloudflare/Google) that would
+    # BYPASS the anonymized dnscrypt-proxy path and leak your lookups. "off" =
+    # use the system stub (systemd-resolved → dnscrypt-proxy), which is already
+    # encrypted + anonymized at the OS layer.
+    DnsOverHttpsMode = "off";
 
     # ── WebRTC IP-leak hardening (fingerprint / deanonymization) ──
     # WebRTC can reveal your LOCAL (LAN) IP and bypass the VPN via STUN — a
@@ -98,7 +109,7 @@
     # Standard is the strongest in-Brave protection and nothing here disables
     # it. True fingerprint *uniformity* would require Mullvad/Tor Browser —
     # deliberately not used here (normalized on Brave for one consistent
-    # compartment model + sync).
+    # compartment model).
     WebRtcIPHandling = "disable_non_proxied_udp";
   };
 
