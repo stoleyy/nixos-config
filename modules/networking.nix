@@ -59,7 +59,11 @@ _:
             "https://download.dnscrypt.info/resolvers-list/v3/public-resolvers.md"
           ];
           cache_file = "/var/cache/dnscrypt-proxy/public-resolvers.md";
-          minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
+          # DNSCrypt public-resolvers signing key — a PUBLIC minisign key, not a
+          # secret. The trailing allow directive suppresses the high-entropy
+          # false positive (replaces the stale .gitleaksignore fingerprint that
+          # broke when gitleaks switched to the file:rule:line format).
+          minisign_key = "RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3"; # gitleaks:allow
         };
 
         # Local cache — avoids redundant lookups hitting the network.
