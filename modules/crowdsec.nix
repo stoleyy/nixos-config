@@ -12,7 +12,7 @@
 # if inbound services are ever opened.
 #
 # Disabled in the gaming-tuned specialisation (see hosts/predator/default.nix).
-_:
+{ lib, ... }:
 
 {
   services.crowdsec = {
@@ -23,6 +23,15 @@ _:
     # Install the Linux collection: syslog parsers + base brute-force scenarios
     # that consume the journald acquisition below.
     hub.collections = [ "crowdsecurity/linux" ];
+
+    # Enable the local LAPI server (agent + server in one process, no cloud
+    # enrollment). Without this the module leaves credentials_path = null and
+    # never runs `cscli machines add --auto`, so the ExecStartPre config-test
+    # fails on every boot.
+    settings.general.api.server.enable = true;
+    # Path where crowdsec-setup writes (and crowdsec reads) the auto-generated
+    # LAPI client credentials on first start.
+    settings.lapi.credentialsFile = "/var/lib/crowdsec/local_api_credentials.yaml";
 
     # Data source: the authpriv slice of the journal (sudo, su, PAM, login).
     # The crowdsec service user is auto-added to systemd-journal by the module,
@@ -35,4 +44,10 @@ _:
       }
     ];
   };
+
+  # Upstream nixpkgs bug: crowdsec-update-hub runs with DynamicUser + PrivateUsers,
+  # so its ExecStartPost `systemctl reload crowdsec.service` fails with
+  # "Access denied" (polkit requires interactive auth in that sandbox).
+  # Suppress the reload — hub content is picked up on the next crowdsec restart.
+  systemd.services.crowdsec-update-hub.serviceConfig.ExecStartPost = lib.mkForce "";
 }

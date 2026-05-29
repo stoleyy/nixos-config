@@ -20,6 +20,22 @@ let
       printf '{"text":"󰦞","tooltip":"VPN disconnected","class":"disconnected"}\n'
     fi
   '';
+
+  idsScript = pkgs.writeShellScript "waybar-ids" ''
+    f="/var/log/vector/suricata-alerts-$(${pkgs.coreutils}/bin/date +%Y-%m-%d).json"
+    if [[ ! -f "$f" ]] || [[ ! -s "$f" ]]; then
+      ${pkgs.jq}/bin/jq -cn '{text:"󰒃",tooltip:"IDS: no alerts today",class:"clear"}'
+      exit 0
+    fi
+    count=$(${pkgs.coreutils}/bin/wc -l < "$f" | ${pkgs.coreutils}/bin/tr -d ' ')
+    last=$(${pkgs.coreutils}/bin/tail -1 "$f" \
+      | ${pkgs.jq}/bin/jq -r '(.alert.signature // "unknown") + " | src " + (.src_ip // "?")')
+    ${pkgs.jq}/bin/jq -cn \
+      --arg t "󰒃 $count" \
+      --arg tt "IDS: $count alert(s) today\nLast: $last" \
+      --arg c "alert" \
+      '{text:$t,tooltip:$tt,class:$c}'
+  '';
 in
 {
   programs.waybar = {
@@ -48,6 +64,7 @@ in
           "tray"
           "custom/separator"
           "custom/vpn"
+          "custom/ids"
           "network"
           "bluetooth"
           "pulseaudio"
@@ -196,6 +213,13 @@ in
           exec = toString vpnScript;
           return-type = "json";
           interval = 10;
+          format = "{}";
+        };
+
+        "custom/ids" = {
+          exec = toString idsScript;
+          return-type = "json";
+          interval = 15;
           format = "{}";
         };
 
@@ -462,15 +486,29 @@ in
         box-shadow: 0 0 14px @glow-h;
       }
 
-      /* ── VPN indicator ── */
+      /* ── Security cluster (VPN | IDS) ── */
       #custom-vpn {
-        background: @mod-bg;
-        padding:    0 8px;
-        margin:     4px 0;
+        background:    @mod-bg;
+        padding:       0 6px 0 10px;
+        margin:        4px 0;
         border-radius: 12px 0 0 12px;
       }
-      #custom-vpn.connected { color: @accent2; }
+      #custom-vpn.connected    { color: @accent2; }
       #custom-vpn.disconnected { color: ${colors.red}; }
+
+      #custom-ids {
+        background:    @mod-bg;
+        padding:       0 10px 0 6px;
+        margin:        4px 0;
+        border-radius: 0 12px 12px 0;
+        margin-right:  4px;
+      }
+      #custom-ids.clear { color: alpha(@accent2, 0.5); }
+      #custom-ids.alert {
+        color:      ${colors.red};
+        font-weight: bold;
+        box-shadow: 0 0 8px alpha(${colors.red}, 0.4);
+      }
 
       /* ── GPU (inside drawer) ── */
       #custom-gpu {
