@@ -1,4 +1,9 @@
-# Declarative disk layout — disaster recovery spec for disko.
+# Declarative disk layout — disaster recovery spec for disko (LUKS-encrypted,
+# mirroring the live cryptsetup layout: cryptroot passphrase-unlocked,
+# cryptgames/cryptdata keyfile-unlocked from the initrd). Heatmap W8: the
+# previous spec provisioned PLAIN ext4, so a rebuild-from-disko would have
+# silently produced an UNENCRYPTED machine. Verify the LUKS keyfile mechanics
+# against current disko docs before a real DR run.
 #
 # NOT imported into the running config. To use:
 #   1. Add `disko.url = "github:nix-community/disko"` to flake.nix inputs
@@ -48,10 +53,17 @@ _: {
             root = {
               size = "100%";
               content = {
-                type = "filesystem";
-                format = "ext4";
-                mountpoint = "/";
-                mountOptions = [ "noatime" ];
+                # LUKS — mirrors the live `cryptroot`. Interactive passphrase
+                # at boot (no passwordFile) — the single interactive unlock.
+                type = "luks";
+                name = "cryptroot";
+                settings.allowDiscards = true;
+                content = {
+                  type = "filesystem";
+                  format = "ext4";
+                  mountpoint = "/";
+                  mountOptions = [ "noatime" ];
+                };
               };
             };
           };
@@ -66,27 +78,48 @@ _: {
             games = {
               size = "1500G";
               content = {
-                type = "filesystem";
-                format = "ext4";
-                mountpoint = "/home/stoleyy/games";
-                mountOptions = [
-                  "noatime"
-                  "nofail"
-                  "x-systemd.device-timeout=5s"
-                ];
+                # LUKS — mirrors the live `cryptgames`, auto-unlocked at boot
+                # by the keyfile embedded in the initrd (see
+                # hardware-configuration.nix). /etc/luks-keyfile must exist
+                # before `disko ... format`.
+                type = "luks";
+                name = "cryptgames";
+                settings = {
+                  allowDiscards = true;
+                  keyFile = "/etc/luks-keyfile";
+                };
+                content = {
+                  type = "filesystem";
+                  format = "ext4";
+                  mountpoint = "/home/stoleyy/games";
+                  mountOptions = [
+                    "noatime"
+                    "nofail"
+                    "x-systemd.device-timeout=5s"
+                  ];
+                };
               };
             };
             data = {
               size = "100%";
               content = {
-                type = "filesystem";
-                format = "ext4";
-                mountpoint = "/data";
-                mountOptions = [
-                  "noatime"
-                  "nofail"
-                  "x-systemd.device-timeout=5s"
-                ];
+                # LUKS — mirrors the live `cryptdata` (keyfile-unlocked).
+                type = "luks";
+                name = "cryptdata";
+                settings = {
+                  allowDiscards = true;
+                  keyFile = "/etc/luks-keyfile";
+                };
+                content = {
+                  type = "filesystem";
+                  format = "ext4";
+                  mountpoint = "/data";
+                  mountOptions = [
+                    "noatime"
+                    "nofail"
+                    "x-systemd.device-timeout=5s"
+                  ];
+                };
               };
             };
           };

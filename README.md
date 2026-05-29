@@ -1,43 +1,22 @@
 # nixos-config
 
-Personal NixOS flake.
+Personal NixOS 25.11 flake for a single desktop host, **`predator`**
+(Acer Predator — Intel i7-13700K, RTX 4070, 64 GB).
 
-- **`predator`** — Acer Predator desktop, i7-13700K + RTX 4070, NixOS on a Samsung 980 Pro 2TB.
+> **Full architecture, conventions, rebuild workflow, and the hard-won
+> pitfalls live in [`CLAUDE.md`](./CLAUDE.md).** That file is the
+> authoritative reference; this README is just a pointer so the two don't
+> drift.
 
-## Layout
+## At a glance
 
-```text
-flake.nix              entry — single host: predator
-lib/default.nix        mkHost factory (add new hosts in one line)
-modules/               composable system modules (base, networking, nvidia, …)
-hosts/predator/        host overrides + hardware-configuration.nix
-home/stoleyy/          home-manager config, split by concern
-  ├── default.nix      aggregator
-  ├── shell.nix        fish + starship + atuin + bash
-  ├── terminal.nix     kitty
-  ├── editor.nix       vscodium
-  ├── browser.nix      firefox (hardened)
-  ├── git.nix
-  ├── gpg.nix
-  └── audio.nix        easyeffects preset
-overlays/              auto-imported — drop new .nix files in here
-scripts/               install-nixos.sh
-```
+- `flake.nix` — inputs + the single `nixosConfigurations.predator` entry.
+- `lib/default.nix` — the `mkHost` factory and the **curated** system-module
+  list (the canonical list lives here, not in `flake.nix`).
+- `modules/`, `home/stoleyy/`, `hosts/predator/`, `overlays/` — system
+  modules, home-manager config, host hardware, and auto-imported overlays.
 
-## Hardware support
-
-| Hardware | Module / driver |
-|---|---|
-| NVIDIA RTX 4070 | `modules/nvidia.nix` (open kernel module + VA-API) |
-| Intel i7-13700K | `nixos-hardware.common-cpu-intel-cpu-only` |
-| Intel Wi-Fi 6E AX211 | `iwlwifi` + `hardware.enableRedistributableFirmware` |
-| Killer E2600 Ethernet | `igc` + redistributable firmware |
-| Intel Bluetooth | `hardware.bluetooth` + firmware |
-| Realtek HD Audio | PipeWire |
-| Logitech LIGHTSPEED | `hardware.logitech.wireless` (Solaar) |
-| TPM 2.0 | `security.tpm2` |
-
-Intel VMD is disabled in BIOS, but the `vmd` kernel module is still required to enumerate the root NVMe — it is force-loaded early in the initrd (see `hosts/predator/hardware-configuration.nix`). Do **not** reduce this to AHCI-only: that bricked Stage-1 boot once (PR #13). SATA drives use `ahci`.
+See CLAUDE.md → "Repo layout" for the complete map.
 
 ## Install (predator)
 
@@ -49,28 +28,14 @@ Intel VMD is disabled in BIOS, but the `vmd` kernel module is still required to 
    sudo bash install-nixos.sh
    ```
 
-3. After install: `nixos-enter --root /mnt -c 'passwd stoleyy'` then reboot.
+3. After install: `nixos-enter --root /mnt -c 'passwd stoleyy'`, then reboot.
 
-## Day-to-day
+## Rebuild
 
 ```bash
-sudo nixos-rebuild switch --flake /etc/nixos#predator   # or alias `nb`
-sudo nix flake update /etc/nixos                        # bump nixpkgs
+sudo nixos-rebuild switch --flake /etc/nixos#predator
 ```
 
-## Brave debloat
-
-Brave runs with managed enterprise policy (`modules/apps.nix`) that disables Rewards, Wallet, AI Chat, News, Talk, VPN, Tor mode, P3A telemetry, and search suggestions. Sync is left on — sign in at `brave://sync` to sync search engines and bookmarks across devices.
-
-## Adding a new host
-
-Edit `flake.nix`:
-
-```nix
-nixosConfigurations.newhost = mkHost {
-  hostName = "newhost";
-  extraModules = [ ./modules/something.nix ];
-};
-```
-
-Then create `hosts/newhost/default.nix` with the bootloader and host-specific bits. `mkHost` brings in every module from `modules/` plus home-manager and overlays automatically.
+The full validation pipeline (`flake check` → `dry-build` → `test` →
+`switch`) and rollback strategy are documented in CLAUDE.md → "Rebuilding"
+and "Workflow loop".

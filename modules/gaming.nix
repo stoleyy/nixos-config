@@ -125,7 +125,10 @@ in
 
   # Create the tmpfs dir for the GameMode IPC flag file at boot.
   # /run is tmpfs — this directory must exist before gamemode starts a game.
-  systemd.tmpfiles.rules = [ "d /run/gamemode 0755 ${host.user} users -" ];
+  # Group-owned by `gamemode` + group-writable so both stoleyy (Hyprland
+  # session) and the low-priv `gamer` account (gaming-mode session) can touch
+  # the IPC flag — both are in the gamemode group.
+  systemd.tmpfiles.rules = [ "d /run/gamemode 0775 root gamemode -" ];
 
   environment.systemPackages = with pkgs; [
     gameInstall

@@ -16,6 +16,13 @@ in
     useDHCP = false;
     dhcpcd.enable = false;
 
+    # Close the IPv6 leak: the ProtonVPN endpoint and tunnel are IPv4, so any
+    # IPv6 offered on the LAN could egress AROUND the WireGuard tunnel (a
+    # classic VPN leak the kill switch can't fully catch). Nothing on this host
+    # needs IPv6 — disable it system-wide so every packet goes through the v4
+    # tunnel or not at all. Reversible (flip back to true).
+    enableIPv6 = false;
+
     nftables.enable = true;
     # Wazuh manager ports (443, 1515, 55000 TCP + 1514 UDP) are NOT opened
     # here — wazuh-manager.nix is commented out in lib/default.nix. Re-add

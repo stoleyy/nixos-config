@@ -43,6 +43,7 @@
         # ── Applications ──
         ../modules/apps.nix # Brave, Zen, CLI tools, ProtonVPN GUI
         ../modules/gaming.nix # Steam, GameMode, gamescope, game-install
+        ../modules/gamer-account.nix # low-priv gamer UID for the gaming-mode session (W1/W2)
 
         # ── Security & monitoring ──
         ../modules/compartments.nix # Qubes-style GID isolation + firejail offline vault

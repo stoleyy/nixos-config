@@ -18,18 +18,23 @@ is `/etc/nixos`, not this clone.**
 ## Repo layout
 
 - `flake.nix` — inputs (nixpkgs 25.11, home-manager 25.11, nix-gaming,
-  nixos-hardware, plasma-manager, spicetify-nix, nix-index-database, sops-nix)
+  nixos-hardware, plasma-manager, spicetify-nix, nix-index-database, sops-nix,
+  zen-browser, treefmt-nix)
   + the single host entry `nixosConfigurations.predator` + a `nix develop` shell
 - `lib/default.nix` — `mkHost` factory; **the canonical list of system modules
   lives here, not in `flake.nix`**
+- `lib/host.nix` — deployment identity single source of truth (user, paths,
+  monitor, GPU Vulkan id); `lib/theme.nix` — color palette + helpers;
+  `lib/nftables.nix` — `mkKillswitchTable` for the protonvpn modules
 - `hosts/predator/` — per-host hardware config
   (`hardware-configuration.nix`, `default.nix`)
 - `modules/*.nix` — system modules. Active (imported in `lib/default.nix`): base, nix,
   nix-ld, system, kernel, hardware, fan-control, nvidia, networking, network-privacy,
   desktop, hyprland, audio, fonts, theming, apps, gaming, compartments, hardening,
   auditd, tor-isolation, suricata, crowdsec, wazuh-agent, protonvpn, protonvpn-rotate,
-  containers, media-server, monitoring, transcode, update-routines. Not imported:
-  `ollama.nix` (disable-only stub), `wazuh-manager.nix` (disabled — pending cert
+  containers, media-server, ollama, monitoring, transcode, update-routines.
+  `ollama.nix` is imported but ships `enable = false` (on-demand local LLM —
+  flip to enable). Not imported: `wazuh-manager.nix` (disabled — pending cert
   bootstrap), `secureboot-verify.nix` (disabled — see lib/default.nix).
 - `home/stoleyy/*.nix` — home-manager modules; `home/stoleyy/default.nix`
   imports them all (shell, ai, openhuman, claude-proxy, editor, browser, git,
@@ -39,6 +44,10 @@ is `/etc/nixos`, not this clone.**
   in becomes an overlay; a non-`.nix` file aborts evaluation by design)
 - `docs/` — operational runbooks (runbook.md, opnsense-ethname-setup.md,
   protonvpn-wg-setup.md)
+- `packages/` — custom package derivations (game-install, gamescope-session,
+  greenlight); `patches/` — source patches (gamescope-keyboard-null-surface);
+  `scripts/` — operational/debug helpers (fan probing, LUKS migration,
+  ProtonVPN fetch, arr-stack setup, install-nixos.sh, …)
 - `secrets/` — sops-nix encrypted secrets (`.sops.yaml` at repo root defines
   age key paths; ciphertext in `secrets/secrets.yaml`)
 
@@ -69,7 +78,7 @@ Boot topology (systemd-boot menu entries):
   exits or crashes, greetd auto-restarts it. Configured for 4K@240Hz OLED
   with VRR. HDR disabled (NVIDIA DRM limitation). Security monitoring
   (auditd, AppArmor) and PPD are disabled; CPU governor + EPP pinned to
-  `performance`. Session stderr is logged to `/tmp/gamescope-session.log`.
+  `performance`. Session stderr is logged to `/home/stoleyy/gamescope-session.log`.
   See `hosts/predator/default.nix`.
 - **Switching session**: in the default/plasma/debug entries, autologin
   skips the greeter. To reach the SDDM dropdown, log out without
