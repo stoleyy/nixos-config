@@ -2,6 +2,7 @@
   pkgs,
   lib,
   theme,
+  osConfig,
   ...
 }:
 
@@ -90,9 +91,13 @@ in
     # DeltaruneSanctuary but kdeglobals accumulates runtime color state
     # that overrides the declared scheme (right-click menus, Qt apps stay
     # stale colors). Removing it lets plasma-manager write a clean copy.
-    activation.fixKdeColors = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      rm -f "$HOME/.config/kdeglobals"
-    '';
+    # Gated on the plasma specialisation — kdeglobals is Plasma-only, so this
+    # is a no-op in the pure-Hyprland default generation.
+    activation.fixKdeColors = lib.mkIf osConfig.modules.plasma.enable (
+      lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        rm -f "$HOME/.config/kdeglobals"
+      ''
+    );
 
     # Pre-seed rofi drun cache so Ghostty appears first in Super+Space.
     activation.pinGhosttyInRofi = lib.hm.dag.entryAfter [ "writeBoundary" ] ''

@@ -1,4 +1,5 @@
 # Media server stack: Jellyfin, Sonarr/Radarr/Prowlarr, qBittorrent (VPN-bound), Bazarr — depends on protonvpn.nix.
+# Gated behind modules.mediaServer.enable (default false) — flip on to stream.
 {
   config,
   lib,
@@ -83,7 +84,10 @@ let
     };
 in
 {
-  # ---------- shared media group ----------
+  options.modules.mediaServer.enable = lib.mkEnableOption "Jellyfin + *arr + qBittorrent media stack (multi-GB closure; off by default)";
+
+  config = lib.mkIf config.modules.mediaServer.enable {
+    # ---------- shared media group ----------
   users = {
     groups.media = { };
     users = {
@@ -278,4 +282,5 @@ in
       message = "modules.media-server requires modules.protonvpn.enable = true (VPN bind address needed for qBittorrent and arr services)";
     }
   ];
+  };
 }
