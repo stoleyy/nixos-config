@@ -38,6 +38,12 @@ It is a manual for *examining* a seized Linux disk, not for defending one:
   the document treats as fully protected.
 - **SSD / TRIM**: acknowledged as out of scope but noted to make deleted-data
   recovery much harder ("Deterministic read data after TRIM").
+- **Workstation networking & hardening** (Ch. 6–7): reviewing open ports
+  (`ss`/`netstat`), disabling unneeded boot services, TCP wrappers, and an
+  iptables default-DROP firewall with SYN-cookie / anti-redirect sysctls — all
+  aimed at hardening the *examiner's own* Linux box. §8.8 also covers network
+  acquisition (`dd | nc`) and notes you should encrypt evidence in transit
+  (`ssh`/`cryptcat`), not plaintext `netcat`.
 - **NOT covered**: live/memory (RAM) acquisition, and anti-forensics
   (secure deletion, log scrubbing) beyond wiping a *destination* disk.
 
@@ -101,6 +107,24 @@ FDE the data is already ciphertext. The correct SSD anti-forensic posture is
 exactly what's configured: FDE + `allowDiscards=true` + `services.fstrim`. Adding
 `shred`/`srm` would be cargo-cult, not hardening. The `allowDiscards` metadata
 trade-off was already weighed and accepted in the migration spec.
+
+## Network security pointers (Ch. 6–7)
+
+The document *does* include a workstation-hardening chapter, but it's network
+security 101 for the examiner's own box — and `predator` already implements
+every item, usually verbatim and then some:
+
+| LinuxLEO pointer | State on `predator` |
+|---|---|
+| Default-DROP firewall (iptables) | `networking.firewall.enable` + `nftables.enable` (NixOS default-deny inbound), `checkReversePath = "loose"` for the WireGuard return path — `modules/networking.nix`. Plus Suricata IDS and CrowdSec IPS on top. |
+| SYN cookies, ignore ICMP redirects, don't send redirects | The *exact* sysctls are set in `modules/hardening.nix`: `tcp_syncookies=1`, `accept_redirects=0`, `send_redirects=0` — alongside `rp_filter`, `log_martians`, source-route refusal, `tcp_rfc1337`, bogus-ICMP drop. |
+| Know your open ports (`ss`/`netstat`); disable unneeded services | The only **operational** follow-up: the media-server stack (Jellyfin/\*arr/qBittorrent), `monitoring` (ntfy/beszel/gatus), and OpenRGB bind ports; Avahi opens mDNS (`openFirewall = true`). Periodically run `ss -tulpn` and diff against intended firewall openings to confirm nothing is exposed beyond intent. |
+| Encrypt data in transit (`ssh`/`cryptcat`, not plaintext `netcat`) | All egress already encrypted/tunneled: ProtonVPN WireGuard + kill switch, dnscrypt-proxy with anonymized DNS / ODoH (encrypted-only, no plaintext fallback), Tor isolation for the untrusted browser domain, MAC randomization + IPv6 privacy. |
+| TCP wrappers (`hosts.allow`/`hosts.deny`) | **Skip** — deprecated/removed from modern glibc; the nftables firewall + CrowdSec is the modern replacement. Do *not* re-introduce them. |
+
+**Net:** unlike the disk/host angle (which surfaced the `/boot` keyfile gap),
+the network angle implies **no config changes** — only the periodic `ss -tulpn`
+exposure audit, which is operational hygiene, not a flake edit.
 
 ## Out of scope of this document (not pursued here)
 
