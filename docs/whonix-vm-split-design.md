@@ -18,6 +18,43 @@ Therefore a malware/root compromise *inside* the workstation has no route to lea
 the real IP. This is the property a single-OS transparent-Tor setup does **not**
 give you, and it's why you picked this path.
 
+## Routing policy — VPN-first, Tor only where it matters
+
+Refinement: *"everything that makes sense to be on VPN, could be."* Tor only
+benefits traffic that is **genuinely anonymous AND not tied to your identity**.
+Everything you're logged into, or that's bandwidth-heavy, belongs on the VPN —
+Tor adds nothing there but pain.
+
+| Traffic | Lane | Why |
+|---|---|---|
+| Steam, qBittorrent, game downloads | **VPN** | Torrents deanonymize over Tor (BT/DHT leaks your IP) + abuse the network; Steam is logged-in |
+| Logged-in / identity services — Proton, Brave Sync, Discord, Spotify, Google, **banking/vault** | **VPN** | The login already identifies you; Tor hides nothing it doesn't already know |
+| Media stack (Jellyfin, *arr) | **VPN** | Indexer/tracker traffic, already VPN-bound |
+| System updates — nix substituters, flake bump, fwupd | **VPN** | Bulk; the CDN sees it anyway; Tor is glacial |
+| Personal daily browsing (logged-in, YouTube/social) | **VPN** | Identity-linked regardless |
+| Untrusted / disposable browsing, anonymous research (**not** logged in) | **Tor** | The only traffic that truly gains from anonymity |
+| Unclassified / new outbound | default | Recommend **Tor** (fail-toward-anonymity); flip to VPN for max usability |
+
+## Architecture: this refinement points to a *lighter* build
+
+- **Option A — full VM split** (detailed below): the entire workstation *incl.
+  gaming* runs in a VM behind the gateways, RTX 4070 via VFIO. Justified **only**
+  if you want your *whole* daily workload switchable to Tor isolation. Under the
+  VPN-first policy above, this is heavy and carries the GPU-passthrough risk for
+  little gain.
+- **Option B — VPN'd daily driver + a dedicated Tor anon VM (RECOMMENDED).** Keep
+  `predator` as your hardened, VPN'd gaming daily driver (PRs #59/#60). Add **one**
+  lightweight guest: a true Whonix-Workstation (browser-only, virtio-gpu, **no GPU
+  passthrough**) with **no non-Tor route**, for anonymous activity. The anon
+  workload gets real Whonix isolation; gaming/identity stays fast on VPN.
+
+  This is the "Whonix VMs alongside" option you *didn't* pick earlier — but that
+  was when the goal was "every packet from this machine anonymous." Your VPN-first
+  steer consciously relaxes that, which makes Option B the correct, far-cheaper
+  choice (no display/GPU surgery, no re-architecting the desktop into a VM).
+
+The full-split topology below is retained as **Option A** reference.
+
 ## Network topology (incl. the gaming-download exception)
 
 ```
@@ -56,7 +93,11 @@ give you, and it's why you picked this path.
   non-Tor routes, move qBittorrent + Steam into a **separate downloader VM** on
   the VPN path and share the games volume to it (stricter, more moving parts).
 
-## ⛔ Feasibility gate — the GPU (this blocks everything)
+## ⛔ Feasibility gate — the GPU (Option A only)
+
+> **Option B skips this entirely** — the anon VM is browser-only (virtio-gpu /
+> software rendering), so no GPU passthrough is needed. This gate applies only if
+> you choose the full VM split (Option A).
 
 `predator` has **one** GPU (RTX 4070) driving your only display (DP-2), and the
 iGPU is **blacklisted** (`modules/hardware.nix`). VFIO passthrough needs the host
