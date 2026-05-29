@@ -190,14 +190,12 @@
   # Ensure mount-point directories exist with correct ownership before systemd
   # mounts the filesystems declared in hardware-configuration.nix.
   systemd.tmpfiles.rules = [
-    # games mount needs stoleyy:users so game-install (running as stoleyy via
-    # qBittorrent) can create per-game subdirectories. The old comment said
-    # "root:root is correct — the filesystem sets permissions" but that is wrong:
-    # systemd-tmpfiles enforces these on every activation, overriding the filesystem
-    # root inode. The previous failure was "Failed to resolve group 'stoleyy'" —
-    # 'stoleyy' is a user, not a group. 'users' (GID 100) is the correct primary
-    # group for a NixOS isNormalUser account.
-    "d ${host.gamesDir} 0755 ${host.user} users -"
+    # games library is group `games` + setgid (2775) so BOTH stoleyy (the
+    # install pipeline) and the low-priv `gamer` account (gaming-mode session,
+    # modules/gamer-account.nix) share it without gamer reaching the rest of
+    # stoleyy's home. systemd-tmpfiles enforces this on every activation; the
+    # install-pipeline user must be in the `games` group to write here.
+    "d ${host.gamesDir} 2775 ${host.user} games -"
     # /data is a general-purpose partition not directly written by user services;
     # root:root is correct there.
     "d ${host.dataDir}  0755 root root -"
@@ -247,7 +245,10 @@
                 gamescopeSession = pkgs.callPackage ../../packages/gamescope-session.nix { inherit host; };
               in
               "${gamescopeSession}";
-            inherit (host) user;
+            # W1/W2 containment: gaming mode runs as the low-privilege `gamer`
+            # account (modules/gamer-account.nix), NOT stoleyy — so untrusted
+            # cracked games can't read stoleyy's $HOME (keys, vault, browser).
+            user = "gamer";
           };
         };
 
