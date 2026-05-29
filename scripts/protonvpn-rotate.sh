@@ -40,9 +40,9 @@ echo "Current: $CURRENT_ENDPOINT (key: ${CURRENT_KEY:0:8}...)"
 
 # --- Quality check ---
 CURRENT_PING=$(ping -c 5 -W 3 -q 10.2.0.1 2>/dev/null \
-  | awk -F'/' '/^rtt/{print $5}' || echo "99999")
+  | awk -F'/' '/^rtt/{found=1; print $5} END{if(!found) print "99999"}')
 CURRENT_LOSS=$(ping -c 5 -W 3 -q 10.2.0.1 2>/dev/null \
-  | awk -F'[,%]' '/packet loss/{print $3}' | tr -d ' ' || echo "100")
+  | awk -F'[,%]' '/packet loss/{found=1; gsub(/ /,"",$3); print $3; exit} END{if(!found) print "100"}')
 
 CURRENT_PING_INT=${CURRENT_PING%.*}
 CURRENT_LOSS_INT=${CURRENT_LOSS%.*}
@@ -66,10 +66,8 @@ while IFS= read -r server; do
   ip=${endpoint%%:*}
   port=${endpoint##*:}
 
-  nft add rule inet protonvpn_killswitch output ip daddr "$ip" accept 2>/dev/null || true
-
   avg=$(ping -c "$PING_COUNT" -W "$PING_TIMEOUT" -q "$ip" 2>/dev/null \
-    | awk -F'/' '/^rtt/{print $5}' || echo "99999")
+    | awk -F'/' '/^rtt/{found=1; print $5} END{if(!found) print "99999"}')
 
   echo "  $name ($ip): ${avg}ms"
 

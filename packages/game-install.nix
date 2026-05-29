@@ -91,8 +91,9 @@ writeShellApplication {
       # --- Step 3a: Repack — run Windows installer silently via Wine ---
       systemd-cat -t game-install -p info echo "Repack detected: $SETUP_EXE"
       mkdir -p "$INSTALL_DIR"
+      WIN_DIR=$(winepath -w "$INSTALL_DIR")
       wine "$SETUP_EXE" /SILENT /SUPPRESSMSGBOXES /NORESTART /NOICONS \
-           /DIR="$INSTALL_DIR" &
+           /DIR="$WIN_DIR" &
       WINE_PID=$!
 
       ELAPSED=0

@@ -21,6 +21,8 @@
       endpointRules = lib.concatMapStringsSep "\n      " mkRule allowedIPs;
     in
     ''
+      table inet protonvpn_killswitch {}
+      flush table inet protonvpn_killswitch
       table inet protonvpn_killswitch {
         chain output {
           type filter hook output priority -100; policy accept;

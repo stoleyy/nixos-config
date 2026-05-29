@@ -20,6 +20,8 @@ for ip in $(jq -r '.[].endpoint' "$POOL_FILE" | cut -d: -f1 | sort -u); do
 done
 
 nft -f - <<PROBEEOF
+table inet protonvpn_killswitch {}
+flush table inet protonvpn_killswitch
 table inet protonvpn_killswitch {
   chain output {
     type filter hook output priority -100; policy accept;
