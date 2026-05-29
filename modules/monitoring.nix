@@ -21,13 +21,16 @@ let
     };
 in
 {
-  # ── ntfy-sh: local push notification server ──
-  # Web UI at http://localhost:2586, subscribe to "alerts" topic.
-  # Mobile: install ntfy app, point at http://<LAN-IP>:2586, subscribe to "alerts".
+  # ── ntfy-sh: local alert server (heatmap W4: detection without alerting) ──
+  # Bound to LOOPBACK only (127.0.0.1) — never LAN-exposed, no openFirewall —
+  # so enabling it does not widen the inbound surface. Alerts land at the local
+  # web UI (http://localhost:2586) and are pushed by the OnFailure hooks below.
+  # For phone delivery, either open 2586 on a trusted LAN or front it with a
+  # reverse proxy — deliberately NOT done here (would re-open an inbound port).
   services.ntfy-sh = {
-    enable = false;
+    enable = true;
     settings = {
-      listen-http = ":2586";
+      listen-http = "127.0.0.1:2586";
       base-url = ntfyUrl;
     };
   };
@@ -41,6 +44,17 @@ in
       ExecStart = "${pkgs.curl}/bin/curl -s -d 'Unit %i failed on ${config.networking.hostName}' -H 'Title: Service Failure' -H 'Priority: high' -H 'Tags: rotating_light' ${ntfyUrl}/alerts";
     };
   };
+
+  # Wire OnFailure → the local alert for the connectivity- and
+  # security-critical units (heatmap W4). These are dotted attribute paths, so
+  # they MERGE into the existing units rather than redefining them; every unit
+  # named here already exists in this config (protonvpn, dnscrypt, suricata,
+  # crowdsec are all enabled), so nothing creates an empty stub. %n expands to
+  # the failing unit's name → ntfy-failure@<unit>.service.
+  systemd.services."wg-quick-protonvpn".unitConfig.OnFailure = "ntfy-failure@%n.service";
+  systemd.services."dnscrypt-proxy".unitConfig.OnFailure = "ntfy-failure@%n.service";
+  systemd.services."suricata".unitConfig.OnFailure = "ntfy-failure@%n.service";
+  systemd.services."crowdsec".unitConfig.OnFailure = "ntfy-failure@%n.service";
 
   # ── Beszel: lightweight monitoring hub + agent ──
   # Dashboard at http://localhost:8090 (first visit creates admin account).

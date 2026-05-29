@@ -74,6 +74,13 @@ writeShellApplication {
     GAME_NAME=$(echo "$GAME_NAME" | tr '._-' ' ' | tr -s ' ' | sed 's/^ //;s/ $//')
     [ -z "$GAME_NAME" ] && GAME_NAME="$TORRENT_NAME"
 
+    # Hardening (qbit-automation audit): the torrent name is attacker-influenced
+    # metadata, and INSTALL_DIR is built as "$GAMES_DIR/$GAME_NAME". Strip path
+    # separators and ".." traversal + leading dots so a crafted name cannot
+    # escape $GAMES_DIR and write elsewhere. Applied as the final step.
+    GAME_NAME=$(printf '%s' "$GAME_NAME" | tr -d '/' | sed -e 's/\.\.//g' -e 's/^\.*//')
+    [ -z "$GAME_NAME" ] && GAME_NAME="untitled-game"
+
     INSTALL_DIR="$GAMES_DIR/$GAME_NAME"
     systemd-cat -t game-install -p info echo "Processing: $GAME_NAME"
 

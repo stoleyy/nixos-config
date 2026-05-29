@@ -348,13 +348,17 @@
         echo 1 > /sys/devices/system/cpu/intel_pstate/hwp_dynamic_boost || true
       '';
 
-      # Shed security monitoring overhead. This boot entry is exclusively
-      # used for fullscreen gaming — no network-facing interactive services.
-      security = {
-        auditd.enable = lib.mkForce false;
-        audit.enable = lib.mkForce false;
-        apparmor.enable = lib.mkForce false;
-      };
+      # Hardening stance (heatmap W3): keep the LIGHTWEIGHT confinement + audit
+      # layer ON during gaming. This is exactly the session that runs the most
+      # untrusted code (pirated games via Wine/Steam), so it must NOT be the
+      # least-monitored one. AppArmor (LSM mediation) and auditd (syscall
+      # logging) have negligible FPS cost; the HEAVY network/log monitors
+      # (Suricata, CrowdSec, vector) stay shed in the `services` block above —
+      # those carry real overhead and watch traffic that's quiescent during
+      # fullscreen play.
+      #
+      # Previously this block force-disabled apparmor + auditd + audit, leaving
+      # untrusted game code unconfined and unaudited. Removed.
 
       # Media-stack services already use wantedBy=mkForce[] (on-demand only).
       # Disabling them via enable=mkForce false would break user/group

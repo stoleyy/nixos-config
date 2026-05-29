@@ -148,6 +148,15 @@ in
             InterfaceName = "protonvpn";
             InterfaceAddress = vpnAddr;
           };
+          # WebUI binds to loopback only (qbit-automation audit). The WebUI
+          # exposes the "run external program on completion" setting — an RCE
+          # primitive — so it must never be LAN-reachable; this is
+          # defense-in-depth atop the closed firewall. HostHeaderValidation
+          # blocks DNS-rebind / CSRF from a browser pointed at localhost:6881.
+          WebUI = {
+            Address = "127.0.0.1";
+            HostHeaderValidation = true;
+          };
         };
         BitTorrent.Session = {
           Interface = "protonvpn";
