@@ -64,13 +64,11 @@
     inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default
   ];
 
-  # Brave debloat via enterprise policy (managed via /etc/brave/policies/managed/).
-  # Disables: Rewards, Wallet (crypto), AI Chat (Leo), News, Talk, VPN, Tor mode,
-  # default-browser nag, P3A telemetry, and the new-tab "stats" tiles.
-  # Sync is the one deliberate exception to the debloat above — left
-  # enabled so the user's search engines, bookmarks, and passwords sync
-  # across devices via Brave Sync (brave://sync). Not telemetry; see
-  # SyncDisabled below.
+  # Brave debloat + privacy hardening via enterprise policy (managed via
+  # /etc/brave/policies/managed/). Applies browser-wide, to all four trust
+  # domains. Disables: Rewards, Wallet (crypto), AI Chat (Leo), News, Talk,
+  # VPN, Tor mode, default-browser nag, P3A telemetry, and the new-tab "stats"
+  # tiles — and hardens WebRTC IP handling (see WebRtcIPHandling below).
   environment.etc."brave/policies/managed/debloat.json".text = builtins.toJSON {
     BraveRewardsDisabled = true;
     BraveWalletDisabled = true;
@@ -84,6 +82,24 @@
     MetricsReportingEnabled = false;
     SearchSuggestEnabled = false;
     SyncDisabled = false; # deliberately enabled — user's cross-device sync (see note above)
+
+    # ── WebRTC IP-leak hardening (fingerprint / deanonymization) ──
+    # WebRTC can reveal your LOCAL (LAN) IP and bypass the VPN via STUN — a
+    # tracking + deanonymization vector that Brave's farbling does NOT cover.
+    # "default_public_interface_only" stops WebRTC from exposing private/local
+    # IPs (it uses only the default public, i.e. VPN-side, interface) while
+    # keeping video calls working. ("disable_non_proxied_udp" is leak-proof
+    # but breaks WebRTC on the non-proxied vault/personal profiles, so it is
+    # not used as the browser-wide default.)
+    #
+    # Fingerprint randomization ("farbling") is left at Brave's default
+    # Standard level: upstream sunset the old "Strict" mode in 1.64, so
+    # Standard is the strongest in-Brave protection and nothing here disables
+    # it. True fingerprint *uniformity* would require Mullvad/Tor Browser —
+    # deliberately not used here (normalized on Brave for one consistent
+    # compartment model + sync; randomization is weaker than uniformity but
+    # the accepted trade-off).
+    WebRtcIPHandling = "default_public_interface_only";
   };
 
   # Flatpak disabled — all apps are declaratively managed via Nix.
