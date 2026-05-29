@@ -95,6 +95,66 @@ flowchart LR
    set `<dnsbl>` to empty element, restart unbound. If validation comes back,
    the issue is in the python DNSBL module.
 
+### "gaming-tuned boots to a black screen / TTY instead of Steam"
+
+The `gaming-tuned` specialisation launches gamescope **standalone** via greetd
+— no SDDM, no parent compositor. "Headless" here means gamescope never opens a
+display and the boot drops to a bare console. **First read:**
+`~/gamescope-session.log` — the session script (`packages/gamescope-session.nix`)
+tees everything there and it survives reboots. The final
+`steam-gamescope exited with code N` line is your entry point.
+
+All four causes below are already fixed in-tree; this is the map for when a
+driver / Steam / portal bump reintroduces one. They're in dependency order — a
+failure at step N masks everything under it. **None of them are game-specific**
+(there is no "Skyrim issue") — they're session-bringup failures that happen
+before any game launches.
+
+1. **Exits code 1 instantly, log barely past "Launching steam-gamescope".**
+   A standalone gamescope has no compositor to nest in and needs a real KMS
+   backend. Confirm `--backend drm` is still in
+   `programs.steam.gamescopeSession.args` (`hosts/predator/default.nix`); pair
+   it with `--prefer-output DP-2` + `--prefer-vk-device 10de:2786`. The NixOS
+   module adds none of these. Foundational — without it nothing else matters.
+2. **"failed to become DRM master" / libseat errors during handoff.**
+   gamescope's libseat fallback chain (seatd → logind → builtin) can fail to
+   acquire DRM master when systemd-logind owns the session. Force it:
+   `LIBSEAT_BACKEND = "logind"` in the session `env` (`default.nix`).
+3. **~120 s hang, *then* a drop to TTY — the headline failure.** Steam's CEF
+   requests `org.freedesktop.portal.Desktop`; the gtk + kde portal backends try
+   to activate, abort because no display exists yet (gamescope hasn't opened
+   one — that needs Steam to launch first), the portal burns its 120 s
+   activation timeout, Steam gives up, gamescope's primary child dies → TTY.
+   Fix: `xdg.portal.enable = lib.mkForce false` (`default.nix`, commit
+   `378f20e`). Steam then gets an instant `NameHasNoOwner` and takes a
+   non-portal path (loses screencast / file-picker in Big Picture — fine for
+   gaming). `journalctl -b -u xdg-desktop-portal` shows the activation storm if
+   this regresses.
+4. **"No provider of eglGetCurrentContext found" / Xwayland aborts — the
+   Wayland + GPU one.** libepoxy 1.5.10 + NVIDIA 580.x: libepoxy's EGL resolver
+   calls `eglGetCurrentContext` before any EGL context exists and aborts. Same
+   root bug the Hyprland session dodges with `-glamor off`
+   (`modules/hyprland.nix:10-19`), but gamescope spawns its **own** Xwayland
+   from its closure and bypasses that wrapper — so the fix is env-side (commit
+   `944316b`): `XWAYLAND_NO_GLAMOR=1` (the `-glamor off` equivalent) and
+   `__EGL_VENDOR_LIBRARY_DIRS` in `default.nix`, plus an `LD_LIBRARY_PATH`
+   prepend of libglvnd + `/run/opengl-driver/lib` in
+   `packages/gamescope-session.nix` (libepoxy `dlopen`s `libEGL.so.1` with no
+   RPATH, and RUNPATH isn't inherited by transitive dlopen). Revisit when
+   libepoxy ≥ 1.5.11 or NVIDIA ≥ 590.
+
+**Not a headless cause, but easy to conflate — low FPS once you're *in* a
+game:** Proton/DXVK renders on the Intel iGPU instead of the RTX 4070 (commits
+`9bce82d`, `44a972c`). Fixed by blacklisting `i915` (`modules/hardware.nix`),
+`DXVK_FILTER_DEVICE_NAME = "NVIDIA"` (`modules/nvidia.nix`), and the
+`--prefer-vk-device 10de:2786` from step 1. Symptom is bad framerate + low
+`nvidia-smi` utilization, **not** a black screen — a different layer entirely.
+
+> Perf footnote (not a boot failure): greetd doesn't grant `CAP_SYS_NICE`, so
+> gamescope logs "falling back to regular-priority threads".
+> `programs.steam.gamescope.capSysNice = true` (`modules/gaming.nix`) restores
+> realtime scheduling.
+
 ---
 
 ## Update procedures
