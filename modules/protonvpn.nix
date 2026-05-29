@@ -135,10 +135,10 @@ in
       peers = [
         {
           publicKey = cfg.serverPublicKey;
-          allowedIPs = [
-            "0.0.0.0/0"
-            "::/0"
-          ];
+          # "::/0" omitted: networking.enableIPv6 = false on this host, so
+          # wg-quick's "ip -6 route add ::/0" fails with INVALIDARGUMENT and
+          # rolls back the entire interface bring-up.
+          allowedIPs = [ "0.0.0.0/0" ];
           endpoint = cfg.serverEndpoint;
           persistentKeepalive = 25;
         }
