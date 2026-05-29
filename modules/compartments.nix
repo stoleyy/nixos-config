@@ -1,11 +1,18 @@
 # Qubes-style compartmentalization — GID-based network isolation + firejail offline vault.
-# Apps in the "untrusted" group can reach the internet (via VPN) but NOT the LAN.
+# Apps in the "untrusted" group reach the internet (via VPN) but NOT the LAN, and
+# egress through Tor. The "vault" group is LAN-blocked too but stays on the normal
+# VPN path (no Tor) — for the banking browser domain.
 # KeePassXC runs with zero network access via firejail --net=none.
 { pkgs, ... }:
 
 {
-  # ── Group for LAN-isolated apps ──
+  # ── Groups for LAN-isolated apps ──
   users.groups.untrusted = { };
+
+  # vault domain: LAN-blocked like `untrusted`, but NO Tor (banking + Tor =
+  # CAPTCHA/fraud-flag hell). A compromised banking tab still can't pivot to the
+  # LAN (router/NAS/printer). stoleyy must be in this group (modules/base.nix).
+  users.groups.vault = { };
 
   # ── Firejail for offline isolation (KeePassXC) ──
   programs.firejail = {
@@ -41,6 +48,8 @@
             type filter hook output priority 50; policy accept;
             meta skgid "untrusted" ip daddr { 192.168.0.0/16, 10.0.0.0/8, 172.16.0.0/12 } counter drop
             meta skgid "untrusted" ip6 daddr { fd00::/8, fe80::/10 } counter drop
+            meta skgid "vault" ip daddr { 192.168.0.0/16, 10.0.0.0/8, 172.16.0.0/12 } counter drop
+            meta skgid "vault" ip6 daddr { fd00::/8, fe80::/10 } counter drop
           }
         }
         EOF

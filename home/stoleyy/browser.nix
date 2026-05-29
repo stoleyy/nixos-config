@@ -4,16 +4,21 @@
 # make the active domain visible at a glance — like Qubes window borders.
 #
 # Domains:
-#   vault      (GREEN)  — banking, finance, sensitive accounts. Max lockdown.
+#   vault      (GREEN)  — banking, finance, sensitive accounts. LAN-blocked.
 #   personal   (BLUE)   — daily browsing, YouTube, social media. Standard.
 #   untrusted  (RED)    — random links, sketchy sites. LAN-blocked + Tor egress.
 #   disposable (ORANGE) — one-shot session, wiped on exit. LAN-blocked + Tor.
 #
-# Isolated domains (untrusted, disposable) launch via `sg untrusted`, so their
-# sockets are owned by the "untrusted" GID (LAN dropped by compartments.nix)
-# and they are pointed at the local Tor SOCKS proxy (modules/tor-isolation.nix)
-# for Tor-over-VPN egress. stoleyy must be in the `untrusted` group
-# (modules/base.nix) or `sg` refuses to switch into it.
+# Two boundaries per domain:
+#   1. Filesystem — every domain runs inside a bubblewrap jail with a fresh
+#      tmpfs $HOME, binding back ONLY its own profile dir. ~/.ssh, ~/.gnupg, the
+#      OTHER Brave profiles, and the KeePassXC .kdbx are masked, so a browser RCE
+#      can't read across domains or steal keys (closes weakpoint W2 for the
+#      browser — see docs/security-hardening-stance.md). Same UID, no UX cost.
+#   2. Network — vault launches via `sg vault` (LAN dropped, no Tor); untrusted
+#      and disposable via `sg untrusted` (LAN dropped + Tor SOCKS, Tor-over-VPN).
+#      Both GIDs are dropped from the LAN in modules/compartments.nix; stoleyy
+#      must be in both groups (modules/base.nix) or `sg` refuses to switch.
 {
   pkgs,
   lib,
@@ -33,6 +38,7 @@ let
       label = "Vault";
       description = "Banking, finance, sensitive accounts";
       dataDir = "Brave-Vault";
+      lanBlocked = true; # LAN dropped via `sg vault` (no Tor — banking)
     };
     personal = {
       color = colors.bg1; # Sanctuary indigo — flows from lib/theme.nix
@@ -60,9 +66,104 @@ let
     };
   };
 
+  # ── bubblewrap FS-jail (closes weakpoint W2: same-UID blast radius) ──
+  # Every domain runs in a bwrap sandbox with a fresh tmpfs $HOME, binding back
+  # ONLY its own profile dir + the sockets the browser needs. This masks ~/.ssh,
+  # ~/.gnupg, ~/.config/sops, the OTHER Brave profiles, and the KeePassXC .kdbx
+  # from a browser RCE — same UID, no separate-$HOME UX cost. We use bwrap
+  # (non-setuid) rather than firejail (setuid) for the browser jail, leave
+  # Chromium's own user-namespace sandbox intact (no --unshare-user), and keep
+  # the net namespace shared so the Tor SOCKS proxy still resolves. The
+  # `sg <group>` switch stays OUTSIDE bwrap so the socket-GID match in
+  # modules/compartments.nix still fires.
+  bwrap = "${pkgs.bubblewrap}/bin/bwrap";
+
+  # graphene-hardened-malloc, LIGHT variant, scoped to the browser via LD_PRELOAD
+  # — never system-wide (would break Wine/Steam allocators + W^X).
+  ghmLight = "${pkgs.graphene-hardened-malloc}/lib/libhardened_malloc-light.so";
+
+  mkBraveLauncher =
+    name: domain:
+    let
+      # untrusted/disposable → Tor egress + deliberately NO KeePassXC path.
+      heavy = domain.isolated or false;
+    in
+    pkgs.writeShellScript "brave-${name}-jailed" ''
+      set -u
+      DATA_DIR="$HOME/.config/BraveSoftware/${domain.dataDir}"
+
+      # Default-deny: fresh tmpfs $HOME, then bind back only what is needed.
+      # Order matters — `--tmpfs "$HOME"` must precede the bind of DATA_DIR.
+      args=(
+        --ro-bind /nix/store /nix/store
+        --ro-bind /run/current-system /run/current-system
+        --ro-bind /etc /etc
+        --proc /proc
+        --dev /dev
+        --dev-bind /dev/dri /dev/dri
+        --tmpfs /tmp
+        --tmpfs "$HOME"
+        --bind "$DATA_DIR" "$DATA_DIR"
+        --bind-try "$HOME/Downloads" "$HOME/Downloads"
+        --bind-try "$HOME/.cache/nv-shader-cache" "$HOME/.cache/nv-shader-cache"
+        --ro-bind-try /run/dbus/system_bus_socket /run/dbus/system_bus_socket
+        --die-with-parent
+        --new-session
+        --unshare-pid
+        --unshare-ipc
+        --unshare-uts
+        --unshare-cgroup
+        --setenv LD_PRELOAD "${ghmLight}"
+      )
+
+      # NVIDIA device nodes — bind only those that exist.
+      for n in /dev/nvidia0 /dev/nvidiactl /dev/nvidia-modeset \
+               /dev/nvidia-uvm /dev/nvidia-uvm-tools; do
+        if [ -e "$n" ]; then args+=(--dev-bind "$n" "$n"); fi
+      done
+
+      # Wayland + audio + session-bus sockets — bind only if present.
+      if [ -n "''${WAYLAND_DISPLAY:-}" ] && [ -e "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ]; then
+        args+=(--bind "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY")
+      fi
+      for s in pipewire-0 pulse bus; do
+        if [ -e "$XDG_RUNTIME_DIR/$s" ]; then
+          args+=(--bind "$XDG_RUNTIME_DIR/$s" "$XDG_RUNTIME_DIR/$s")
+        fi
+      done
+      ${lib.optionalString (!heavy) ''
+        # vault/personal only: let KeePassXC-browser reach the proxy socket
+        # (the manifest + proxy binary are already under bound paths). untrusted
+        # /disposable deliberately get NO path to the password manager.
+        if [ -e "$XDG_RUNTIME_DIR/org.keepassxc.KeePassXC.BrowserServer" ]; then
+          args+=(--bind "$XDG_RUNTIME_DIR/org.keepassxc.KeePassXC.BrowserServer" \
+                        "$XDG_RUNTIME_DIR/org.keepassxc.KeePassXC.BrowserServer")
+        fi
+      ''}
+
+      # `brave` stays bare so it resolves (via inherited PATH) to the system
+      # wrapper in /run/current-system/sw/bin, preserving the apps.nix override.
+      exec ${bwrap} "''${args[@]}" -- brave \
+        --user-data-dir="$DATA_DIR" \
+        --class="brave-${name}" \
+        ${lib.optionalString heavy "--proxy-server=socks5://127.0.0.1:9050"} "$@"
+    '';
+
   # ── Wrapper script generator ──
   mkBraveWrapper =
     name: domain:
+    let
+      launcher = mkBraveLauncher name domain;
+      # vault → `sg vault` (LAN-blocked, NO Tor — banking + Tor = CAPTCHA hell).
+      # untrusted/disposable → `sg untrusted` (LAN-blocked + Tor via launcher).
+      group =
+        if (domain.lanBlocked or false) then
+          "vault"
+        else if (domain.isolated or false) then
+          "untrusted"
+        else
+          null;
+    in
     pkgs.writeShellScriptBin "brave-${name}" ''
       DATA_DIR="''${HOME}/.config/BraveSoftware/${domain.dataDir}"
       ${lib.optionalString (domain ? ephemeral && domain.ephemeral) ''
@@ -88,14 +189,15 @@ let
       fi
 
       ${
-        if domain ? isolated && domain.isolated then
-          # Isolated domains: switch to the "untrusted" GID (LAN dropped by
-          # modules/compartments.nix) AND route through the local Tor SOCKS
-          # proxy (modules/tor-isolation.nix) → Tor-over-VPN egress. Chromium
-          # does remote DNS over the socks5 proxy, so no DNS leak.
-          ''exec sg untrusted -c "brave --user-data-dir=\"$DATA_DIR\" --class=brave-${name} --proxy-server=socks5://127.0.0.1:9050 $*"''
+        if group != null then
+          ''
+            # Switch to the "${group}" GID (modules/compartments.nix drops its
+            # LAN egress), then launch the bubblewrap-jailed browser. printf %q
+            # keeps any URL args intact across the `sg -c` shell re-parse.
+            if [ "$#" -gt 0 ]; then argsq=$(printf '%q ' "$@"); else argsq=""; fi
+            exec sg ${group} -c "exec ${launcher} $argsq"''
         else
-          ''exec brave --user-data-dir="$DATA_DIR" --class="brave-${name}" "$@"''
+          ''exec ${launcher} "$@"''
       }
     '';
 

@@ -14,11 +14,13 @@
       "video"
       "plugdev"
       "gamemode"
-      # Membership is REQUIRED for `sg untrusted` to succeed (a non-member
-      # cannot switch into a passwordless group). The LAN-isolated +
-      # Tor-routed browser domains (home/stoleyy/browser.nix) launch via
-      # `sg untrusted -c ...`; without this they silently fail to start.
+      # Membership is REQUIRED for `sg untrusted`/`sg vault` to succeed (a
+      # non-member cannot switch into a passwordless group). The LAN-isolated
+      # browser domains (home/stoleyy/browser.nix) launch via `sg <group> -c
+      # ...`; without this they silently fail to start. `untrusted` =
+      # LAN-blocked + Tor (random links); `vault` = LAN-blocked, no Tor (banking).
       "untrusted"
+      "vault"
     ];
     packages = with pkgs; [ kdePackages.kate ];
   };
