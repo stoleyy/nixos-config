@@ -56,6 +56,11 @@
       # prevent unprivileged userfaultfd (used in some kernel exploits)
       "vm.unprivileged_userfaultfd" = 0;
 
+      # KSPP: maximise mmap ASLR entropy. x86-64 caps at 32 bits
+      # (CONFIG_ARCH_MMAP_RND_BITS_MAX); a higher value is rejected at boot
+      # (logged, non-fatal). No gaming impact. Stock default is 28.
+      "vm.mmap_rnd_bits" = 32;
+
       # Pipe core dumps to /bin/false — discards them at kernel level to prevent
       # memory contents (creds, tokens) leaking via core files in the process CWD.
       "kernel.core_pattern" = "|/bin/false";
