@@ -1,1 +1,5 @@
-modules/networking.nix:generic-api-key:RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3
+# Public DNSCrypt resolver/relay-list minisign key (modules/networking.nix) —
+# authenticates downloaded server lists, not a credential. gitleaks
+# fingerprints are file:rule:line; the previous entry used the raw secret
+# (which never matched, and put the key text in this file → a self-finding).
+modules/networking.nix:generic-api-key:8

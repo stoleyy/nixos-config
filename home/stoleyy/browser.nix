@@ -101,7 +101,7 @@ let
 
   # ── Theme manifest generator (Chromium extension theme) ──
   mkThemeManifest =
-    name: domain:
+    _: domain:
     builtins.toJSON {
       manifest_version = 3;
       version = "1.0";

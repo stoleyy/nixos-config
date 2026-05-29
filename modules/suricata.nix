@@ -25,12 +25,11 @@ _:
       # else is external for rule directionality.
       vars.address-groups.HOME_NET = "[10.0.0.0/8,192.168.0.0/16,172.16.0.0/12]";
 
+      # Minimal capture entry — only `interface` is required; suricata's
+      # built-in defaults cover cluster-id/cluster-type/threading. Fewer
+      # fields = fewer ways for the build-time `suricata -T` to reject it.
       af-packet = [
-        {
-          interface = "protonvpn";
-          cluster-id = "99";
-          cluster-type = "cluster_flow";
-        }
+        { interface = "protonvpn"; }
       ];
     };
   };
