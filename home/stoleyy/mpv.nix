@@ -1,4 +1,4 @@
-_:
+{ pkgs, theme, ... }:
 
 # mpv tuned for the Samsung G80SD OLED + RTX 4070:
 # - gpu-next renderer with PQ/HLG decode and HDR metadata forwarding to KWin
@@ -39,10 +39,18 @@ in
 {
   programs.mpv = {
     enable = true;
+    # uosc — modern, themeable OSC + menu; thumbfast feeds it seek previews.
+    # uosc requires the stock OSC disabled (osc=no, set below).
+    scripts = with pkgs.mpvScripts; [
+      uosc
+      thumbfast
+    ];
     config = {
       vo = "gpu-next";
       gpu-context = "wayland";
-      hwdec = "nvdec-copy";
+      # NVDEC on the 4070. mpv falls through this list left-to-right, so a
+      # non-NVIDIA host (or a stream NVDEC can't decode) lands on software.
+      hwdec = "nvdec-copy,no";
       profile = "high-quality";
       target-colorspace-hint = "yes";
       hdr-compute-peak = "yes";
@@ -51,6 +59,37 @@ in
       interpolation = "yes";
       video-sync = "display-resample";
       deband = "yes";
+
+      # uosc owns the on-screen UI.
+      osc = "no";
+      border = "no";
+
+      # Subtitles — Inter from lib/theme.nix, white with the default outline.
+      sub-font = theme.font.general;
+      sub-font-size = 46;
+      sub-color = "#FFFFFFFF";
+      sub-back-color = "#00000000";
+      sub-auto = "fuzzy";
+      sub-pos = 95;
+      slang = "eng,en";
+      alang = "eng,en,jpn,ja";
+
+      # Resume where you left off, keep the window open at EOF.
+      save-position-on-quit = "yes";
+      keep-open = "yes";
+
+      # PNG screenshots into a tidy folder.
+      screenshot-format = "png";
+      screenshot-directory = "~/Pictures/Screenshots";
+      screenshot-template = "%F-%P";
+
+      # Generous demuxer cache for network/large files.
+      cache = "yes";
+      demuxer-max-bytes = "150MiB";
+      demuxer-max-back-bytes = "75MiB";
+
+      volume = 100;
+      volume-max = 130;
     };
   };
 

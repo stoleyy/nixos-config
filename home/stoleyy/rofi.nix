@@ -111,6 +111,10 @@ in
       modi = "drun,run,window";
       icon-theme = "Papirus-Dark";
       show-icons = true;
+      # Fuzzy matching with fzf-style ranking instead of strict prefix match.
+      matching = "fuzzy";
+      sort = true;
+      sorting-method = "fzf";
       font = "${theme.font.name} ${toString theme.font.size}";
       drun-display-fmt = "{name}";
       display-drun = "  Apps";

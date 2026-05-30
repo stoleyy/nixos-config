@@ -1,4 +1,10 @@
-{ pkgs, theme, ... }:
+{
+  pkgs,
+  lib,
+  osConfig,
+  theme,
+  ...
+}:
 
 let
   inherit (theme) colors;
@@ -58,13 +64,18 @@ in
         modules-center = [
           "clock"
         ];
+        # VPN/IDS indicators only appear when the matching system module is
+        # actually active, so the bar stays honest on a host that doesn't run
+        # ProtonVPN or Suricata (e.g. the gaming specialisation).
         modules-right = [
           "mpris"
           "custom/separator"
           "tray"
           "custom/separator"
-          "custom/vpn"
-          "custom/ids"
+        ]
+        ++ lib.optional osConfig.modules.protonvpn.enable "custom/vpn"
+        ++ lib.optional osConfig.services.suricata.enable "custom/ids"
+        ++ [
           "network"
           "bluetooth"
           "pulseaudio"

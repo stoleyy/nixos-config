@@ -33,6 +33,8 @@ in
       widgets = [
         "inhibitors"
         "title"
+        "mpris"
+        "buttons-grid"
         "dnd"
         "notifications"
       ];
@@ -50,6 +52,33 @@ in
           button-text = "Clear All";
           active-hint = true;
           align-items = "left";
+        };
+        mpris = {
+          image-size = 96;
+          image-radius = 12;
+        };
+        # Quick actions — lock, screenshot, power menu, DND toggle.
+        # swaync runs these via /bin/sh, so the binaries must be on PATH
+        # (all shipped by the Hyprland session).
+        "buttons-grid" = {
+          actions = [
+            {
+              label = "󰌾";
+              command = "loginctl lock-session";
+            }
+            {
+              label = "󰹑";
+              command = "grimblast copy area";
+            }
+            {
+              label = "󰂜";
+              command = "swaync-client --toggle-dnd --skip-wait";
+            }
+            {
+              label = "󰐥";
+              command = "wlogout";
+            }
+          ];
         };
       };
     };
@@ -129,6 +158,45 @@ in
       .widget-dnd > switch:checked {
         background:    ${colors.blue};
         border-radius: 8px;
+      }
+
+      .widget-buttons-grid {
+        padding:    8px;
+        margin:     4px 0;
+      }
+
+      .widget-buttons-grid > flowbox > flowboxchild > button {
+        background:    alpha(${colors.bg2}, 0.6);
+        color:         ${colors.fg0};
+        border:        none;
+        border-radius: 10px;
+        margin:        4px;
+        padding:       10px;
+        font-size:     18px;
+        transition:    all 0.2s ease;
+      }
+
+      .widget-buttons-grid > flowbox > flowboxchild > button:hover {
+        background: alpha(${colors.green}, 0.4);
+      }
+
+      .widget-mpris {
+        padding: 8px;
+      }
+
+      .widget-mpris .widget-mpris-player {
+        background:    alpha(${colors.bg2}, 0.5);
+        border-radius: 12px;
+        padding:       8px;
+      }
+
+      .widget-mpris .widget-mpris-title {
+        font-weight: bold;
+        color:       ${colors.fg0};
+      }
+
+      .widget-mpris .widget-mpris-subtitle {
+        color: ${colors.fg2};
       }
 
       .close-button {
