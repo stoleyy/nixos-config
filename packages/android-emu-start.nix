@@ -82,6 +82,7 @@ writeShellApplication {
     start_dnsmasq() {
       if ! pgrep -f "dnsmasq.*virbr-android" &>/dev/null; then
         sudo dnsmasq \
+          --user=root \
           --interface=virbr-android \
           --bind-interfaces \
           --dhcp-range=10.71.0.2,10.71.0.10,12h \
