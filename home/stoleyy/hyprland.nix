@@ -188,10 +188,21 @@ in
       ];
 
       monitor = [
-        # Samsung Odyssey OLED G80SD on DP-2: 4K @ 240 Hz, 10-bit colour.
+        # Samsung Odyssey OLED G80SD on DP-2: 4K @ 240 Hz, 10-bit colour, HDR.
         # DP 1.4 with DSC carries 4K@240@10bit natively. If the link can't
         # sustain 10-bit, drop `,bitdepth,10`.
-        "DP-2,3840x2160@240,auto,1,bitdepth,10"
+        #
+        # `cm,hdr` puts the output into HDR via the wayland color-management
+        # protocol (wp_color_management_v1, stable in Hyprland 0.49+ — no
+        # `experimental:xx_color_management_v4` flag needed). Same KMS atomic
+        # path KWin uses for HDR, which already works on this NVIDIA driver, so
+        # gamescope's --hdr-enabled DRM-backend crash (#2081) does NOT apply
+        # here. `sdrbrightness`/`sdrsaturation` keep SDR surfaces from looking
+        # blown-out / washed-out once the output signal is HDR (1.0 = neutral;
+        # raise sdrbrightness toward 1.2–1.4 if the SDR desktop looks dim).
+        # If the desktop comes up washed-out or black, fall back to `cm,auto`
+        # or drop the `cm,hdr,...` tail entirely and reload.
+        "DP-2,3840x2160@240,auto,1,bitdepth,10,cm,hdr,sdrbrightness,1.0,sdrsaturation,1.0"
         # Wildcard fallback for any other connected output.
         ",preferred,auto,1"
       ];
@@ -299,6 +310,12 @@ in
       # mode exactly. Pairs with allow_tearing + the immediate window rule.
       render = {
         direct_scanout = true;
+        # Fullscreen HDR passthrough: when an HDR game/video goes fullscreen,
+        # hand its HDR signal straight to the (HDR) output instead of having
+        # the compositor tone-map it. 2 = auto (only when the client's
+        # colorspace matches the output), the safe value; 1 = always, 0 = off.
+        # No-op while the desktop output is SDR.
+        cm_fs_passthrough = 2;
       };
 
       # 4K HiDPI: prevent XWayland from upscaling legacy X11 apps (which
