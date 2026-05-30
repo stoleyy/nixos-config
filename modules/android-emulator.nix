@@ -133,7 +133,7 @@ in
 
     # ── emulator working directory ───────────────────────────────────────────
     systemd.tmpfiles.rules = [
-      "d /var/lib/android-emulator 0750 root libvirtd -"
+      "d ${host.home}/android-emulator 0750 ${host.user} users -"
     ];
 
     # ── dedicated WireGuard tunnel for the Android VM ────────────────────────
@@ -142,6 +142,7 @@ in
     #                    MASQUERADE + forwarding rules handle VM egress.
     networking.wg-quick.interfaces.${vpnIface} = {
       address = [ cfg.vpn.clientAddress ];
+      dns = [ "10.2.0.1" ];
       privateKeyFile = toString cfg.vpn.privateKeyFile;
       autostart = false;
       mtu = 1420;
