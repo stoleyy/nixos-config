@@ -82,14 +82,9 @@ writeShellApplication {
 
     # ── NMEA 0183 sentence generation ──
 
-    # XOR checksum for NMEA sentences.
+    # XOR checksum for NMEA sentences (byte-wise XOR of every character).
     nmea_checksum() {
-      local sentence="$1"
-      local cs=0
-      for (( i=0; i<''${#sentence}; i++ )); do
-        cs=$((cs ^ $(printf '%d' "''''${sentence:$i:1}")))
-      done
-      printf '%02X' "$cs"
+      printf '%s' "$1" | od -An -tu1 | awk '{for(i=1;i<=NF;i++) cs=xor(cs,$i)} END{printf "%02X",cs}'
     }
 
     # Convert decimal degrees to NMEA DDMM.MMMM format.
