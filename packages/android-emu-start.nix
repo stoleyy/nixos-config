@@ -155,7 +155,7 @@ writeShellApplication {
       if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
         echo "Sending ACPI shutdown to VM..."
         echo "system_powerdown" | socat - UNIX-CONNECT:"$MONITOR_SOCK" 2>/dev/null || true
-        for i in $(seq 1 15); do
+        for _i in $(seq 1 15); do
           if ! kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
             echo "VM shut down gracefully."
             break
