@@ -114,62 +114,64 @@
   #
   # gaming-tuned specialisation overrides ExecStart with mkForce (always-unlocked).
   # RTX 4070 power range: 100-200 W. Clock range: 210-3105 MHz.
-  systemd.services.nvidia-undervolt =
-    let
-      smi = "/run/current-system/sw/bin/nvidia-smi";
-      cache = "/tmp/nvidia-undervolt-state";
-    in
-    {
-      description = "NVIDIA adaptive undervolt (clock lock + power limit)";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "nvidia-persistenced.service" ];
-      serviceConfig = {
-        Type = "simple";
-        ExecStart = pkgs.writeShellScript "nvidia-undervolt" ''
-          grace=0
-          while true; do
-            read -r temp util <<< \
-              "$(${smi} --query-gpu=temperature.gpu,utilization.gpu \
-                 --format=csv,noheader,nounits 2>/dev/null | tr ',' ' ')"
-            temp=''${temp:-0}; util=''${util:-0}
+  systemd.services = {
+    nvidia-undervolt =
+      let
+        smi = "/run/current-system/sw/bin/nvidia-smi";
+        cache = "/tmp/nvidia-undervolt-state";
+      in
+      {
+        description = "NVIDIA adaptive undervolt (clock lock + power limit)";
+        wantedBy = [ "multi-user.target" ];
+        after = [ "nvidia-persistenced.service" ];
+        serviceConfig = {
+          Type = "simple";
+          ExecStart = pkgs.writeShellScript "nvidia-undervolt" ''
+            grace=0
+            while true; do
+              read -r temp util <<< \
+                "$(${smi} --query-gpu=temperature.gpu,utilization.gpu \
+                   --format=csv,noheader,nounits 2>/dev/null | tr ',' ' ')"
+              temp=''${temp:-0}; util=''${util:-0}
 
-            if [ -f "${host.gamemodeFlagFile}" ] || [ "''${util}" -gt 50 ]; then
-              state=gaming; grace=6
-            elif [ "''${grace}" -gt 0 ]; then
-              state=gaming; grace=$((grace - 1))
-            elif [ "''${temp}" -gt 75 ]; then
-              state=hot
-            else
-              state=normal
-            fi
+              if [ -f "${host.gamemodeFlagFile}" ] || [ "''${util}" -gt 50 ]; then
+                state=gaming; grace=6
+              elif [ "''${grace}" -gt 0 ]; then
+                state=gaming; grace=$((grace - 1))
+              elif [ "''${temp}" -gt 75 ]; then
+                state=hot
+              else
+                state=normal
+              fi
 
-            # Skip if state hasn't changed since last run.
-            if [ "$state" != "$(cat ${cache} 2>/dev/null)" ]; then
-              case $state in
-                gaming) ${smi} -rgc;          ${smi} -pl 200 ;;
-                hot)    ${smi} -lgc 210,1800; ${smi} -pl 160 ;;
-                normal) ${smi} -rgc;          ${smi} -pl 200 ;;
-              esac
-              echo "$state" > ${cache}
-            fi
+              # Skip if state hasn't changed since last run.
+              if [ "$state" != "$(cat ${cache} 2>/dev/null)" ]; then
+                case $state in
+                  gaming) ${smi} -rgc;          ${smi} -pl 200 ;;
+                  hot)    ${smi} -lgc 210,1800; ${smi} -pl 160 ;;
+                  normal) ${smi} -rgc;          ${smi} -pl 200 ;;
+                esac
+                echo "$state" > ${cache}
+              fi
 
-            sleep 5
-          done
-        '';
-        Restart = "on-failure";
-        RestartSec = "5s";
-        # Bound the stop so shutdown can't stall on the systemd 90 s default if
-        # an nvidia-smi call is wedged in a driver ioctl during GPU teardown.
-        # Inherited by the gaming-tuned specialisation, which only mkForce's
-        # ExecStart (sleep infinity) and leaves the rest of serviceConfig.
-        TimeoutStopSec = "10s";
+              sleep 5
+            done
+          '';
+          Restart = "on-failure";
+          RestartSec = "5s";
+          # Bound the stop so shutdown can't stall on the systemd 90 s default if
+          # an nvidia-smi call is wedged in a driver ioctl during GPU teardown.
+          # Inherited by the gaming-tuned specialisation, which only mkForce's
+          # ExecStart (sleep infinity) and leaves the rest of serviceConfig.
+          TimeoutStopSec = "10s";
+        };
       };
-    };
-  # Timer removed — service runs its own poll loop.
+    # Timer removed — service runs its own poll loop.
 
-  # Bound the stop timeout on the upstream GPU daemons too. Any of these can
-  # hang during GPU teardown and otherwise force systemd to wait the full 90 s
-  # default before SIGKILL — the source of the slow shutdown.
-  systemd.services.nvidia-persistenced.serviceConfig.TimeoutStopSec = lib.mkForce "10s";
-  systemd.services.lact.serviceConfig.TimeoutStopSec = lib.mkForce "10s";
+    # Bound the stop timeout on the upstream GPU daemons too. Any of these can
+    # hang during GPU teardown and otherwise force systemd to wait the full 90 s
+    # default before SIGKILL — the source of the slow shutdown.
+    nvidia-persistenced.serviceConfig.TimeoutStopSec = lib.mkForce "10s";
+    lact.serviceConfig.TimeoutStopSec = lib.mkForce "10s";
+  };
 }

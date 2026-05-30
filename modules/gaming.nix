@@ -106,21 +106,34 @@ in
     };
   };
 
-  environment.sessionVariables = {
-    # Suppress Wine's verbose debug logging — measurable overhead for zero
-    # diagnostic value during normal gameplay. Arch Wiki gaming page standard.
-    WINEDEBUG = "-all";
+  environment = {
+    sessionVariables = {
+      # Suppress Wine's verbose debug logging — measurable overhead for zero
+      # diagnostic value during normal gameplay. Arch Wiki gaming page standard.
+      WINEDEBUG = "-all";
 
-    # Present Proton games directly to Wayland instead of through XWayland.
-    # The Hyprland session runs Xwayland with `-glamor off` (a libepoxy/NVIDIA
-    # crash workaround — see modules/hyprland.nix), which also disables
-    # XWayland's accelerated DRI3 present. DXVK frames then get copied to the
-    # X11 window on the CPU; at 4K that ~33 MB/frame copy dominates the frame
-    # time, so the GPU renders instantly then idles and the game crawls (~8 fps
-    # with the GPU at <20% / 40 W). Native Wayland present bypasses XWayland
-    # entirely and restores full performance. Override per-title with
-    # `PROTON_ENABLE_WAYLAND=0 %command%` if a game misbehaves under it.
-    PROTON_ENABLE_WAYLAND = "1";
+      # Present Proton games directly to Wayland instead of through XWayland.
+      # The Hyprland session runs Xwayland with `-glamor off` (a libepoxy/NVIDIA
+      # crash workaround — see modules/hyprland.nix), which also disables
+      # XWayland's accelerated DRI3 present. DXVK frames then get copied to the
+      # X11 window on the CPU; at 4K that ~33 MB/frame copy dominates the frame
+      # time, so the GPU renders instantly then idles and the game crawls (~8 fps
+      # with the GPU at <20% / 40 W). Native Wayland present bypasses XWayland
+      # entirely and restores full performance. Override per-title with
+      # `PROTON_ENABLE_WAYLAND=0 %command%` if a game misbehaves under it.
+      PROTON_ENABLE_WAYLAND = "1";
+
+      ELECTRON_OZONE_PLATFORM_HINT = "auto";
+    };
+
+    systemPackages = with pkgs; [
+      gameInstall
+      mangohud
+      # lutris: run on-demand via `nix run nixpkgs#lutris` (4.6 GiB savings)
+      prismlauncher
+      adwsteamgtk
+      (callPackage ../packages/greenlight.nix { })
+    ];
   };
 
   # Create the tmpfs dir for the GameMode IPC flag file at boot.
@@ -129,15 +142,4 @@ in
   # session) and the low-priv `gamer` account (gaming-mode session) can touch
   # the IPC flag — both are in the gamemode group.
   systemd.tmpfiles.rules = [ "d /run/gamemode 0775 root gamemode -" ];
-
-  environment.systemPackages = with pkgs; [
-    gameInstall
-    mangohud
-    # lutris: run on-demand via `nix run nixpkgs#lutris` (4.6 GiB savings)
-    prismlauncher
-    adwsteamgtk
-    (callPackage ../packages/greenlight.nix { })
-  ];
-
-  environment.sessionVariables.ELECTRON_OZONE_PLATFORM_HINT = "auto";
 }

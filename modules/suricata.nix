@@ -25,10 +25,23 @@ _:
     # failing dnp3 sids and all modbus sids.
     disabledRules = [
       # dnp3 — module default (2270000-2270004) + 2270005-2270006
-      "2270000" "2270001" "2270002" "2270003" "2270004" "2270005" "2270006"
+      "2270000"
+      "2270001"
+      "2270002"
+      "2270003"
+      "2270004"
+      "2270005"
+      "2270006"
       # modbus — all sids in suricata.rules
-      "2250001" "2250002" "2250003" "2250004" "2250005"
-      "2250006" "2250007" "2250008" "2250009"
+      "2250001"
+      "2250002"
+      "2250003"
+      "2250004"
+      "2250005"
+      "2250006"
+      "2250007"
+      "2250008"
+      "2250009"
     ];
     settings = {
       # Treat the VPN tunnel address space + RFC1918 as "home"; everything
@@ -52,7 +65,11 @@ _:
             filename = "eve.json";
             "community-id" = true;
             types = [
-              { alert = { metadata = true; }; }
+              {
+                alert = {
+                  metadata = true;
+                };
+              }
               { anomaly = { }; }
             ];
           };

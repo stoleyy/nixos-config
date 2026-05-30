@@ -84,42 +84,44 @@ in
           skip_incompatible = true;
         };
 
-        # Source: community-maintained resolver list (default).
-        sources.public-resolvers = {
-          urls = [
-            "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/public-resolvers.md"
-            "https://download.dnscrypt.info/resolvers-list/v3/public-resolvers.md"
-          ];
-          cache_file = "/var/cache/dnscrypt-proxy/public-resolvers.md";
-          minisign_key = dnscryptMinisignKey;
-        };
+        sources = {
+          # Source: community-maintained resolver list (default).
+          public-resolvers = {
+            urls = [
+              "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/public-resolvers.md"
+              "https://download.dnscrypt.info/resolvers-list/v3/public-resolvers.md"
+            ];
+            cache_file = "/var/cache/dnscrypt-proxy/public-resolvers.md";
+            minisign_key = dnscryptMinisignKey;
+          };
 
-        # Relay list — required for the Anonymized DNS routing configured above.
-        sources.relays = {
-          urls = [
-            "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/relays.md"
-            "https://download.dnscrypt.info/resolvers-list/v3/relays.md"
-          ];
-          cache_file = "/var/cache/dnscrypt-proxy/relays.md";
-          minisign_key = dnscryptMinisignKey;
-        };
+          # Relay list — required for the Anonymized DNS routing configured above.
+          relays = {
+            urls = [
+              "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/relays.md"
+              "https://download.dnscrypt.info/resolvers-list/v3/relays.md"
+            ];
+            cache_file = "/var/cache/dnscrypt-proxy/relays.md";
+            minisign_key = dnscryptMinisignKey;
+          };
 
-        # ODoH (oblivious DoH) server + relay lists.
-        sources.odoh-servers = {
-          urls = [
-            "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/odoh-servers.md"
-            "https://download.dnscrypt.info/resolvers-list/v3/odoh-servers.md"
-          ];
-          cache_file = "/var/cache/dnscrypt-proxy/odoh-servers.md";
-          minisign_key = dnscryptMinisignKey;
-        };
-        sources.odoh-relays = {
-          urls = [
-            "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/odoh-relays.md"
-            "https://download.dnscrypt.info/resolvers-list/v3/odoh-relays.md"
-          ];
-          cache_file = "/var/cache/dnscrypt-proxy/odoh-relays.md";
-          minisign_key = dnscryptMinisignKey;
+          # ODoH (oblivious DoH) server + relay lists.
+          odoh-servers = {
+            urls = [
+              "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/odoh-servers.md"
+              "https://download.dnscrypt.info/resolvers-list/v3/odoh-servers.md"
+            ];
+            cache_file = "/var/cache/dnscrypt-proxy/odoh-servers.md";
+            minisign_key = dnscryptMinisignKey;
+          };
+          odoh-relays = {
+            urls = [
+              "https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/odoh-relays.md"
+              "https://download.dnscrypt.info/resolvers-list/v3/odoh-relays.md"
+            ];
+            cache_file = "/var/cache/dnscrypt-proxy/odoh-relays.md";
+            minisign_key = dnscryptMinisignKey;
+          };
         };
 
         # Local cache — avoids redundant lookups hitting the network.

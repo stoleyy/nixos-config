@@ -358,44 +358,48 @@
 
       # Override EPP from base.nix's balance_performance to performance.
       # performance EPP + performance governor = maximum sustained boost.
-      systemd.services.cpu-power-tuning.script = lib.mkForce ''
-        for f in /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference; do
-          echo performance > "$f" || true
-        done
-        echo 1 > /sys/devices/system/cpu/intel_pstate/hwp_dynamic_boost || true
-      '';
+      systemd = {
+        services = {
+          cpu-power-tuning.script = lib.mkForce ''
+            for f in /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference; do
+              echo performance > "$f" || true
+            done
+            echo 1 > /sys/devices/system/cpu/intel_pstate/hwp_dynamic_boost || true
+          '';
 
-      # Hardening stance (heatmap W3): keep the LIGHTWEIGHT confinement + audit
-      # layer ON during gaming. This is exactly the session that runs the most
-      # untrusted code (pirated games via Wine/Steam), so it must NOT be the
-      # least-monitored one. AppArmor (LSM mediation) and auditd (syscall
-      # logging) have negligible FPS cost; the HEAVY network/log monitors
-      # (Suricata, CrowdSec, vector) stay shed in the `services` block above —
-      # those carry real overhead and watch traffic that's quiescent during
-      # fullscreen play.
-      #
-      # Previously this block force-disabled apparmor + auditd + audit, leaving
-      # untrusted game code unconfined and unaudited. Removed.
+          # Hardening stance (heatmap W3): keep the LIGHTWEIGHT confinement + audit
+          # layer ON during gaming. This is exactly the session that runs the most
+          # untrusted code (pirated games via Wine/Steam), so it must NOT be the
+          # least-monitored one. AppArmor (LSM mediation) and auditd (syscall
+          # logging) have negligible FPS cost; the HEAVY network/log monitors
+          # (Suricata, CrowdSec, vector) stay shed in the `services` block above —
+          # those carry real overhead and watch traffic that's quiescent during
+          # fullscreen play.
+          #
+          # Previously this block force-disabled apparmor + auditd + audit, leaving
+          # untrusted game code unconfined and unaudited. Removed.
 
-      # Media-stack services already use wantedBy=mkForce[] (on-demand only).
-      # Disabling them via enable=mkForce false would break user/group
-      # declarations in media-server.nix. They won't run unless manually started.
+          # Media-stack services already use wantedBy=mkForce[] (on-demand only).
+          # Disabling them via enable=mkForce false would break user/group
+          # declarations in media-server.nix. They won't run unless manually started.
 
-      # Start GPU at full clocks — entire session is gaming
-      systemd.services.nvidia-undervolt.serviceConfig.ExecStart = lib.mkForce (
-        pkgs.writeShellScript "nvidia-undervolt-gaming" ''
-          /run/current-system/sw/bin/nvidia-smi -rgc 2>/dev/null || true
-          /run/current-system/sw/bin/nvidia-smi -pl 200 2>/dev/null || true
-          sleep infinity
-        ''
-      );
+          # Start GPU at full clocks — entire session is gaming
+          nvidia-undervolt.serviceConfig.ExecStart = lib.mkForce (
+            pkgs.writeShellScript "nvidia-undervolt-gaming" ''
+              /run/current-system/sw/bin/nvidia-smi -rgc 2>/dev/null || true
+              /run/current-system/sw/bin/nvidia-smi -pl 200 2>/dev/null || true
+              sleep infinity
+            ''
+          );
+        };
 
-      # Auto-clean old gamescope session logs. Lives in gamer's $HOME because
-      # the gaming-tuned session runs as `gamer` (not stoleyy) — see the log
-      # path in packages/gamescope-session.nix.
-      systemd.tmpfiles.rules = [
-        "e /home/gamer/gamescope-session.log - - - 7d -"
-      ];
+        # Auto-clean old gamescope session logs. Lives in gamer's $HOME because
+        # the gaming-tuned session runs as `gamer` (not stoleyy) — see the log
+        # path in packages/gamescope-session.nix.
+        tmpfiles.rules = [
+          "e /home/gamer/gamescope-session.log - - - 7d -"
+        ];
+      };
 
       # Performance kernel params. Appended to the base list; Linux
       # last-param-wins means init_on_alloc=0 overrides hardening.nix's =1.

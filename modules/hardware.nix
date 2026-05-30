@@ -1,5 +1,5 @@
 # Physical hardware: CPU microcode, Bluetooth, Logitech, zram swap.
-{ ... }:
+_:
 
 {
   hardware = {

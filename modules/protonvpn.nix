@@ -106,10 +106,6 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    systemd.tmpfiles.rules = [
-      "d /var/lib/protonvpn 0755 root root -"
-    ];
-
     # Sanity: refuse to evaluate if required fields aren't set. Catches the
     # common mistake of toggling `enable = true` without populating the
     # Proton-side values.
@@ -145,83 +141,91 @@ in
       ];
     };
 
-    # Outbound kill switch via a dedicated systemd-managed nftables table.
-    # Existing as a separate `table inet protonvpn_killswitch` keeps it
-    # decoupled from NixOS's main firewall table — easier to inspect/disable.
-    systemd.services.protonvpn-killswitch = lib.mkIf cfg.killSwitch {
-      description = "ProtonVPN kill switch (block non-VPN outbound)";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "network-pre.target" ];
-      before = [ "wg-quick-protonvpn.service" ];
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        ExecStart = pkgs.writeShellScript "protonvpn-killswitch-up" ''
-          set -e
-          ${pkgs.nftables}/bin/nft -f - <<'EOF'
-          ${mkKillswitchTable [ endpointHost ]}
-          EOF
-        '';
-        ExecStop = pkgs.writeShellScript "protonvpn-killswitch-down" ''
-          ${pkgs.nftables}/bin/nft delete table inet protonvpn_killswitch 2>/dev/null || true
-        '';
+    systemd = {
+      tmpfiles.rules = [
+        "d /var/lib/protonvpn 0755 root root -"
+      ];
+
+      # Outbound kill switch via a dedicated systemd-managed nftables table.
+      # Existing as a separate `table inet protonvpn_killswitch` keeps it
+      # decoupled from NixOS's main firewall table — easier to inspect/disable.
+      services = {
+        protonvpn-killswitch = lib.mkIf cfg.killSwitch {
+          description = "ProtonVPN kill switch (block non-VPN outbound)";
+          wantedBy = [ "multi-user.target" ];
+          after = [ "network-pre.target" ];
+          before = [ "wg-quick-protonvpn.service" ];
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            ExecStart = pkgs.writeShellScript "protonvpn-killswitch-up" ''
+              set -e
+              ${pkgs.nftables}/bin/nft -f - <<'EOF'
+              ${mkKillswitchTable [ endpointHost ]}
+              EOF
+            '';
+            ExecStop = pkgs.writeShellScript "protonvpn-killswitch-down" ''
+              ${pkgs.nftables}/bin/nft delete table inet protonvpn_killswitch 2>/dev/null || true
+            '';
+          };
+        };
+
+        # Boot-race + self-heal.
+        #
+        # wg-quick is Type=oneshot and "succeeds" the moment the interface is
+        # configured — it never verifies an actual handshake. At boot it can win the
+        # race against the wired link's route coming up (NetworkManager-wait-online
+        # ships a drop-in that can return on the first usable link), so the very
+        # first handshake to the endpoint fails and the tunnel sits dead until a
+        # manual `systemctl restart wg-quick-protonvpn`. Observed exactly this:
+        # service active(exited)=success at boot but `wg show` had no handshake; a
+        # restart connected in <3 s. Restart=on-failure can't catch it because the
+        # unit exits 0. Fix in two layers:
+        #   (1) order wg-quick after the network is genuinely online, and
+        #   (2) a watchdog timer that restarts the tunnel whenever the handshake is
+        #       stale — also covers mid-session drops / server hiccups.
+        wg-quick-protonvpn = {
+          wants = [ "network-online.target" ];
+          after = [ "network-online.target" ];
+        };
+
+        protonvpn-reconnect = {
+          description = "Restart ProtonVPN tunnel if the WireGuard handshake is stale";
+          after = [ "wg-quick-protonvpn.service" ];
+          serviceConfig = {
+            Type = "oneshot";
+            ExecStart = pkgs.writeShellScript "protonvpn-reconnect" ''
+              set -u
+              wg=${pkgs.wireguard-tools}/bin/wg
+              iface=protonvpn
+              # No interface yet (VPN intentionally down / not up) → nothing to do.
+              "$wg" show "$iface" >/dev/null 2>&1 || exit 0
+              now=$(${pkgs.coreutils}/bin/date +%s)
+              # Newest handshake timestamp across all peers (0 = never).
+              hs=$("$wg" show "$iface" latest-handshakes \
+                    | ${pkgs.gawk}/bin/awk '{print $2}' \
+                    | ${pkgs.coreutils}/bin/sort -rn \
+                    | ${pkgs.coreutils}/bin/head -1)
+              hs=''${hs:-0}
+              # Healthy if a handshake happened within the last 180 s.
+              if [ "$hs" -eq 0 ] || [ $(( now - hs )) -ge 180 ]; then
+                echo "ProtonVPN handshake stale (latest=$hs, now=$now) — restarting tunnel"
+                ${pkgs.systemd}/bin/systemctl restart wg-quick-protonvpn.service
+              fi
+            '';
+          };
+        };
       };
-    };
 
-    # Boot-race + self-heal.
-    #
-    # wg-quick is Type=oneshot and "succeeds" the moment the interface is
-    # configured — it never verifies an actual handshake. At boot it can win the
-    # race against the wired link's route coming up (NetworkManager-wait-online
-    # ships a drop-in that can return on the first usable link), so the very
-    # first handshake to the endpoint fails and the tunnel sits dead until a
-    # manual `systemctl restart wg-quick-protonvpn`. Observed exactly this:
-    # service active(exited)=success at boot but `wg show` had no handshake; a
-    # restart connected in <3 s. Restart=on-failure can't catch it because the
-    # unit exits 0. Fix in two layers:
-    #   (1) order wg-quick after the network is genuinely online, and
-    #   (2) a watchdog timer that restarts the tunnel whenever the handshake is
-    #       stale — also covers mid-session drops / server hiccups.
-    systemd.services.wg-quick-protonvpn = {
-      wants = [ "network-online.target" ];
-      after = [ "network-online.target" ];
-    };
-
-    systemd.services.protonvpn-reconnect = {
-      description = "Restart ProtonVPN tunnel if the WireGuard handshake is stale";
-      after = [ "wg-quick-protonvpn.service" ];
-      serviceConfig = {
-        Type = "oneshot";
-        ExecStart = pkgs.writeShellScript "protonvpn-reconnect" ''
-          set -u
-          wg=${pkgs.wireguard-tools}/bin/wg
-          iface=protonvpn
-          # No interface yet (VPN intentionally down / not up) → nothing to do.
-          "$wg" show "$iface" >/dev/null 2>&1 || exit 0
-          now=$(${pkgs.coreutils}/bin/date +%s)
-          # Newest handshake timestamp across all peers (0 = never).
-          hs=$("$wg" show "$iface" latest-handshakes \
-                | ${pkgs.gawk}/bin/awk '{print $2}' \
-                | ${pkgs.coreutils}/bin/sort -rn \
-                | ${pkgs.coreutils}/bin/head -1)
-          hs=''${hs:-0}
-          # Healthy if a handshake happened within the last 180 s.
-          if [ "$hs" -eq 0 ] || [ $(( now - hs )) -ge 180 ]; then
-            echo "ProtonVPN handshake stale (latest=$hs, now=$now) — restarting tunnel"
-            ${pkgs.systemd}/bin/systemctl restart wg-quick-protonvpn.service
-          fi
-        '';
-      };
-    };
-
-    systemd.timers.protonvpn-reconnect = {
-      description = "Periodic ProtonVPN handshake health check";
-      wantedBy = [ "timers.target" ];
-      timerConfig = {
-        # First check shortly after boot (catches the boot-race), then poll.
-        OnBootSec = "45s";
-        OnUnitActiveSec = "60s";
-        AccuracySec = "10s";
+      timers.protonvpn-reconnect = {
+        description = "Periodic ProtonVPN handshake health check";
+        wantedBy = [ "timers.target" ];
+        timerConfig = {
+          # First check shortly after boot (catches the boot-race), then poll.
+          OnBootSec = "45s";
+          OnUnitActiveSec = "60s";
+          AccuracySec = "10s";
+        };
       };
     };
   };
