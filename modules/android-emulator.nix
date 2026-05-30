@@ -31,7 +31,8 @@ let
   bridgeIface = "virbr-android";
 
   # WireGuard tunnel interface for the Android VM.
-  vpnIface = "protonvpn-android";
+  # Linux iface names max 16 chars — "protonvpn-android" (18) is too long.
+  vpnIface = "pvpn-android";
 in
 {
   options.modules.androidEmulator = {

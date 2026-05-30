@@ -129,7 +129,7 @@
   sops.secrets.protonvpn-android-key = {
     owner = "root";
     mode = "0400";
-    restartUnits = [ "wg-quick-protonvpn-android.service" ];
+    restartUnits = [ "wg-quick-pvpn-android.service" ];
   };
   # TODO: add github-pat to secrets.yaml before re-enabling —   sops.secrets.github-pat = {
   # TODO: add github-pat to secrets.yaml before re-enabling —     owner = "stoleyy";

@@ -50,9 +50,9 @@ writeShellApplication {
     }
 
     bring_up_vpn() {
-      echo "Starting dedicated Android VPN tunnel (protonvpn-android)..."
-      sudo systemctl start wg-quick-protonvpn-android.service || {
-        echo "ERROR: Failed to start protonvpn-android tunnel."
+      echo "Starting dedicated Android VPN tunnel (pvpn-android)..."
+      sudo systemctl start wg-quick-pvpn-android.service || {
+        echo "ERROR: Failed to start pvpn-android tunnel."
         echo "Check: modules.androidEmulator.vpn.* options are set correctly."
         exit 1
       }
@@ -173,15 +173,15 @@ writeShellApplication {
 
       stop_dnsmasq
       teardown_bridge
-      sudo systemctl stop wg-quick-protonvpn-android.service 2>/dev/null || true
+      sudo systemctl stop wg-quick-pvpn-android.service 2>/dev/null || true
       echo "Cleanup complete."
     }
 
     vm_status() {
       if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
         echo "VM is running (PID $(cat "$PIDFILE"))."
-        if ip link show protonvpn-android &>/dev/null; then
-          echo "VPN tunnel: UP (protonvpn-android)"
+        if ip link show pvpn-android &>/dev/null; then
+          echo "VPN tunnel: UP (pvpn-android)"
         else
           echo "VPN tunnel: DOWN"
         fi
