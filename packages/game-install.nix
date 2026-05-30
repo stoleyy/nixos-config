@@ -70,6 +70,8 @@ writeShellApplication {
     # Strip architecture tags
     GAME_NAME=$(echo "$GAME_NAME" | sed -E 's/[._-]*\([0-9]+bit\)[._-]*//gi')
     GAME_NAME=$(echo "$GAME_NAME" | sed -E 's/[._-]*\(x(64|86)\)[._-]*//gi')
+    # Strip empty brackets left after tag removal
+    GAME_NAME=$(echo "$GAME_NAME" | sed -E 's/\[\s*\]//g; s/\(\s*\)//g')
     # Normalize separators, collapse spaces, trim
     GAME_NAME=$(echo "$GAME_NAME" | tr '._-' ' ' | tr -s ' ' | sed 's/^ //;s/ $//')
     [ -z "$GAME_NAME" ] && GAME_NAME="$TORRENT_NAME"
@@ -100,7 +102,7 @@ writeShellApplication {
       while kill -0 "$WINE_PID" 2>/dev/null; do
         sleep 5
         ELAPSED=$((ELAPSED + 5))
-        if [ "$ELAPSED" -ge 1800 ]; then
+        if [ "$ELAPSED" -ge 7200 ]; then
           kill "$WINE_PID" 2>/dev/null || true
           systemd-cat -t game-install -p err echo "Installer timeout: $GAME_NAME"
           exit 1
@@ -169,8 +171,8 @@ writeShellApplication {
     shortcuts[next_idx] = {
         "appid":               appid,
         "AppName":             game_name,
-        "Exe":                 exe_path,
-        "StartDir":            install_dir,
+        "Exe":                 '"' + exe_path + '"',
+        "StartDir":            '"' + install_dir + '/"',
         "icon":                "",
         "ShortcutPath":        "",
         "LaunchOptions":       "",

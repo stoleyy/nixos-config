@@ -303,6 +303,12 @@ These rules are non-negotiable and override all other instructions:
   is down (by design). If an af-packet open error appears after a kernel bump
   (WireGuard netdev has no L2 header), point
   `services.suricata.settings.af-packet` at the physical NIC from `ip -o link`.
+- **qBittorrent.conf is overwritten on clean exit** — qBit reads the conf
+  once at startup and rewrites it (via `rename()`) on clean exit, clobbering
+  any changes written while it was running. The `seedQbittorrentConf`
+  home-manager activation only loads at next launch. **Close qBittorrent
+  before `nixos-rebuild switch`**, or restart it after, so the seeded values
+  take effect. The NAT-PMP port push uses the live WebUI API and is unaffected.
 - **Browser trust domains are same-UID** — vault/personal/untrusted/disposable
   are Brave *profiles* under one UID + `$HOME`, not isolated VMs. The
   `untrusted`/`disposable` domains add a real boundary (LAN-blocked via the

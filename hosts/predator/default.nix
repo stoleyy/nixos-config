@@ -137,6 +137,10 @@
     serverEndpoint = "146.70.84.2:51820";
     # clientAddress defaults to 10.2.0.2/32 (matches Proton's issued tunnel IP)
     # killSwitch defaults to true
+    portForward = {
+      enable = true;
+      webuiPort = 8181; # must equal seeded WebUI\Port (8080 taken by CrowdSec LAPI)
+    };
     autoRotate = {
       enable = true;
       interval = "15min"; # quality check interval (only swaps on degradation)
@@ -145,6 +149,9 @@
         enable = true;
         country = "US";
         top = 0; # all servers in the closest cities
+        # NAT-PMP only works on P2P-flagged servers. scripts/protonvpn-fetch-pool.py
+        # filters Features & 4 (line 100); pool re-fetches on protonvpn-refresh-pool timer.
+        p2p = true;
         refreshInterval = "3h";
         # Southern Ohio — geo-filter to 5 nearest cities
         lat = 39.3;
@@ -196,6 +203,11 @@
     # stoleyy's home. systemd-tmpfiles enforces this on every activation; the
     # install-pipeline user must be in the `games` group to write here.
     "d ${host.gamesDir} 2775 ${host.user} games -"
+    # qBittorrent staging tree — same ext4 volume as gamesDir so
+    # incomplete→complete is a rename (no cross-FS copy).
+    "d ${host.gamesDir}/.downloads            0775 ${host.user} games -"
+    "d ${host.gamesDir}/.downloads/complete   0775 ${host.user} games -"
+    "d ${host.gamesDir}/.downloads/incomplete 0775 ${host.user} games -"
     # /data is a general-purpose partition not directly written by user services;
     # root:root is correct there.
     "d ${host.dataDir}  0755 root root -"

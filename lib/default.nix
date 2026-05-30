@@ -60,6 +60,7 @@
         # ── Networking services ──
         ../modules/protonvpn.nix # WireGuard tunnel + kill switch
         ../modules/protonvpn-rotate.nix # quality-based server rotation
+        ../modules/protonvpn-portforward.nix # NAT-PMP port forwarding for qBittorrent
         ../modules/media-server.nix # Jellyfin, *arr stack, qBittorrent (gated: modules.mediaServer.enable)
         ../modules/monitoring.nix # ntfy, beszel, gatus, vector
         ../modules/transcode.nix # systemd.paths NVENC watch folder
