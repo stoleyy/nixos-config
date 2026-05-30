@@ -162,9 +162,20 @@ in
       "net.ipv4.ip_forward" = 1;
     };
 
+    # ── Allow DHCP + DNS from the VM bridge through the NixOS firewall ─────
+    # The default NixOS firewall drops INPUT on unknown interfaces. The VM
+    # needs DHCP (67/68) and DNS (53) answered by the host bridge gateway.
+    networking.firewall.interfaces.${bridgeIface} = {
+      allowedUDPPorts = [
+        53 # DNS (dnsmasq forwards to VPN tunnel DNS)
+        67 # DHCP server
+        68 # DHCP client
+      ];
+    };
+
     # ── nftables kill switch for the VM bridge ───────────────────────────────
     # Allows forwarded traffic from virbr-android only when it exits through
-    # protonvpn-android. All other forwarded paths from the bridge are dropped.
+    # the VPN tunnel. All other forwarded paths from the bridge are dropped.
     # The table is named android_killswitch to keep it isolated from the main
     # protonvpn_killswitch table (both can coexist).
     systemd.services.android-emu-killswitch = {
