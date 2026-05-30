@@ -112,6 +112,17 @@ in
         after_sleep_cmd = hyprctl dispatch dpms on
     }
 
+    # OLED burn-in: hide the always-on waybar after 45 s of inactivity, then
+    # reveal it on the next input. SIGUSR1 toggles waybar visibility, and
+    # hypridle only fires on-resume for a listener whose on-timeout fired, so
+    # the hide/show pair stays balanced. Complements the $mod+SHIFT+B manual
+    # toggle and runs well before the 5-min display blank below.
+    listener {
+        timeout = 45
+        on-timeout = pkill -SIGUSR1 waybar
+        on-resume = pkill -SIGUSR1 waybar
+    }
+
     # OLED burn-in prevention: blank the display after 5 minutes idle.
     # More aggressive than LCD — static UI elements (waybar, workspace
     # indicators) cause permanent damage on OLED over time.
