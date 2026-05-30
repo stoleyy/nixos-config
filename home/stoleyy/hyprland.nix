@@ -415,6 +415,9 @@ in
         "$mod CTRL, P, exec, hyprprop | wl-copy" # window props -> clipboard
         "$mod, period,  exec, rofimoji"
         "$mod SHIFT, E, exec, wlogout"
+        # Toggle waybar visibility (SIGUSR1) — hide the always-on bar during
+        # long static sessions to cut OLED burn-in on fixed UI elements.
+        "$mod SHIFT, B, exec, pkill -SIGUSR1 waybar"
 
         # Sidecars (Alt cluster)
         "$mod ALT, B, exec, rofi-bluetooth"
