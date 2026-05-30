@@ -30,6 +30,9 @@ let
   # VM bridge interface name (libvirt network "android" will create this).
   bridgeIface = "virbr-android";
 
+  # VM network subnet prefix (VM gets .2–.10 via DHCP, gateway .1).
+  vmSubnet = "10.71.0";
+
   # WireGuard tunnel interface for the Android VM.
   # Linux iface names max 16 chars — "protonvpn-android" (18) is too long.
   vpnIface = "pvpn-android";
@@ -147,6 +150,18 @@ in
       autostart = false;
       mtu = 1420;
       table = "off";
+      # Policy route: bridge subnet → this VPN tunnel (not the host's default).
+      # table=off prevents wg-quick from setting a default route, so we manually
+      # add a route for the VM bridge subnet through this tunnel using a custom
+      # routing table (table 71).
+      postUp = ''
+        ${pkgs.iproute2}/bin/ip route add default dev ${vpnIface} table 71
+        ${pkgs.iproute2}/bin/ip rule add from ${vmSubnet}.0/24 table 71 priority 100
+      '';
+      preDown = ''
+        ${pkgs.iproute2}/bin/ip rule del from ${vmSubnet}.0/24 table 71 priority 100 || true
+        ${pkgs.iproute2}/bin/ip route del default dev ${vpnIface} table 71 || true
+      '';
       peers = [
         {
           publicKey = cfg.vpn.serverPublicKey;
