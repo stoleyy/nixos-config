@@ -169,12 +169,17 @@
   # Android emulator — QEMU/KVM VM for GPS spoofing research.
   # Separate VPN tunnel (US-OH#21) from host (US-OH#24) to prevent
   # exit-IP correlation. VM traffic is kill-switched to this tunnel.
+  # Android emulator — QEMU/KVM VM for GPS spoofing research.
+  # Separate VPN tunnel (US-NY#855) from host (US-OH#24) to prevent
+  # exit-IP correlation. clientAddress remapped to .3 to avoid conflict
+  # with the host tunnel's 10.2.0.2/32.
   modules.androidEmulator = {
     enable = true;
     vpn = {
       privateKeyFile = config.sops.secrets.protonvpn-android-key.path;
-      serverPublicKey = "Rtsl6k9WA9t04Vt+EDUD3TlSr9+YL6YcTFwiSB1qBwA=";
-      serverEndpoint = "146.70.84.2:51820";
+      serverPublicKey = "SFTsK4V1FAmlM22ZkG3jTKddg/8Sj4HjdNePnJo1BSw=";
+      serverEndpoint = "149.88.21.118:51820";
+      clientAddress = "10.2.0.3/32";
     };
   };
 

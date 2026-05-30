@@ -9,6 +9,7 @@
 {
   lib,
   lanCidr ? "192.168.1.0/24",
+  extraInterfaces ? [ ],
 }:
 
 {
@@ -19,6 +20,7 @@
       # by checking for a colon (IPv6) vs dot (IPv4).
       mkRule = ip: if lib.hasInfix ":" ip then "ip6 daddr ${ip} accept" else "ip daddr ${ip} accept";
       endpointRules = lib.concatMapStringsSep "\n      " mkRule allowedIPs;
+      extraIfaceRules = lib.concatMapStringsSep "\n      " (iface: ''oifname "${iface}" accept'') extraInterfaces;
     in
     ''
       table inet protonvpn_killswitch {}
@@ -41,6 +43,7 @@
           ${endpointRules}
           # allow traffic going through VPN interface
           oifname "protonvpn" accept
+          ${extraIfaceRules}
           # everything else: drop (kill switch)
           counter drop
         }

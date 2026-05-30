@@ -32,6 +32,7 @@ let
     (import ../lib/nftables.nix {
       inherit lib;
       inherit (cfg) lanCidr;
+      extraInterfaces = cfg.killSwitchExtraInterfaces;
     })
     mkKillswitchTable
     ;
@@ -103,6 +104,18 @@ in
         Disable if you need the GUI client to coexist or want full flexibility.
       '';
     };
+
+    killSwitchExtraEndpoints = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = "Extra endpoint IPs to allow through the kill switch (e.g. a second VPN tunnel).";
+    };
+
+    killSwitchExtraInterfaces = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = "Extra WireGuard interface names to allow outbound traffic through.";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -159,7 +172,7 @@ in
         ExecStart = pkgs.writeShellScript "protonvpn-killswitch-up" ''
           set -e
           ${pkgs.nftables}/bin/nft -f - <<'EOF'
-          ${mkKillswitchTable [ endpointHost ]}
+          ${mkKillswitchTable ([ endpointHost ] ++ cfg.killSwitchExtraEndpoints)}
           EOF
         '';
         ExecStop = pkgs.writeShellScript "protonvpn-killswitch-down" ''

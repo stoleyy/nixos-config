@@ -112,6 +112,14 @@ in
       }
     ];
 
+    # ── Punch through the host's ProtonVPN kill switch for the VM tunnel ──
+    # Without this, the host kill switch drops traffic to the VM's VPN
+    # endpoint and blocks outbound on the pvpn-android interface.
+    modules.protonvpn.killSwitchExtraEndpoints = [
+      (builtins.head (lib.splitString ":" cfg.vpn.serverEndpoint))
+    ];
+    modules.protonvpn.killSwitchExtraInterfaces = [ vpnIface ];
+
     # ── libvirt / QEMU ──────────────────────────────────────────────────────
     virtualisation.libvirtd = {
       enable = true;
