@@ -126,6 +126,11 @@
     # Restart WireGuard when the secret rotates so the new key takes effect immediately.
     restartUnits = [ "wg-quick-protonvpn.service" ];
   };
+  sops.secrets.protonvpn-android-key = {
+    owner = "root";
+    mode = "0400";
+    restartUnits = [ "wg-quick-protonvpn-android.service" ];
+  };
   # TODO: add github-pat to secrets.yaml before re-enabling —   sops.secrets.github-pat = {
   # TODO: add github-pat to secrets.yaml before re-enabling —     owner = "stoleyy";
   # TODO: add github-pat to secrets.yaml before re-enabling —     mode = "0400";
@@ -158,6 +163,18 @@
         lon = -83.5;
         geoCities = 5;
       };
+    };
+  };
+
+  # Android emulator — QEMU/KVM VM for GPS spoofing research.
+  # Separate VPN tunnel (US-OH#21) from host (US-OH#24) to prevent
+  # exit-IP correlation. VM traffic is kill-switched to this tunnel.
+  modules.androidEmulator = {
+    enable = true;
+    vpn = {
+      privateKeyFile = config.sops.secrets.protonvpn-android-key.path;
+      serverPublicKey = "Rtsl6k9WA9t04Vt+EDUD3TlSr9+YL6YcTFwiSB1qBwA=";
+      serverEndpoint = "146.70.84.2:51820";
     };
   };
 

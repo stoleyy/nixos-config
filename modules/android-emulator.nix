@@ -114,7 +114,6 @@ in
       qemu = {
         package = pkgs.qemu_kvm;
         runAsRoot = false;
-        ovmf.enable = true; # UEFI firmware for the VM
       };
     };
 
