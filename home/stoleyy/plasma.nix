@@ -18,9 +18,9 @@ let
   togglePanel = pkgs.writeShellScript "toggle-bottom-panel" ''
     ${qdbus} org.kde.plasmashell /PlasmaShell evaluateScript 'var ps=panels();for(var i=0;i<ps.length;i++){if(ps[i].location=="bottom"){ps[i].hiding=(ps[i].hiding=="none")?"autohide":"none";}}'
   '';
-# Gated on the system flag set by the `plasma` boot specialisation
-# (modules.plasma.enable). The default/daily generation is pure Hyprland, so
-# none of the Plasma HM closure or config is realized there.
+  # Gated on the system flag set by the `plasma` boot specialisation
+  # (modules.plasma.enable). The default/daily generation is pure Hyprland, so
+  # none of the Plasma HM closure or config is realized there.
 in
 lib.mkIf osConfig.modules.plasma.enable {
   home.packages = [ pkgs.kdePackages.wallpaper-engine-plugin ];
@@ -73,9 +73,9 @@ lib.mkIf osConfig.modules.plasma.enable {
     };
 
     hotkeys.commands = {
-      "launch-brave" = {
+      "launch-zen" = {
         key = "Meta+B";
-        command = "brave";
+        command = "zen-personal";
       };
       "launch-dolphin" = {
         key = "Meta+E";

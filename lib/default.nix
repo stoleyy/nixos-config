@@ -41,7 +41,7 @@
         ../modules/theming.nix # Papirus icons, cava
 
         # ── Applications ──
-        ../modules/apps.nix # Brave, Zen, CLI tools, ProtonVPN GUI
+        ../modules/apps.nix # CLI tools, ProtonVPN GUI (browser is home/stoleyy/browser.nix)
         ../modules/gaming.nix # Steam, GameMode, gamescope, game-install
         ../modules/gamer-account.nix # low-priv gamer UID for the gaming-mode session (W1/W2)
 
@@ -84,6 +84,7 @@
             sharedModules = [
               inputs.plasma-manager.homeModules.plasma-manager
               inputs.nix-index-database.homeModules.nix-index
+              inputs.zen-browser.homeModules.default
             ];
             users.stoleyy = import ../home/stoleyy;
           };

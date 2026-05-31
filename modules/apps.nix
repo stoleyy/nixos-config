@@ -1,28 +1,10 @@
-# User-facing applications: Brave, Zen Browser, CLI tools, ProtonVPN GUI.
-{ pkgs, inputs, ... }:
+# User-facing applications: CLI tools, ProtonVPN GUI.
+# The web browser (Zen + four Qubes-style trust domains) is declared in
+# home/stoleyy/browser.nix via the programs.zen-browser home-manager module.
+{ pkgs, ... }:
 
 {
   environment.systemPackages = with pkgs; [
-    (brave.override {
-      commandLineArgs = [
-        # Wayland / Ozone — render correctly on KDE Plasma 6 / Hyprland Wayland.
-        "--ozone-platform-hint=auto"
-        # VAAPI on NVIDIA — Chromium hard-blocklists VAAPI for NVIDIA GPUs by
-        # default. These flags bypass the blocklist; combined with
-        # nvidia-vaapi-driver (in modules/nvidia.nix extraPackages) and
-        # LIBVA_DRIVER_NAME=nvidia (sessionVariable), YouTube 4K decodes on
-        # NVDEC at single-digit CPU usage instead of 30-40%.
-        # WaylandWpColorManagerV1 + UseMultiPlaneFormatForHardwareVideo enable
-        # HDR pass-through on Plasma 6.4+. If page chrome washes out under HDR,
-        # remove those two features and re-add `--disable-features=WaylandWpColorManagerV1`.
-        "--enable-features=AcceleratedVideoDecodeLinuxGL,VaapiVideoDecodeLinuxGL,VaapiOnNvidiaGPUs,WaylandWpColorManagerV1,UseMultiPlaneFormatForHardwareVideo"
-        # Vulkan ANGLE renderer — better Wayland/NVIDIA performance than the
-        # default GL backend.
-        "--use-gl=angle"
-        "--use-angle=vulkan"
-      ];
-    })
-
     # CLI essentials
     ripgrep
     fd
@@ -58,60 +40,7 @@
     # `stoleyy` is already in the `networkmanager` group (modules/base.nix),
     # so polkit doesn't prompt for a password on connect.
     protonvpn-gui
-
-    # Zen Browser — privacy-focused Firefox fork with vertical tabs.
-    # Sourced from the zen-browser/desktop community flake (pre-built binaries).
-    inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default
   ];
-
-  # Brave debloat + privacy hardening via enterprise policy (managed via
-  # /etc/brave/policies/managed/). Applies browser-wide, to all four trust
-  # domains. Disables: Rewards, Wallet (crypto), AI Chat (Leo), News, Talk,
-  # VPN, Tor mode, default-browser nag, P3A telemetry, and the new-tab "stats"
-  # tiles; hardens WebRTC IP handling (WebRtcIPHandling); pins DNS to the OS
-  # resolver (DnsOverHttpsMode); and disables Brave Sync (SyncDisabled).
-  environment.etc."brave/policies/managed/debloat.json".text = builtins.toJSON {
-    BraveRewardsDisabled = true;
-    BraveWalletDisabled = true;
-    BraveAIChatEnabled = false;
-    BraveNewsDisabled = true;
-    BraveTalkDisabled = true;
-    BraveVPNDisabled = true;
-    TorDisabled = true;
-    BraveP3ADisabled = true;
-    DefaultBrowserSettingEnabled = false;
-    MetricsReportingEnabled = false;
-    SearchSuggestEnabled = false;
-    # Disable Brave Sync — it links your browsers across devices into one
-    # identity (a cross-device tracking beacon). Off = that linkage is gone;
-    # cost = no bookmark/password/search-engine sync across devices.
-    SyncDisabled = true;
-
-    # Pin DNS to the OS resolver: stop Brave's built-in Secure DNS (DoH) from
-    # silently upgrading to a public provider (Cloudflare/Google) that would
-    # BYPASS the anonymized dnscrypt-proxy path and leak your lookups. "off" =
-    # use the system stub (systemd-resolved → dnscrypt-proxy), which is already
-    # encrypted + anonymized at the OS layer.
-    DnsOverHttpsMode = "off";
-
-    # ── WebRTC IP-leak hardening (fingerprint / deanonymization) ──
-    # WebRTC can reveal your LOCAL (LAN) IP and bypass the VPN via STUN — a
-    # tracking + deanonymization vector that Brave's farbling does NOT cover.
-    # "disable_non_proxied_udp" is the leak-proof setting: it blocks ALL
-    # non-proxied WebRTC UDP, so no STUN probe can expose the local, VPN, or
-    # real IP on ANY profile — including the Tor-routed untrusted/disposable
-    # zones, where it also stops WebRTC from punching around the Tor circuit.
-    # Trade-off: in-browser WebRTC voice/video calls won't work — that is the
-    # intended sacrifice here (video calls are not used).
-    #
-    # Fingerprint randomization ("farbling") is left at Brave's default
-    # Standard level: upstream sunset the old "Strict" mode in 1.64, so
-    # Standard is the strongest in-Brave protection and nothing here disables
-    # it. True fingerprint *uniformity* would require Mullvad/Tor Browser —
-    # deliberately not used here (normalized on Brave for one consistent
-    # compartment model).
-    WebRtcIPHandling = "disable_non_proxied_udp";
-  };
 
   # Flatpak disabled — all apps are declaratively managed via Nix.
   # Prevents accidental re-installs of duplicate Steam/qBittorrent/etc.

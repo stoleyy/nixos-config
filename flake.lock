@@ -1,5 +1,21 @@
 {
   "nodes": {
+    "arkenfox": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1778605135,
+        "narHash": "sha256-ZiwFpUcUdWLHrqiAaGcIpJ/wPrScZwoFkd5UYJ/23IM=",
+        "ref": "refs/heads/master",
+        "rev": "8fe9905c35a1025d1e6df69479f7625585fd956d",
+        "revCount": 2019,
+        "type": "git",
+        "url": "https://github.com/arkenfox/user.js"
+      },
+      "original": {
+        "type": "git",
+        "url": "https://github.com/arkenfox/user.js"
+      }
+    },
     "flake-compat": {
       "flake": false,
       "locked": {
@@ -96,27 +112,6 @@
       "original": {
         "owner": "nix-community",
         "ref": "release-25.11",
-        "repo": "home-manager",
-        "type": "github"
-      }
-    },
-    "home-manager_2": {
-      "inputs": {
-        "nixpkgs": [
-          "zen-browser",
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1778805320,
-        "narHash": "sha256-nGFJ01m2CTBKD4ABtcY4vLhHrRN91LKr/pn41PcU78A=",
-        "owner": "nix-community",
-        "repo": "home-manager",
-        "rev": "9846abe15e7d0d36b8acbd4d05f2b87461744c92",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nix-community",
         "repo": "home-manager",
         "type": "github"
       }
@@ -235,6 +230,7 @@
     },
     "root": {
       "inputs": {
+        "arkenfox": "arkenfox",
         "home-manager": "home-manager",
         "nix-gaming": "nix-gaming",
         "nix-index-database": "nix-index-database",
@@ -325,7 +321,9 @@
     },
     "zen-browser": {
       "inputs": {
-        "home-manager": "home-manager_2",
+        "home-manager": [
+          "home-manager"
+        ],
         "nixpkgs": [
           "nixpkgs"
         ]

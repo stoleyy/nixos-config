@@ -381,7 +381,7 @@ in
 
       "$mod" = "SUPER";
       "$terminal" = "ghostty";
-      "$browser" = "brave";
+      "$browser" = "zen-personal";
       "$launcher" = "rofi -show drun";
       "$filemanager" = "thunar";
 
@@ -520,20 +520,23 @@ in
         "opacity 1.0 override 1.0 override, class:^(vlc)$"
         "opacity 1.0 override 1.0 override, class:^(com.stremio.stremio)$"
         "opacity 1.0 override 1.0 override, title:^(Picture-in-Picture)$"
-        "opacity 1.0 override 1.0 override, class:^(brave-browser)$"
+        "opacity 1.0 override 1.0 override, class:^(zen-.*)$"
         "opacity 1.0 override 1.0 override, class:^(greenlight-desktop)$"
         "opaque, class:^(greenlight-desktop)$"
         # ── Qubes-style trust domain borders ──
+        # Matches the Zen wrapper's --name/--class (zen-<domain>); verify the
+        # Wayland app_id with `hyprctl clients` and adjust the regex if a Zen
+        # release reports a different id.
         # Green = sensitive/credentials (vault, KeePassXC)
-        "bordercolor rgb(2E7D32), class:^(brave-vault)$"
+        "bordercolor rgb(2E7D32), class:^(zen-vault)$"
         "bordercolor rgb(2E7D32), class:^(org.keepassxc.KeePassXC)$"
         # Indigo = standard daily use (personal)
-        "bordercolor rgb(0A094E), class:^(brave-personal)$"
+        "bordercolor rgb(0A094E), class:^(zen-personal)$"
         # Red = untrusted (LAN blocked, don't trust)
-        "bordercolor rgb(C62828), class:^(brave-untrusted)$"
+        "bordercolor rgb(C62828), class:^(zen-untrusted)$"
         "bordercolor rgb(C62828), class:^(discord)$"
         # Orange = ephemeral (wiped on exit)
-        "bordercolor rgb(F57C00), class:^(brave-disposable)$"
+        "bordercolor rgb(F57C00), class:^(zen-disposable)$"
       ];
     };
   };
