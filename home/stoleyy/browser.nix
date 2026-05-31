@@ -153,15 +153,6 @@ let
   mkBraveWrapper =
     name: domain:
     let
-<<<<<<< HEAD
-      isolated = domain ? isolated && domain.isolated;
-      # WebRTC can gather ICE candidates that bypass the SOCKS/VPN egress path
-      # and reveal the local LAN or tunnel-internal IP. Isolated (Tor'd) domains
-      # force every WebRTC route through the proxy only; the VPN domains keep
-      # WebRTC working (video calls) but hide the local LAN address.
-      webrtcPolicy = if isolated then "disable_non_proxied_udp" else "default_public_interface_only";
-||||||| c2a8d20
-=======
       launcher = mkBraveLauncher name domain;
       # vault → `sg vault` (LAN-blocked, NO Tor — banking + Tor = CAPTCHA hell).
       # untrusted/disposable → `sg untrusted` (LAN-blocked + Tor via launcher).
@@ -172,7 +163,6 @@ let
           "untrusted"
         else
           null;
->>>>>>> 82ddfbbd0695ff07ea017b15bc57e35402d64074
     in
     pkgs.writeShellScriptBin "brave-${name}" ''
       DATA_DIR="''${HOME}/.config/BraveSoftware/${domain.dataDir}"
@@ -199,21 +189,6 @@ let
       fi
 
       ${
-<<<<<<< HEAD
-        if isolated then
-          # Isolated domains: switch to the "untrusted" GID (LAN dropped by
-          # modules/compartments.nix) AND route through the local Tor SOCKS
-          # proxy (modules/tor-isolation.nix) → Tor-over-VPN egress. Chromium
-          # does remote DNS over the socks5 proxy, so no DNS leak.
-          ''exec sg untrusted -c "brave --user-data-dir=\"$DATA_DIR\" --class=brave-${name} --proxy-server=socks5://127.0.0.1:9050 --webrtc-ip-handling-policy=${webrtcPolicy} $*"''
-||||||| c2a8d20
-        if domain ? isolated && domain.isolated then
-          # Isolated domains: switch to the "untrusted" GID (LAN dropped by
-          # modules/compartments.nix) AND route through the local Tor SOCKS
-          # proxy (modules/tor-isolation.nix) → Tor-over-VPN egress. Chromium
-          # does remote DNS over the socks5 proxy, so no DNS leak.
-          ''exec sg untrusted -c "brave --user-data-dir=\"$DATA_DIR\" --class=brave-${name} --proxy-server=socks5://127.0.0.1:9050 $*"''
-=======
         if group != null then
           ''
             # Switch to the "${group}" GID (modules/compartments.nix drops its
@@ -221,15 +196,8 @@ let
             # keeps any URL args intact across the `sg -c` shell re-parse.
             if [ "$#" -gt 0 ]; then argsq=$(printf '%q ' "$@"); else argsq=""; fi
             exec sg ${group} -c "exec ${launcher} $argsq"''
->>>>>>> 82ddfbbd0695ff07ea017b15bc57e35402d64074
         else
-<<<<<<< HEAD
-          ''exec brave --user-data-dir="$DATA_DIR" --class="brave-${name}" --webrtc-ip-handling-policy=${webrtcPolicy} "$@"''
-||||||| c2a8d20
-          ''exec brave --user-data-dir="$DATA_DIR" --class="brave-${name}" "$@"''
-=======
           ''exec ${launcher} "$@"''
->>>>>>> 82ddfbbd0695ff07ea017b15bc57e35402d64074
       }
     '';
 
