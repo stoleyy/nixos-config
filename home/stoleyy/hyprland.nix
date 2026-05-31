@@ -7,6 +7,17 @@
 
 let
   inherit (theme) colors stripHash;
+
+  # Toggle the active tiling layout between dwindle and master. Hyprland has
+  # no native "cycle layout" dispatcher, so flip general:layout at runtime.
+  toggleLayout = pkgs.writeShellScript "hypr-toggle-layout" ''
+    current=$(hyprctl getoption general:layout -j | ${pkgs.jq}/bin/jq -r '.str')
+    if [ "$current" = "dwindle" ]; then
+      hyprctl keyword general:layout master
+    else
+      hyprctl keyword general:layout dwindle
+    fi
+  '';
 in
 
 {
@@ -85,7 +96,7 @@ in
     margin = 50
 
     [scratchpads.btop]
-    animation = "fromTop"
+    animation = "fromBottom"
     command = "ghostty --class=scratchbtop -e btop"
     class = "scratchbtop"
     size = "70% 70%"
@@ -99,6 +110,17 @@ in
         lock_cmd = pidof hyprlock || hyprlock
         before_sleep_cmd = loginctl lock-session
         after_sleep_cmd = hyprctl dispatch dpms on
+    }
+
+    # OLED burn-in: hide the always-on waybar after 45 s of inactivity, then
+    # reveal it on the next input. SIGUSR1 toggles waybar visibility, and
+    # hypridle only fires on-resume for a listener whose on-timeout fired, so
+    # the hide/show pair stays balanced. Complements the $mod+SHIFT+B manual
+    # toggle and runs well before the 5-min display blank below.
+    listener {
+        timeout = 45
+        on-timeout = pkill -SIGUSR1 waybar
+        on-resume = pkill -SIGUSR1 waybar
     }
 
     # OLED burn-in prevention: blank the display after 5 minutes idle.
@@ -279,6 +301,13 @@ in
         preserve_split = true;
       };
 
+      # master layout settings — used when toggled via $mod+A (see toggleLayout).
+      master = {
+        new_status = "slave"; # new windows join the stack, don't steal master
+        mfact = 0.55;
+        orientation = "left";
+      };
+
       misc = {
         force_default_wallpaper = 0;
         disable_hyprland_logo = true;
@@ -397,6 +426,9 @@ in
         "$mod CTRL, P, exec, hyprprop | wl-copy" # window props -> clipboard
         "$mod, period,  exec, rofimoji"
         "$mod SHIFT, E, exec, wlogout"
+        # Toggle waybar visibility (SIGUSR1) — hide the always-on bar during
+        # long static sessions to cut OLED burn-in on fixed UI elements.
+        "$mod SHIFT, B, exec, pkill -SIGUSR1 waybar"
 
         # Sidecars (Alt cluster)
         "$mod ALT, B, exec, rofi-bluetooth"
@@ -411,6 +443,17 @@ in
         "$mod, F,      fullscreen"
         "$mod, P,      pseudo"
         "$mod SHIFT, Space, togglefloating"
+
+        # Toggle tiling layout (dwindle <-> master)
+        "$mod, A, exec, ${toggleLayout}"
+
+        # Tabbed window groups (no extra plugin — built-in dwindle groups)
+        "$mod, G,            togglegroup"
+        "$mod, bracketright, changegroupactive, f"
+        "$mod, bracketleft,  changegroupactive, b"
+
+        # Keyboard resize mode (see resize submap in extraConfig)
+        "$mod, R, submap, resize"
 
         # Vim-style focus (hjkl)
         "$mod, H, movefocus, l"
@@ -470,8 +513,9 @@ in
         "$mod SHIFT, S, movetoworkspace, special:magic"
 
         ",      Print, exec, grimblast --notify copy area"
-        "$mod,  Print, exec, grimblast --notify copysave screen $HOME/Pictures/screenshot-$(date +%Y%m%d-%H%M%S).png"
-        "SHIFT, Print, exec, grimblast --notify copysave output $HOME/Pictures/screenshot-$(date +%Y%m%d-%H%M%S).png"
+        # Saved captures land in date-foldered dirs (~/Pictures/Screenshots/YYYY/MM/).
+        "$mod,  Print, exec, d=$HOME/Pictures/Screenshots/$(date +%Y/%m); mkdir -p $d && grimblast --notify copysave screen $d/screenshot-$(date +%Y%m%d-%H%M%S).png"
+        "SHIFT, Print, exec, d=$HOME/Pictures/Screenshots/$(date +%Y/%m); mkdir -p $d && grimblast --notify copysave output $d/screenshot-$(date +%Y%m%d-%H%M%S).png"
         # Annotated area capture: grimblast → satty editor → wl-copy on save.
         "$mod SHIFT, Print, exec, grimblast save area - | satty -f - --early-exit --copy-command wl-copy"
 
@@ -536,6 +580,23 @@ in
         "bordercolor rgb(F57C00), class:^(brave-disposable)$"
       ];
     };
+
+    # Resize submap — entered via $mod+R. Submaps are order-sensitive
+    # directives, so they live in raw config rather than the settings attrset.
+    extraConfig = ''
+      submap = resize
+      binde = , right, resizeactive, 40 0
+      binde = , left,  resizeactive, -40 0
+      binde = , up,    resizeactive, 0 -40
+      binde = , down,  resizeactive, 0 40
+      binde = , L, resizeactive, 40 0
+      binde = , H, resizeactive, -40 0
+      binde = , K, resizeactive, 0 -40
+      binde = , J, resizeactive, 0 40
+      bind = , escape, submap, reset
+      bind = , return, submap, reset
+      submap = reset
+    '';
   };
 
   # hyprland-session.target — systemd 258+ compatible session activation.

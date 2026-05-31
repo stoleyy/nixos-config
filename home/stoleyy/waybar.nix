@@ -1,4 +1,10 @@
-{ pkgs, theme, ... }:
+{
+  pkgs,
+  lib,
+  osConfig,
+  theme,
+  ...
+}:
 
 let
   inherit (theme) colors;
@@ -36,6 +42,15 @@ let
       --arg c "alert" \
       '{text:$t,tooltip:$tt,class:$c}'
   '';
+
+  # The JSON-exec custom modules all share the same shape — one helper instead
+  # of three near-identical attrsets.
+  mkJson = exec: interval: {
+    exec = toString exec;
+    return-type = "json";
+    inherit interval;
+    format = "{}";
+  };
 in
 {
   programs.waybar = {
@@ -58,13 +73,18 @@ in
         modules-center = [
           "clock"
         ];
+        # VPN/IDS indicators only appear when the matching system module is
+        # actually active, so the bar stays honest on a host that doesn't run
+        # ProtonVPN or Suricata (e.g. the gaming specialisation).
         modules-right = [
           "mpris"
           "custom/separator"
           "tray"
           "custom/separator"
-          "custom/vpn"
-          "custom/ids"
+        ]
+        ++ lib.optional osConfig.modules.protonvpn.enable "custom/vpn"
+        ++ lib.optional osConfig.services.suricata.enable "custom/ids"
+        ++ [
           "network"
           "bluetooth"
           "pulseaudio"
@@ -209,26 +229,9 @@ in
 
         # ── New modules ──
 
-        "custom/vpn" = {
-          exec = toString vpnScript;
-          return-type = "json";
-          interval = 10;
-          format = "{}";
-        };
-
-        "custom/ids" = {
-          exec = toString idsScript;
-          return-type = "json";
-          interval = 15;
-          format = "{}";
-        };
-
-        "custom/gpu" = {
-          exec = toString gpuScript;
-          return-type = "json";
-          interval = 5;
-          format = "{}";
-        };
+        "custom/vpn" = mkJson vpnScript 10;
+        "custom/ids" = mkJson idsScript 15;
+        "custom/gpu" = mkJson gpuScript 5;
 
         # Hardware drawer — CPU visible, mem/temp/gpu expand on hover.
         "group/hardware" = {
@@ -270,8 +273,17 @@ in
       };
     };
 
-    # Deltarune Sanctuary — floating island bar with glow accents.
+    # Deltarune Sanctuary — floating island bar.
+    #
+    # OLED burn-in: this bar is always-on and fixed-position, so persistent
+    # high-luminance regions are the main burn-in vector on the G80SD.
+    # Mitigations baked in here:
+    #   - NO persistent box-shadow glows — every glow lives on :hover only.
+    #   - The active-workspace pill uses a dimmed fill (full glow on hover).
+    # Idle blanking (hypridle DPMS at 5 min) covers the away-from-keyboard
+    # case; $mod+SHIFT+B hides the bar entirely for long static sessions.
     style = ''
+      /* ── Palette tokens (single source — no inline alpha() below) ── */
       @define-color bg        transparent;
       @define-color mod-bg    alpha(${colors.bg1}, 0.75);
       @define-color mod-bg2   alpha(${colors.bg2}, 0.55);
@@ -281,8 +293,16 @@ in
       @define-color accent    ${colors.yellow};
       @define-color accent2   ${colors.green};
       @define-color accent3   ${colors.blue};
-      @define-color glow      alpha(${colors.yellow}, 0.25);
-      @define-color glow-h    alpha(${colors.yellow}, 0.45);
+      @define-color alert     ${colors.red};
+      @define-color muted     ${colors.muted};
+      /* Translucent edges + glows derived from the tokens above. */
+      @define-color edge        alpha(@accent2, 0.20);
+      @define-color edge-soft   alpha(@accent2, 0.15);
+      @define-color edge-accent alpha(@accent, 0.25);
+      @define-color edge-active alpha(@accent, 0.40);
+      @define-color glow        alpha(@accent, 0.25);
+      @define-color glow-h      alpha(@accent, 0.45);
+      @define-color alert-glow  alpha(@alert, 0.40);
 
       * {
         font-family: "${theme.font.name}";
@@ -302,242 +322,145 @@ in
         border-radius: 12px;
         color:         @fg;
       }
+      tooltip label { color: @fg; padding: 5px; }
 
-      tooltip label {
-        color:   @fg;
-        padding: 5px;
+      .modules-left  { margin-left:  2px; }
+      .modules-right { margin-right: 2px; }
+
+      /* ── Shared island base (background + spacing for every module) ── */
+      #workspaces, #window, #clock, #mpris, #tray, #network, #bluetooth,
+      #pulseaudio, #cpu, #memory, #idle_inhibitor, #custom-notification,
+      #custom-separator, #custom-vpn, #custom-ids, #disk {
+        background:    @mod-bg;
+        margin:        4px 0;
+        padding:       0 10px;
+        border-radius: 12px;
+        color:         @fg;
       }
 
-      /* ── Floating island groups ── */
-      .modules-left {
-        margin-left: 2px;
+      /* ── Cluster radius caps, grouped by position ── */
+      #network, #cpu, #idle_inhibitor, #disk, #custom-vpn {
+        border-radius: 12px 0 0 12px;
       }
-
-      .modules-right {
-        margin-right: 2px;
+      #pulseaudio, #memory, #custom-notification, #custom-ids {
+        border-radius: 0 12px 12px 0;
       }
 
       /* ── Workspaces ── */
       #workspaces {
-        background:    @mod-bg;
-        border-radius: 12px;
-        padding:       0 6px;
-        margin:        4px 4px;
-        border:        1px solid alpha(${colors.green}, 0.2);
+        padding: 0 6px;
+        margin:  4px 4px;
+        border:  1px solid @edge;
       }
-
       #workspaces button {
-        padding:          0 6px;
-        background:       transparent;
-        color:            @fg-dim;
-        border-radius:    8px;
-        margin:           3px 2px;
-        transition:       all 0.3s cubic-bezier(0.55, -0.68, 0.48, 1.682);
+        padding:       0 6px;
+        background:    transparent;
+        color:         @fg-dim;
+        border-radius: 8px;
+        margin:        3px 2px;
+        transition:    all 0.3s cubic-bezier(0.55, -0.68, 0.48, 1.682);
       }
-
-      #workspaces button:hover {
-        background: @glow;
-        color:      @fg;
-      }
-
+      #workspaces button:hover { background: @glow; color: @fg; }
+      /* Active pill: dimmed persistent fill + border, no always-on glow. */
       #workspaces button.active {
         padding:     0 14px;
-        background:  @glow-h;
+        background:  @glow;
         color:       @fg;
         font-weight: bold;
-        border:      1px solid alpha(${colors.yellow}, 0.4);
-        box-shadow:  0 0 8px @glow;
+        border:      1px solid @edge-active;
       }
-
-      #workspaces button.urgent {
-        background: alpha(${colors.red}, 0.5);
-        color:      @fg;
+      #workspaces button.active:hover {
+        background: @glow-h;
+        box-shadow: 0 0 14px @glow-h;
       }
+      #workspaces button.urgent { background: alpha(@alert, 0.5); color: @fg; }
 
       /* ── Window title ── */
       #window {
-        background:    @mod-bg;
-        border-radius: 12px;
-        padding:       0 14px;
-        margin:        4px 4px;
-        color:         @fg-dim;
-        font-style:    italic;
-        border:        1px solid alpha(${colors.green}, 0.15);
+        padding:    0 14px;
+        margin:     4px 4px;
+        color:      @fg-dim;
+        font-style: italic;
+        border:     1px solid @edge-soft;
       }
 
-      /* ── Clock (center island) ── */
+      /* ── Clock (center island) — no persistent glow ── */
       #clock {
-        background:    @mod-bg;
-        border-radius: 12px;
-        padding:       0 18px;
-        margin:        4px 0;
-        color:         @accent;
-        font-weight:   bold;
-        font-size:     14px;
-        border:        1px solid alpha(${colors.yellow}, 0.25);
-        box-shadow:    0 0 12px alpha(${colors.yellow}, 0.15);
+        padding:     0 18px;
+        color:       @accent;
+        font-weight: bold;
+        font-size:   14px;
+        border:      1px solid @edge-accent;
       }
-
-      /* ── Right modules (shared base) ── */
-      #mpris,
-      #tray,
-      #network,
-      #bluetooth,
-      #pulseaudio,
-      #cpu,
-      #memory,
-      #idle_inhibitor,
-      #custom-notification {
-        background: @mod-bg;
-        padding:    0 10px;
-        margin:     4px 0;
-        color:      @fg;
-      }
+      #clock:hover { box-shadow: 0 0 16px @glow-h; }
 
       /* ── Separator (thin dim pipe) ── */
       #custom-separator {
-        background: @mod-bg;
-        color:      alpha(${colors.muted}, 0.4);
-        padding:    0 2px;
-        margin:     4px 0;
-        font-size:  10px;
+        color:     alpha(@muted, 0.4);
+        padding:   0 2px;
+        font-size: 10px;
       }
 
       /* ── mpris island ── */
       #mpris {
-        border-radius: 12px;
-        margin-left:   4px;
-        padding:       0 14px;
-        color:         @accent;
-        border:        1px solid alpha(${colors.yellow}, 0.15);
+        margin-left: 4px;
+        padding:     0 14px;
+        color:       @accent;
+        border:      1px solid @edge-accent;
       }
 
       /* ── Tray ── */
-      #tray {
-        padding: 0 6px;
-      }
-
-      #tray > .passive {
-        -gtk-icon-effect: dim;
-      }
+      #tray { padding: 0 6px; }
+      #tray > .passive { -gtk-icon-effect: dim; }
 
       /* ── Status cluster (network → pulseaudio) ── */
-      #network {
-        border-radius: 12px 0 0 12px;
-        padding-left:  14px;
-        color:         @accent;
-      }
-
-      #bluetooth {
-        color: @accent2;
-      }
-
-      #pulseaudio {
-        border-radius: 0 12px 12px 0;
-        padding-right: 14px;
-        color:         @fg-bright;
-      }
+      #network    { padding-left:  14px; color: @accent; }
+      #bluetooth  { color: @accent2; }
+      #pulseaudio { padding-right: 14px; color: @fg-bright; }
 
       /* ── System cluster (cpu + memory) ── */
-      #cpu {
-        border-radius: 12px 0 0 12px;
-        padding-left:  14px;
-        color:         @fg-dim;
-      }
-
-      #memory {
-        border-radius: 0 12px 12px 0;
-        padding-right: 14px;
-        color:         @fg-bright;
-      }
+      #cpu    { padding-left:  14px; color: @fg-dim; }
+      #memory { padding-right: 14px; color: @fg-bright; }
 
       /* ── Controls cluster (inhibitor + notification) ── */
-      #idle_inhibitor {
-        border-radius: 12px 0 0 12px;
-        padding-left:  12px;
-        color:         @fg-dim;
-      }
+      #idle_inhibitor      { padding-left:  12px; color: @fg-dim; }
+      #custom-notification { padding-right: 12px; margin-right: 4px; color: @fg-dim; }
 
-      #custom-notification {
-        border-radius: 0 12px 12px 0;
-        padding-right: 12px;
-        margin-right:  4px;
-        color:         @fg-dim;
-      }
-
-      /* ── Hover glow ── */
-      #mpris:hover,
-      #network:hover,
-      #bluetooth:hover,
-      #pulseaudio:hover,
-      #cpu:hover,
-      #memory:hover,
-      #idle_inhibitor:hover,
+      /* ── Hover glow (transient only) ── */
+      #mpris:hover, #network:hover, #bluetooth:hover, #pulseaudio:hover,
+      #cpu:hover, #memory:hover, #idle_inhibitor:hover,
       #custom-notification:hover {
         background: @glow;
         color:      @fg;
       }
 
-      #clock:hover {
-        box-shadow: 0 0 16px alpha(${colors.yellow}, 0.35);
-      }
-
-      #workspaces button.active:hover {
-        box-shadow: 0 0 14px @glow-h;
-      }
-
       /* ── Security cluster (VPN | IDS) ── */
-      #custom-vpn {
-        background:    @mod-bg;
-        padding:       0 6px 0 10px;
-        margin:        4px 0;
-        border-radius: 12px 0 0 12px;
-      }
+      #custom-vpn { padding: 0 6px 0 10px; }
       #custom-vpn.connected    { color: @accent2; }
-      #custom-vpn.disconnected { color: ${colors.red}; }
+      #custom-vpn.disconnected { color: @alert; }
 
-      #custom-ids {
-        background:    @mod-bg;
-        padding:       0 10px 0 6px;
-        margin:        4px 0;
-        border-radius: 0 12px 12px 0;
-        margin-right:  4px;
-      }
+      #custom-ids { padding: 0 10px 0 6px; margin-right: 4px; }
       #custom-ids.clear { color: alpha(@accent2, 0.5); }
       #custom-ids.alert {
-        color:      ${colors.red};
+        color:       @alert;
         font-weight: bold;
-        box-shadow: 0 0 8px alpha(${colors.red}, 0.4);
+        box-shadow:  0 0 8px @alert-glow;
       }
 
-      /* ── GPU (inside drawer) ── */
-      #custom-gpu {
-        color: @fg-dim;
-      }
-
-      /* ── Temperature ── */
-      #temperature {
-        color: @fg-dim;
-      }
-      #temperature.critical {
-        color: ${colors.red};
-      }
+      /* ── GPU + temperature (inside hardware drawer) ── */
+      #custom-gpu  { color: @fg-dim; }
+      #temperature { color: @fg-dim; }
+      #temperature.critical { color: @alert; }
 
       /* ── Disk ── */
-      #disk {
-        background:    @mod-bg;
-        padding:       0 10px;
-        margin:        4px 0;
-        border-radius: 12px 0 0 12px;
-        color:         @fg-dim;
-      }
+      #disk { color: @fg-dim; }
 
       /* ── Failed units (only visible when degraded) ── */
       #systemd-failed-units.degraded {
-        background: @mod-bg;
-        padding:    0 10px;
-        margin:     4px 0;
-        color:      ${colors.red};
+        background:  @mod-bg;
+        padding:     0 10px;
+        margin:      4px 0;
+        color:       @alert;
         font-weight: bold;
       }
     '';

@@ -101,14 +101,18 @@ in
     );
 
     # Pre-seed rofi drun cache so Ghostty appears first in Super+Space.
+    # Short-circuits once the entry is already pinned at 100, so the common
+    # case touches nothing on every rebuild.
     activation.pinGhosttyInRofi = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       cache="$HOME/.cache/rofi3.druncache"
       entry="com.mitchellh.ghostty.desktop"
-      mkdir -p "$(dirname "$cache")"
-      if ! grep -q "$entry" "$cache" 2>/dev/null; then
-        echo "100 $entry" >> "$cache"
-      else
+      if [ -f "$cache" ] && grep -qx "100 $entry" "$cache"; then
+        : # already pinned — nothing to do
+      elif grep -q " $entry$" "$cache" 2>/dev/null; then
         ${pkgs.gnused}/bin/sed -i "s/^[0-9]* $entry$/100 $entry/" "$cache"
+      else
+        mkdir -p "$(dirname "$cache")"
+        echo "100 $entry" >> "$cache"
       fi
     '';
 

@@ -9,9 +9,25 @@ in
       enable = true;
       shellAliases = {
         ll = "eza -la --git";
+        la = "eza -a --git --icons";
+        lt = "eza --tree --level=2 --git --icons";
         nb = "nh os switch";
         cat = "bat";
         grep = "rg";
+      };
+      # Abbreviations expand at parse time (unlike aliases/functions), so the
+      # full command is visible in history and editable before running.
+      shellAbbrs = {
+        gst = "git status -sb";
+        ga = "git add";
+        gaa = "git add -A";
+        gc = "git commit";
+        gco = "git checkout";
+        gp = "git push";
+        gl = "git pull";
+        gd = "git diff";
+        glg = "git lg";
+        gb = "git branch";
       };
       # F-24 (v2): aliases can't reliably hold (hostname) substitution in fish.
       # Define `rebuild` as a function so command substitution evaluates at runtime.
@@ -193,6 +209,16 @@ in
     fzf = {
       enable = true;
       enableFishIntegration = true;
+      # Sanctuary palette so the picker matches everything else.
+      defaultOptions = [
+        "--height=40%"
+        "--layout=reverse"
+        "--border=rounded"
+        "--color=bg+:${colors.bg2},bg:${colors.bg0},fg:${colors.fg0},fg+:${colors.fg0}"
+        "--color=hl:${colors.yellow},hl+:${colors.yellow},header:${colors.green}"
+        "--color=info:${colors.aqua},prompt:${colors.yellow},pointer:${colors.yellow}"
+        "--color=marker:${colors.red},spinner:${colors.purple},border:${colors.green}"
+      ];
     };
     eza = {
       enable = true;
@@ -204,8 +230,15 @@ in
       enable = true;
       enableFishIntegration = true;
       settings = {
+        # Deliberately local-only: no account, no remote sync of shell history.
         auto_sync = false;
         update_check = false;
+        # Enter runs the selected command instead of just pasting it; keep the
+        # search inline rather than full-screen; Up walks the current session.
+        enter_accept = true;
+        inline_height = 25;
+        style = "compact";
+        filter_mode_shell_up_key_binding = "session";
       };
     };
 
@@ -230,5 +263,14 @@ in
     };
 
     bash.enable = true;
+
+    # Per-directory environments. nix-direnv caches `use flake` so the dev
+    # shell isn't re-realized on every `cd` (the VSCode direnv extension and
+    # the `.direnv` git-ignore in git.nix were already assuming this).
+    direnv = {
+      enable = true;
+      nix-direnv.enable = true;
+      silent = true;
+    };
   };
 }
