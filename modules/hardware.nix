@@ -1,8 +1,18 @@
-# Physical hardware: CPU microcode, Bluetooth, Logitech, zram swap.
-_:
+# Physical hardware: CPU microcode, Bluetooth, Logitech, zram swap, DDC/CI.
+{ pkgs, ... }:
 
 {
   hardware = {
+    # DDC/CI control of the G80SD over the DisplayPort I2C bus. Loads the
+    # i2c-dev module and creates the `i2c` group + udev rules so `ddcutil`
+    # runs rootless (stoleyy is in `i2c` — modules/base.nix). Use it to set
+    # brightness/contrast/colour-temp and, where the panel exposes the VCP,
+    # the sRGB colour-space preset that pairs with `cm,srgb` in hyprland.nix:
+    #   ddcutil detect            # confirm the bus/display is reachable
+    #   ddcutil capabilities      # list the VCP feature codes this panel exposes
+    #   ddcutil getvcp 10         # read brightness; setvcp 10 <n> to change
+    i2c.enable = true;
+
     # === CPU (i7-13700K) ===
     # Raptor Lake degradation patches + perf microcode.
     cpu.intel.updateMicrocode = true;
@@ -40,6 +50,9 @@ _:
     # without these via the kernel hid-sony driver.
     steam-hardware.enable = true;
   };
+
+  # ddcutil: CLI for the DDC/CI bus enabled above.
+  environment.systemPackages = [ pkgs.ddcutil ];
 
   # RTX 4070 drives the only display (DP-2); transcode uses NVENC. The iGPU
   # has no role and only confuses Proton's Vulkan device selection (games can
