@@ -21,6 +21,10 @@
       # LAN-blocked + Tor (random links); `vault` = LAN-blocked, no Tor (banking).
       "untrusted"
       "vault"
+      # DDC/CI access to the monitor over the DisplayPort I2C bus (ddcutil).
+      # hardware.i2c.enable (modules/hardware.nix) creates this group + udev
+      # rules; membership lets `ddcutil` run without root.
+      "i2c"
     ];
     packages = with pkgs; [ kdePackages.kate ];
   };
