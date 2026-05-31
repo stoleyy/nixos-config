@@ -381,7 +381,7 @@ in
 
       "$mod" = "SUPER";
       "$terminal" = "ghostty";
-      "$browser" = "brave";
+      "$browser" = "zen";
       "$launcher" = "rofi -show drun";
       "$filemanager" = "thunar";
 

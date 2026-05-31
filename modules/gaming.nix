@@ -134,7 +134,11 @@ in
     gameInstall
     mangohud
     # lutris: run on-demand via `nix run nixpkgs#lutris` (4.6 GiB savings)
-    prismlauncher
+    (prismlauncher.overrideAttrs (old: {
+      postInstall = (old.postInstall or "") + ''
+        ln -s $out/bin/prismlauncher $out/bin/minecraft
+      '';
+    }))
     adwsteamgtk
     (callPackage ../packages/greenlight.nix { })
   ];
