@@ -214,18 +214,26 @@ in
         # DP 1.4 with DSC carries 4K@240@10bit natively. If the link can't
         # sustain 10-bit, drop `,bitdepth,10`.
         #
-        # Colour management is `cm,auto`: the DESKTOP runs in SDR. Forcing the
-        # whole output into HDR (`cm,hdr`) made every SDR surface (terminals,
-        # browser, Waybar) look washed-out — `cm,hdr` maps SDR content through
-        # generic BT.2020 PQ metadata that doesn't match this panel, lifting
-        # blacks and desaturating colour. Keeping the desktop SDR avoids that
-        # entirely. HDR is still available where it matters: `render:cm_fs_passthrough`
+        # Colour management is `cm,srgb`: the DESKTOP runs in SDR, rendered to
+        # sRGB primaries. Two failure modes are deliberately avoided here:
+        #   - `cm,hdr` put the whole output into HDR; every SDR surface
+        #     (terminals, browser, Waybar) got mapped through generic BT.2020 PQ
+        #     metadata that doesn't match this panel — lifted blacks, washed out.
+        #   - `cm,auto` is NOT a safe default on this monitor: with `bitdepth,10`
+        #     it resolves to `wide` (BT.2020 gamut), and the Hyprland docs warn
+        #     `wide` looks washed-out on panels that can't cover BT.2020 — the
+        #     G80SD is wide-gamut QD-OLED but does not fully cover BT.2020.
+        # `cm,srgb` renders content in sRGB. For ACCURATE (non-oversaturated)
+        # colour, pair it with the monitor's sRGB colour-space preset in the
+        # G80SD OSD (Picture → Color Space → sRGB/Custom). Left in the panel's
+        # native wide-gamut mode, sRGB content looks punchy-but-oversaturated.
+        # HDR is still available where it matters: `render:cm_fs_passthrough`
         # (below) hands an HDR signal straight to a fullscreen HDR game/video
         # client, so the output flips to HDR only for that surface and reverts
         # to SDR on exit. To go back to a permanent HDR desktop, use
         # `cm,hdredid` (reads the panel's real HDR metadata from EDID — far
         # less washed-out than `cm,hdr`) plus `sdrbrightness,1.3,sdrsaturation,1.15`.
-        "DP-2,3840x2160@240,auto,1,bitdepth,10,cm,auto"
+        "DP-2,3840x2160@240,auto,1,bitdepth,10,cm,srgb"
         # Wildcard fallback for any other connected output.
         ",preferred,auto,1"
       ];
