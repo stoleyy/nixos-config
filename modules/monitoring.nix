@@ -1,5 +1,7 @@
 # Self-monitoring: ntfy notifications on failure, beszel metrics hub, gatus service probes, vector log pipeline.
-# All services currently disabled — flip enables back when a remote sink or dashboard is set up.
+# Live: ntfy-sh, vector (journal + Suricata→ntfy), beszel (hub+agent), and the
+# host-IDS alerts (kernel-module loads + user-space persistence drift). Gatus
+# stays off until there's a remote sink/dashboard worth probing.
 {
   pkgs,
   lib,
@@ -56,6 +58,97 @@ in
   systemd.services."suricata".unitConfig.OnFailure = "ntfy-failure@%n.service";
   systemd.services."crowdsec".unitConfig.OnFailure = "ntfy-failure@%n.service";
 
+  # ── Host-IDS alerts (no-Wazuh interim) ───────────────────────────────────
+  # The Wazuh manager is disabled (lib/default.nix), so auditd's host telemetry
+  # (modules/auditd.nix) is collected but never analyzed or alerted. These two
+  # units turn the two highest-signal, low-noise slices into ntfy alerts without
+  # Wazuh:
+  #   1. kernel module loads — classic LKM-rootkit / driver-implant signal
+  #   2. user-space persistence drift — on immutable NixOS the read-only store
+  #      rules out system-binary tampering, so a botnet must persist in $HOME
+
+  # 1) Tail the audit log for POST-BOOT kernel module load/unload events
+  #    (auditd tags init_module/finit_module/delete_module with key="modules").
+  systemd.services.audit-module-alert = {
+    description = "Alert on kernel module load/unload (auditd key=modules) → ntfy";
+    after = [
+      "auditd.service"
+      "ntfy-sh.service"
+    ];
+    wants = [ "auditd.service" ];
+    wantedBy = [ "multi-user.target" ];
+    unitConfig.OnFailure = "ntfy-failure@%n.service";
+    serviceConfig = {
+      Restart = "always";
+      RestartSec = "10s";
+      # -n0 → only events after this unit starts, so the hundreds of boot-time
+      # module loads don't alert; post-boot loads are rare and worth a look.
+      ExecStart = pkgs.writeShellScript "audit-module-alert" ''
+        set -uo pipefail
+        ${pkgs.coreutils}/bin/tail -F -n0 /var/log/audit/audit.log 2>/dev/null | while IFS= read -r line; do
+          case "$line" in
+            *'key="modules"'*)
+              who=$(printf '%s' "$line" | ${pkgs.gnugrep}/bin/grep -oE 'comm="[^"]*"' | ${pkgs.coreutils}/bin/head -n1)
+              ${pkgs.curl}/bin/curl -fsS \
+                -H 'Title: Kernel module event' -H 'Priority: high' -H 'Tags: warning' \
+                -d "auditd modules ($who): $line" "${ntfyUrl}/alerts" >/dev/null || true
+              ;;
+          esac
+        done
+      '';
+    };
+  };
+
+  # 2) Snapshot the user-space persistence surface periodically; ntfy on drift.
+  systemd.services.persist-watch = {
+    description = "User-space persistence integrity check → ntfy";
+    after = [ "ntfy-sh.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      StateDirectory = "persist-watch";
+      ExecStart = pkgs.writeShellScript "persist-watch" ''
+        set -uo pipefail
+        home=/home/stoleyy
+        base=/var/lib/persist-watch/baseline
+        cur=$(${pkgs.coreutils}/bin/mktemp)
+
+        # Persistence surface a botnet must use on immutable NixOS: XDG autostart,
+        # user systemd units, ~/.local/bin (PATH hijack), and shell rc files
+        # (sha256sum follows the HM symlinks, so a swapped target is detected).
+        for d in "$home/.config/autostart" "$home/.config/systemd/user" "$home/.local/bin"; do
+          [ -d "$d" ] && ${pkgs.findutils}/bin/find "$d" -type f -exec ${pkgs.coreutils}/bin/sha256sum {} +
+        done >> "$cur" 2>/dev/null || true
+        for f in "$home/.bashrc" "$home/.zshrc" "$home/.zshenv" "$home/.zprofile" "$home/.profile"; do
+          [ -e "$f" ] && ${pkgs.coreutils}/bin/sha256sum "$f" >> "$cur" 2>/dev/null || true
+        done
+        ${pkgs.coreutils}/bin/sort -o "$cur" "$cur"
+
+        if [ ! -f "$base" ]; then
+          ${pkgs.coreutils}/bin/cp "$cur" "$base" # establish baseline silently
+          ${pkgs.coreutils}/bin/rm -f "$cur"
+          exit 0
+        fi
+        if ! ${pkgs.diffutils}/bin/diff -q "$base" "$cur" >/dev/null 2>&1; then
+          delta=$(${pkgs.diffutils}/bin/diff "$base" "$cur" | ${pkgs.coreutils}/bin/head -n 20)
+          ${pkgs.curl}/bin/curl -fsS \
+            -H 'Title: User-space persistence changed' -H 'Priority: high' -H 'Tags: warning' \
+            -d "persist-watch drift: $delta" "${ntfyUrl}/alerts" >/dev/null || true
+          ${pkgs.coreutils}/bin/cp "$cur" "$base" # re-baseline → alert once per change
+        fi
+        ${pkgs.coreutils}/bin/rm -f "$cur"
+      '';
+    };
+  };
+  systemd.timers.persist-watch = {
+    description = "Run the user-space persistence check periodically";
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnBootSec = "5m";
+      OnUnitActiveSec = "15m";
+      Persistent = true;
+    };
+  };
+
   # ── Beszel: lightweight monitoring hub + agent ──
   # Dashboard at http://localhost:8090 (first visit creates admin account).
   #
@@ -66,15 +159,21 @@ in
   #   4. sudo systemctl restart beszel-agent
   services.beszel = {
     hub = {
-      enable = false;
+      enable = true;
       port = 8090;
     };
     agent = {
-      enable = false;
+      enable = true;
       smartmon.enable = true;
       environmentFile = "/etc/beszel-agent.env";
     };
   };
+
+  # Placeholder so beszel-agent has an EnvironmentFile before the one-time hub
+  # KEY is written (steps above). `f` creates it empty only if absent — it never
+  # clobbers the KEY you add later. Resource spikes (a miner pegging the RTX
+  # 4070, or a DDoS saturating uplink) are the clearest no-signature botnet tell.
+  systemd.tmpfiles.rules = [ "f /etc/beszel-agent.env 0600 root root - " ];
 
   # ── Gatus: declarative service health probes ──
   # Status page at http://localhost:8080.
