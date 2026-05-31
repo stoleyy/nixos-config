@@ -50,6 +50,7 @@
         ../modules/compartments.nix # Qubes-style GID isolation + firejail offline vault
         ../modules/hardening.nix # CIS/KSPP sysctl, AppArmor
         ../modules/auditd.nix # syscall/FIM audit → Wazuh
+        ../modules/aide.nix # offline file-integrity baseline (watches /boot, /etc, /root)
         ../modules/wazuh-agent.nix # HIDS agent
         ../modules/tor-isolation.nix # Tor SOCKS proxy for the untrusted browser domain
         ../modules/suricata.nix # network IDS on the VPN (protonvpn) egress path

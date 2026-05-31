@@ -63,6 +63,14 @@ let
   # ── Wrapper script generator ──
   mkBraveWrapper =
     name: domain:
+    let
+      isolated = domain ? isolated && domain.isolated;
+      # WebRTC can gather ICE candidates that bypass the SOCKS/VPN egress path
+      # and reveal the local LAN or tunnel-internal IP. Isolated (Tor'd) domains
+      # force every WebRTC route through the proxy only; the VPN domains keep
+      # WebRTC working (video calls) but hide the local LAN address.
+      webrtcPolicy = if isolated then "disable_non_proxied_udp" else "default_public_interface_only";
+    in
     pkgs.writeShellScriptBin "brave-${name}" ''
       DATA_DIR="''${HOME}/.config/BraveSoftware/${domain.dataDir}"
       ${lib.optionalString (domain ? ephemeral && domain.ephemeral) ''
@@ -88,14 +96,14 @@ let
       fi
 
       ${
-        if domain ? isolated && domain.isolated then
+        if isolated then
           # Isolated domains: switch to the "untrusted" GID (LAN dropped by
           # modules/compartments.nix) AND route through the local Tor SOCKS
           # proxy (modules/tor-isolation.nix) → Tor-over-VPN egress. Chromium
           # does remote DNS over the socks5 proxy, so no DNS leak.
-          ''exec sg untrusted -c "brave --user-data-dir=\"$DATA_DIR\" --class=brave-${name} --proxy-server=socks5://127.0.0.1:9050 $*"''
+          ''exec sg untrusted -c "brave --user-data-dir=\"$DATA_DIR\" --class=brave-${name} --proxy-server=socks5://127.0.0.1:9050 --webrtc-ip-handling-policy=${webrtcPolicy} $*"''
         else
-          ''exec brave --user-data-dir="$DATA_DIR" --class="brave-${name}" "$@"''
+          ''exec brave --user-data-dir="$DATA_DIR" --class="brave-${name}" --webrtc-ip-handling-policy=${webrtcPolicy} "$@"''
       }
     '';
 
