@@ -44,7 +44,7 @@ let
   rotateScript = pkgs.runCommandLocal "protonvpn-rotate.sh" { } ''
     cp ${
       pkgs.replaceVars ../scripts/protonvpn-rotate.sh {
-        bash = pkgs.bash;
+        inherit (pkgs) bash;
         path = binPath;
         poolFile = toString rotateCfg.poolFile;
         hysteresis = toString rotateCfg.hysteresisMs;
@@ -62,7 +62,7 @@ let
   probeScript = pkgs.runCommandLocal "protonvpn-probe.sh" { } ''
     cp ${
       pkgs.replaceVars ../scripts/protonvpn-probe.sh {
-        bash = pkgs.bash;
+        inherit (pkgs) bash;
         path = lib.makeBinPath (
           with pkgs;
           [

@@ -74,6 +74,7 @@
           nixfmt.enable = true; # nixfmt-rfc-style
           shfmt.enable = true; # POSIX/Bash formatter
           statix.enable = true; # Nix linter/fixer
+          deadnix.enable = true; # dead-code — now enforced by `nix fmt` + `nix flake check`
         };
       };
     in
@@ -122,9 +123,20 @@
             ${pkgs.nvd}/bin/nvd diff /run/current-system "$new"
           '';
           gc = mkApp "gc" ''sudo ${pkgs.nh}/bin/nh clean all --keep "''${1:-3}"'';
+          # Boot the whole config in a throwaway QEMU VM — exercises systemd
+          # units / activation ordering without touching the real box. Catches
+          # the unbootable-generation class that `flake check` + `dry-build`
+          # cannot (e.g. the VMD/root-discovery brick from PR #13). Needs a
+          # realized closure, so it is an on-box step, not part of the CI gate.
+          vm = mkApp "vm" ''
+            nixos-rebuild build-vm --flake ${flakeRef}
+            echo "QEMU boot test built — run: ./result/bin/run-predator-vm"
+          '';
           audit = mkApp "audit" ''
-            echo "=== CVE scan ===" && ${pkgs.vulnix}/bin/vulnix -S 2>/dev/null || true
-            echo "=== Secrets ===" && ${pkgs.gitleaks}/bin/gitleaks detect --no-banner --no-git -s /etc/nixos 2>/dev/null || true
+            echo "=== CVE scan (vulnix) ===" && ${pkgs.vulnix}/bin/vulnix -S 2>/dev/null || true
+            echo "=== CVE scan (multi-engine: grype/osv/vulnix) ===" && ${pkgs.sbomnix}/bin/vulnxscan --buildtime /run/current-system 2>/dev/null || true
+            echo "=== Secrets (patterns) ===" && ${pkgs.gitleaks}/bin/gitleaks detect --no-banner --no-git -s /etc/nixos 2>/dev/null || true
+            echo "=== Secrets (verified) ===" && ${pkgs.trufflehog}/bin/trufflehog filesystem /etc/nixos --no-update --results=verified 2>/dev/null || true
             echo "=== Failed units ===" && systemctl --failed
             echo "=== Closure size ===" && nix path-info -Sh /run/current-system
           '';
@@ -132,11 +144,13 @@
 
       # Local dev/lint harness. Enter with `nix develop`.
       # - Eval + LSP:     nixd, nil
-      # - Format/lint:    nixfmt-rfc-style, statix, deadnix
+      # - Format/lint:    nixfmt-rfc-style, statix, deadnix (all enforced via `nix fmt`)
       # - Closure tools:  nix-tree (deps), nix-diff (drv diff), nvd (generation diff)
       # - Search:         manix (option lookup)
-      # - Build UX:       nix-output-monitor (pretty build logs)
-      # - Security:       vulnix (CVE scan), gitleaks (secrets), shellcheck (hooks)
+      # - Build UX:       nix-output-monitor (logs), nix-fast-build (parallel eval gate)
+      # - Derivations:    nixpkgs-hammering (packages/ antipattern lint)
+      # - Security:       vulnix + sbomnix/vulnxscan (multi-engine CVE),
+      #                   gitleaks + trufflehog (secrets), shellcheck
       devShells.${system}.default = pkgs.mkShell {
         # Pre-commit hook: install once with `nix develop`, then `install-hooks`.
         # Runs treefmt on staged files before each commit.
@@ -162,8 +176,12 @@
           nix-output-monitor
           nvd
           manix
+          nix-fast-build # parallel eval/build of flake outputs — fast whole-tree eval gate
+          nixpkgs-hammering # derivation antipattern linter for packages/
           vulnix
+          sbomnix # SBOM + `vulnxscan` (grype/osv/vulnix agreement-scored CVE)
           gitleaks
+          trufflehog # verified secret scan (live-credential detectors) — complements gitleaks
           shellcheck
           flake-checker
           sops

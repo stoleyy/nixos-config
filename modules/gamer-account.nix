@@ -27,30 +27,32 @@
 { host, ... }:
 
 {
-  users.groups.gamer = { };
-  # Shared group for the games library so stoleyy (installs) and gamer (plays)
-  # both reach it — without gamer being able to read the rest of stoleyy's home.
-  users.groups.games = { };
+  users = {
+    groups.gamer = { };
+    # Shared group for the games library so stoleyy (installs) and gamer (plays)
+    # both reach it — without gamer being able to read the rest of stoleyy's home.
+    groups.games = { };
 
-  users.users.gamer = {
-    isNormalUser = true;
-    description = "Low-privilege gaming account (untrusted-code containment)";
-    home = "/home/gamer";
-    createHome = true;
-    # GPU + audio + controllers + GameMode only. Deliberately NOT in wheel,
-    # networkmanager, media, untrusted, or any of stoleyy's groups.
-    extraGroups = [
-      "video"
-      "render"
-      "audio"
-      "input"
-      "gamemode"
-      "games"
-    ];
+    users.gamer = {
+      isNormalUser = true;
+      description = "Low-privilege gaming account (untrusted-code containment)";
+      home = "/home/gamer";
+      createHome = true;
+      # GPU + audio + controllers + GameMode only. Deliberately NOT in wheel,
+      # networkmanager, media, untrusted, or any of stoleyy's groups.
+      extraGroups = [
+        "video"
+        "render"
+        "audio"
+        "input"
+        "gamemode"
+        "games"
+      ];
+    };
+
+    # stoleyy joins `games` so the install pipeline can populate the library.
+    users.${host.user}.extraGroups = [ "games" ];
   };
-
-  # stoleyy joins `games` so the install pipeline can populate the library.
-  users.users.${host.user}.extraGroups = [ "games" ];
 
   # Expose the games library at a neutral top-level path the gamer account can
   # reach. gamer cannot enter /home/stoleyy (stays 0700), but / is traversable,

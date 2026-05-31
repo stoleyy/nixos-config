@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Morrowind Rice - Workspace Directions</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; color: #ccc; font-family: 'Segoe UI', system-ui, sans-serif; padding: 24px; }
+  h1 { text-align: center; font-family: Georgia, serif; font-size: 28px; color: #aaa; margin-bottom: 8px; font-weight: 400; }
+  .subtitle { text-align: center; color: #666; margin-bottom: 32px; font-size: 14px; }
+
+  .workspace-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .workspace {
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+  }
+  .workspace:hover { transform: scale(1.02); }
+  .workspace.selected { box-shadow: 0 0 0 3px #fff; transform: scale(1.02); }
+
+  .workspace-label {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    z-index: 10;
+  }
+
+  /* Desktop sim */
+  .desktop {
+    height: 340px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .waybar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 16px;
+    font-size: 12px;
+    position: relative;
+    z-index: 2;
+    backdrop-filter: blur(12px);
+  }
+
+  .waybar-workspaces { display: flex; gap: 6px; }
+  .waybar-workspaces span {
+    width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 4px; font-size: 10px; font-weight: 600;
+  }
+
+  .waybar-center { font-family: Georgia, serif; font-style: italic; font-size: 13px; }
+  .waybar-right { display: flex; gap: 10px; font-size: 11px; }
+
+  .bg-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
+  .window {
+    position: absolute;
+    border-radius: 6px;
+    z-index: 2;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    overflow: hidden;
+  }
+  .window-title {
+    padding: 3px 10px;
+    font-size: 9px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .window-body { padding: 8px 10px; line-height: 1.6; }
+
+  .info-bar {
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .info-bar h3 { font-family: Georgia, serif; font-size: 16px; font-weight: 400; }
+  .info-bar p { font-size: 12px; max-width: 60%; }
+
+  .swatches { display: flex; gap: 4px; }
+  .swatches div { width: 18px; height: 18px; border-radius: 3px; }
+
+  .click-hint {
+    text-align: center;
+    margin-top: 24px;
+    color: #555;
+    font-size: 13px;
+  }
+
+  /* ===== A: BALMORA DUSK ===== */
+  .ws-balmora { border: 2px solid #5c4a2e; }
+  .ws-balmora .workspace-label { background: #c8a96e; color: #1a1209; }
+  .ws-balmora .bg-layer {
+    background:
+      radial-gradient(ellipse at 30% 60%, #2a1f10 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 30%, #1a150d 0%, transparent 50%),
+      linear-gradient(180deg, #1a1510 0%, #0f0c07 30%, #0d0a05 100%);
+  }
+  /* Faint moon */
+  .ws-balmora .bg-layer::before {
+    content: ''; position: absolute;
+    width: 40px; height: 40px; border-radius: 50%;
+    top: 50px; left: 25%;
+    background: radial-gradient(circle, #c8a96e15 0%, transparent 70%);
+    box-shadow: 0 0 30px 15px #c8a96e08;
+  }
+  .ws-balmora .waybar { background: #1a1209cc; border-bottom: 1px solid #3d2e1a; }
+  .ws-balmora .waybar-workspaces span { color: #5c4a2e; }
+  .ws-balmora .waybar-workspaces span.active { background: #c8a96e22; color: #c8a96e; border: 1px solid #c8a96e44; }
+  .ws-balmora .waybar-center { color: #c8a96e; }
+  .ws-balmora .waybar-right { color: #8b7355; }
+  .ws-balmora .window { background: #0d0a05ee; border: 1px solid #3d2e1a; }
+  .ws-balmora .window-title { background: #1a120988; border-bottom: 1px solid #2a1f10; color: #8b7355; }
+  .ws-balmora .window .prompt { color: #8b7355; }
+  .ws-balmora .window .path { color: #5c4a2e; }
+  .ws-balmora .window .cmd { color: #c8a96e; }
+  .ws-balmora .window .output { color: #6b5a3a; }
+  .ws-balmora .window .string { color: #a08c6a; }
+  .ws-balmora .window .keyword { color: #9b6040; }
+  .ws-balmora .window .comment { color: #4a3d28; }
+  .ws-balmora .info-bar { background: #1a1209; border-top: 1px solid #3d2e1a; }
+  .ws-balmora .info-bar h3 { color: #c8a96e; }
+  .ws-balmora .info-bar p { color: #8b7355; }
+
+  /* ===== B: RED MOUNTAIN ===== */
+  .ws-redmtn { border: 2px solid #5a2a2a; }
+  .ws-redmtn .workspace-label { background: #c45a3a; color: #0f0a0c; }
+  .ws-redmtn .bg-layer {
+    background:
+      radial-gradient(ellipse at 70% 40%, #2a1510 0%, transparent 50%),
+      radial-gradient(ellipse at 20% 70%, #1a0f0c 0%, transparent 60%),
+      linear-gradient(180deg, #1a1012 0%, #120a0c 30%, #0f0808 100%);
+  }
+  /* Lava glow */
+  .ws-redmtn .bg-layer::before {
+    content: ''; position: absolute;
+    width: 120px; height: 60px;
+    bottom: 80px; right: 15%;
+    background: radial-gradient(ellipse, #c45a3a08 0%, transparent 70%);
+    filter: blur(20px);
+  }
+  .ws-redmtn .waybar { background: #1a1215cc; border-bottom: 1px solid #3a1a1a; }
+  .ws-redmtn .waybar-workspaces span { color: #5a3a3a; }
+  .ws-redmtn .waybar-workspaces span.active { background: #c45a3a22; color: #c45a3a; border: 1px solid #c45a3a44; }
+  .ws-redmtn .waybar-center { color: #c45a3a; }
+  .ws-redmtn .waybar-right { color: #7a4a4a; }
+  .ws-redmtn .window { background: #0f0808ee; border: 1px solid #3a1a1a; }
+  .ws-redmtn .window-title { background: #1a121588; border-bottom: 1px solid #2a1010; color: #7a4a4a; }
+  .ws-redmtn .window .prompt { color: #7a4a4a; }
+  .ws-redmtn .window .path { color: #5a3a3a; }
+  .ws-redmtn .window .cmd { color: #d4a87a; }
+  .ws-redmtn .window .output { color: #6a3a2a; }
+  .ws-redmtn .window .string { color: #c45a3a; }
+  .ws-redmtn .window .keyword { color: #b0603a; }
+  .ws-redmtn .window .comment { color: #4a2a2a; }
+  .ws-redmtn .info-bar { background: #1a1215; border-top: 1px solid #3a1a1a; }
+  .ws-redmtn .info-bar h3 { color: #c45a3a; }
+  .ws-redmtn .info-bar p { color: #9a6a5a; }
+
+  /* ===== C: TELVANNI ===== */
+  .ws-telvanni { border: 2px solid #1a5a4a; }
+  .ws-telvanni .workspace-label { background: #5abfa0; color: #060f12; }
+  .ws-telvanni .bg-layer {
+    background:
+      radial-gradient(ellipse at 50% 80%, #0a2a22 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 20%, #0a1a18 0%, transparent 60%),
+      linear-gradient(180deg, #0a1518 0%, #060f12 40%, #040c0e 100%);
+  }
+  /* Bioluminescent spore */
+  .ws-telvanni .bg-layer::before {
+    content: ''; position: absolute;
+    width: 6px; height: 6px; border-radius: 50%;
+    top: 100px; left: 30%;
+    background: #5abfa0;
+    box-shadow:
+      0 0 12px 4px #5abfa020,
+      60px 30px 0 2px #5abfa010,
+      -40px 80px 0 1px #5abfa008,
+      120px -20px 0 3px #3a8a7010;
+  }
+  .ws-telvanni .waybar { background: #0a1518cc; border-bottom: 1px solid #1a3a30; }
+  .ws-telvanni .waybar-workspaces span { color: #2a5a4a; }
+  .ws-telvanni .waybar-workspaces span.active { background: #5abfa022; color: #5abfa0; border: 1px solid #5abfa044; }
+  .ws-telvanni .waybar-center { color: #5abfa0; }
+  .ws-telvanni .waybar-right { color: #3a7a6a; }
+  .ws-telvanni .window { background: #040c0eee; border: 1px solid #1a3a30; }
+  .ws-telvanni .window-title { background: #0a151888; border-bottom: 1px solid #0f2a22; color: #3a7a6a; }
+  .ws-telvanni .window .prompt { color: #3a7a6a; }
+  .ws-telvanni .window .path { color: #2a5a4a; }
+  .ws-telvanni .window .cmd { color: #c8d4c0; }
+  .ws-telvanni .window .output { color: #2a6a5a; }
+  .ws-telvanni .window .string { color: #5abfa0; }
+  .ws-telvanni .window .keyword { color: #4a9a8a; }
+  .ws-telvanni .window .comment { color: #1a4a3a; }
+  .ws-telvanni .info-bar { background: #0a1518; border-top: 1px solid #1a3a30; }
+  .ws-telvanni .info-bar h3 { color: #5abfa0; }
+  .ws-telvanni .info-bar p { color: #4a8a7a; }
+
+  /* ===== D: DWEMER ===== */
+  .ws-dwemer { border: 2px solid #5a5a2a; }
+  .ws-dwemer .workspace-label { background: #c4b44a; color: #0a0b08; }
+  .ws-dwemer .bg-layer {
+    background:
+      radial-gradient(ellipse at 40% 50%, #1a1a0f 0%, transparent 50%),
+      radial-gradient(ellipse at 90% 80%, #15140a 0%, transparent 40%),
+      linear-gradient(180deg, #12130f 0%, #0a0b08 40%, #080904 100%);
+  }
+  /* Gear accent */
+  .ws-dwemer .bg-layer::before {
+    content: ''; position: absolute;
+    width: 80px; height: 80px; border-radius: 50%;
+    bottom: 60px; left: 20%;
+    border: 2px solid #c4b44a06;
+    box-shadow: inset 0 0 20px #c4b44a04;
+  }
+  .ws-dwemer .waybar { background: #12130fcc; border-bottom: 1px solid #3a3a1a; }
+  .ws-dwemer .waybar-workspaces span { color: #5a5a2a; }
+  .ws-dwemer .waybar-workspaces span.active { background: #c4b44a22; color: #c4b44a; border: 1px solid #c4b44a44; }
+  .ws-dwemer .waybar-center { color: #c4b44a; }
+  .ws-dwemer .waybar-right { color: #7a7a4a; }
+  .ws-dwemer .window { background: #080904ee; border: 1px solid #3a3a1a; }
+  .ws-dwemer .window-title { background: #12130f88; border-bottom: 1px solid #2a2a10; color: #7a7a4a; }
+  .ws-dwemer .window .prompt { color: #7a7a4a; }
+  .ws-dwemer .window .path { color: #5a5a2a; }
+  .ws-dwemer .window .cmd { color: #d4c890; }
+  .ws-dwemer .window .output { color: #6a6a3a; }
+  .ws-dwemer .window .string { color: #c4b44a; }
+  .ws-dwemer .window .keyword { color: #a0943a; }
+  .ws-dwemer .window .comment { color: #4a4a2a; }
+  .ws-dwemer .info-bar { background: #12130f; border-top: 1px solid #3a3a1a; }
+  .ws-dwemer .info-bar h3 { color: #c4b44a; }
+  .ws-dwemer .info-bar p { color: #9a9a5a; }
+
+  /* Selection indicator */
+  #selection-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: #1a1a1a; border-top: 1px solid #333;
+    padding: 12px 24px; text-align: center; color: #888;
+    font-size: 13px; z-index: 100;
+    transform: translateY(100%);
+    transition: transform 0.3s;
+  }
+  #selection-bar.visible { transform: translateY(0); }
+  #selection-bar .choice-name { color: #fff; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<h1>Morrowind Hyprland Rice</h1>
+<p class="subtitle">Each workspace shows a different region's palette + ambient background. Click to select your direction.</p>
+
+<div class="workspace-grid">
+
+  <!-- A: Balmora Dusk -->
+  <div class="workspace ws-balmora" data-choice="balmora" onclick="select(this)">
+    <span class="workspace-label">Workspace I</span>
+    <div class="desktop">
+      <div class="bg-layer"></div>
+      <div class="waybar">
+        <div class="waybar-workspaces">
+          <span class="active">I</span><span>II</span><span>III</span><span>IV</span>
+        </div>
+        <div class="waybar-center">Balmora</div>
+        <div class="waybar-right">
+          <span>Sun's Dusk</span>
+          <span>21:47</span>
+        </div>
+      </div>
+      <!-- Editor window -->
+      <div class="window" style="top: 44px; left: 16px; right: 16px; bottom: 16px;">
+        <div class="window-title"><span>nvim</span><span>theme.nix</span></div>
+        <div class="window-body">
+          <div><span class="comment"># Balmora at dusk — warm stone and candlelight</span></div>
+          <div><span class="keyword">colors</span> <span class="output">= {</span></div>
+          <div>&nbsp;&nbsp;<span class="prompt">bg0</span> <span class="output">=</span> <span class="string">"#0d0a05"</span><span class="output">;</span></div>
+          <div>&nbsp;&nbsp;<span class="prompt">bg1</span> <span class="output">=</span> <span class="string">"#1a1209"</span><span class="output">;</span></div>
+          <div>&nbsp;&nbsp;<span class="prompt">fg0</span> <span class="output">=</span> <span class="string">"#c8a96e"</span><span class="output">;</span></div>
+          <div>&nbsp;&nbsp;<span class="prompt">red</span> <span class="output">=</span> <span class="string">"#9b6040"</span><span class="output">;</span></div>
+          <div>&nbsp;&nbsp;<span class="prompt">green</span> <span class="output">=</span> <span class="string">"#5c7a4e"</span><span class="output">;</span></div>
+          <div><span class="output">};</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="info-bar">
+      <div>
+        <h3>A: Balmora Dusk</h3>
+        <p>Warm sandstone, candlelit taverns, Hlaalu architecture. Parchment golds on deep umber.</p>
+      </div>
+      <div class="swatches">
+        <div style="background:#0d0a05; border: 1px solid #3d2e1a;"></div>
+        <div style="background:#1a1209;"></div>
+        <div style="background:#2a1f10;"></div>
+        <div style="background:#5c4a2e;"></div>
+        <div style="background:#8b7355;"></div>
+        <div style="background:#c8a96e;"></div>
+        <div style="background:#9b6040;"></div>
+        <div style="background:#5c7a4e;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- B: Red Mountain -->
+  <div class="workspace ws-redmtn" data-choice="redmtn" onclick="select(this)">
+    <span class="workspace-label">Workspace II</span>
+    <div class="desktop">
+      <div class="bg-layer"></div>
+      <div class="waybar">
+        <div class="waybar-workspaces">
+          <span>I</span><span class="active">II</span><span>III</span><span>IV</span>
+        </div>
+        <div class="waybar-center">Red Mountain</div>
+        <div class="waybar-right">
+          <span>Blight Storm</span>
+          <span>03:12</span>
+        </div>
+      </div>
+      <!-- Terminal window -->
+      <div class="window" style="top: 44px; left: 16px; right: 16px; bottom: 16px;">
+        <div class="window-title"><span>ghostty</span><span>~</span></div>
+        <div class="window-body">
+          <div><span class="prompt">stoleyy</span>@<span class="string">predator</span> <span class="path">~/nixos</span></div>
+          <div><span class="cmd">&gt;</span> <span class="keyword">sudo</span> <span class="cmd">nixos-rebuild switch</span></div>
+          <div><span class="output">building the system configuration...</span></div>
+          <div><span class="string">activating</span> <span class="output">the configuration...</span></div>
+          <div><span class="output">setting up</span> <span class="keyword">/etc...</span></div>
+          <div><span class="output">reloading</span> <span class="string">systemd...</span></div>
+          <div style="margin-top: 4px;"><span class="prompt">stoleyy</span>@<span class="string">predator</span> <span class="path">~/nixos</span></div>
+          <div><span class="cmd">&gt;</span> <span class="comment">_</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="info-bar">
+      <div>
+        <h3>B: Red Mountain</h3>
+        <p>Volcanic ash, blight-storm reds, Dagoth Ur's domain. Smoldering ember on charred basalt.</p>
+      </div>
+      <div class="swatches">
+        <div style="background:#0f0808; border: 1px solid #3a1a1a;"></div>
+        <div style="background:#1a1215;"></div>
+        <div style="background:#201518;"></div>
+        <div style="background:#5a3a3a;"></div>
+        <div style="background:#7a4a4a;"></div>
+        <div style="background:#d4a87a;"></div>
+        <div style="background:#c45a3a;"></div>
+        <div style="background:#6a7a4a;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- C: Telvanni -->
+  <div class="workspace ws-telvanni" data-choice="telvanni" onclick="select(this)">
+    <span class="workspace-label">Workspace III</span>
+    <div class="desktop">
+      <div class="bg-layer"></div>
+      <div class="waybar">
+        <div class="waybar-workspaces">
+          <span>I</span><span>II</span><span class="active">III</span><span>IV</span>
+        </div>
+        <div class="waybar-center">Sadrith Mora</div>
+        <div class="waybar-right">
+          <span>Clear</span>
+          <span>14:33</span>
+        </div>
+      </div>
+      <!-- Neofetch-style window -->
+      <div class="window" style="top: 44px; left: 16px; right: 16px; bottom: 16px;">
+        <div class="window-title"><span>ghostty</span><span>neofetch</span></div>
+        <div class="window-body">
+          <div><span class="string">    ___   </span> <span class="prompt">stoleyy</span>@<span class="string">predator</span></div>
+          <div><span class="string">   (.. |  </span> <span class="comment">--------------</span></div>
+          <div><span class="string">   (&lt;> |  </span> <span class="keyword">OS</span><span class="output">: NixOS 25.11</span></div>
+          <div><span class="string">  / __ \  </span> <span class="keyword">WM</span><span class="output">: Hyprland</span></div>
+          <div><span class="string"> ( /  \ /|</span> <span class="keyword">Theme</span><span class="output">: Telvanni</span></div>
+          <div><span class="string">_/\ __)/_)</span> <span class="keyword">GPU</span><span class="output">: RTX 4070</span></div>
+          <div><span class="string">\/--____\ </span> <span class="keyword">Res</span><span class="output">: 3840x2160</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="info-bar">
+      <div>
+        <h3>C: Telvanni</h3>
+        <p>Mushroom spires, bioluminescent glow, wizard isolationism. Living teal on deep ocean.</p>
+      </div>
+      <div class="swatches">
+        <div style="background:#040c0e; border: 1px solid #1a3a30;"></div>
+        <div style="background:#0a1518;"></div>
+        <div style="background:#0d1a1f;"></div>
+        <div style="background:#1a4a3a;"></div>
+        <div style="background:#3a7a6a;"></div>
+        <div style="background:#c8d4c0;"></div>
+        <div style="background:#5abfa0;"></div>
+        <div style="background:#4a7a9a;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- D: Dwemer -->
+  <div class="workspace ws-dwemer" data-choice="dwemer" onclick="select(this)">
+    <span class="workspace-label">Workspace IV</span>
+    <div class="desktop">
+      <div class="bg-layer"></div>
+      <div class="waybar">
+        <div class="waybar-workspaces">
+          <span>I</span><span>II</span><span>III</span><span class="active">IV</span>
+        </div>
+        <div class="waybar-center">Arkngthand</div>
+        <div class="waybar-right">
+          <span>Pressure</span>
+          <span>??:??</span>
+        </div>
+      </div>
+      <!-- Rofi-style launcher -->
+      <div class="window" style="top: 60px; left: 50%; transform: translateX(-50%); width: 70%; bottom: 30px;">
+        <div class="window-title"><span>rofi</span><span>drun</span></div>
+        <div class="window-body" style="padding: 6px 10px;">
+          <div style="padding: 4px 6px; border-radius: 3px; margin-bottom: 2px; display: flex; gap: 8px; align-items: center;">
+            <span class="cmd" style="opacity: 0.5;">search:</span>
+            <span class="string">fire_</span><span class="comment" style="animation: blink 1s infinite;">|</span>
+          </div>
+          <div style="border-top: 1px solid #3a3a1a; margin: 4px 0;"></div>
+          <div style="padding: 4px 6px; border-radius: 3px; background: #c4b44a15;">
+            <span class="string">Firefox</span> <span class="comment" style="float: right;">browser</span>
+          </div>
+          <div style="padding: 4px 6px;">
+            <span class="output">Firewall Settings</span> <span class="comment" style="float: right;">system</span>
+          </div>
+          <div style="padding: 4px 6px;">
+            <span class="output">Firmware Updater</span> <span class="comment" style="float: right;">util</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="info-bar">
+      <div>
+        <h3>D: Dwemer</h3>
+        <p>Brass gears, steam vents, lost technology. Mechanical gold on obsidian. Ancient industry.</p>
+      </div>
+      <div class="swatches">
+        <div style="background:#080904; border: 1px solid #3a3a1a;"></div>
+        <div style="background:#12130f;"></div>
+        <div style="background:#1a1c14;"></div>
+        <div style="background:#4a4a2a;"></div>
+        <div style="background:#7a7a4a;"></div>
+        <div style="background:#d4c890;"></div>
+        <div style="background:#c4b44a;"></div>
+        <div style="background:#6a8a4a;"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="click-hint">Click a workspace to select it. You can also mix — tell me in the terminal if you want elements from multiple.</p>
+
+<div id="selection-bar">
+  Selected: <span class="choice-name" id="choice-name">—</span>
+</div>
+
+<script>
+  const names = {
+    balmora: 'A: Balmora Dusk',
+    redmtn: 'B: Red Mountain',
+    telvanni: 'C: Telvanni',
+    dwemer: 'D: Dwemer'
+  };
+
+  function select(el) {
+    document.querySelectorAll('.workspace').forEach(w => w.classList.remove('selected'));
+    el.classList.add('selected');
+    const choice = el.dataset.choice;
+    document.getElementById('choice-name').textContent = names[choice];
+    document.getElementById('selection-bar').classList.add('visible');
+
+    // Send event to state dir
+    if (window.__BRAINSTORM_SEND) {
+      window.__BRAINSTORM_SEND({ type: 'click', choice, text: names[choice] });
+    }
+  }
+</script>
+
+<style>
+  @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+</style>
+
+</body>
+</html>

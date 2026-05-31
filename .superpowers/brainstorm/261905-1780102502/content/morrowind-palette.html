@@ -1,0 +1,212 @@
+<h2>Morrowind-Inspired Hyprland Rice</h2>
+<p class="subtitle">Which aesthetic direction resonates most? Click to select.</p>
+
+<div class="cards">
+  <!-- Option A: Classic Journal -->
+  <div class="card" data-choice="journal" onclick="toggleSelect(this)" style="background: linear-gradient(135deg, #1a1209, #2a1f10); border: 2px solid #8b7355;">
+    <div class="card-image" style="padding: 24px;">
+      <!-- Simulated desktop mockup -->
+      <div style="background: #0d0a05; border-radius: 8px; overflow: hidden; border: 1px solid #5c4a2e;">
+        <!-- Waybar mockup -->
+        <div style="background: linear-gradient(90deg, #1a1209ee, #2a1f10ee); padding: 6px 16px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; border-bottom: 1px solid #5c4a2e;">
+          <div style="display: flex; gap: 16px;">
+            <span style="color: #c8a96e;">I</span>
+            <span style="color: #c8a96e;">II</span>
+            <span style="color: #8b7355;">III</span>
+            <span style="color: #8b7355;">IV</span>
+          </div>
+          <span style="color: #c8a96e; font-family: serif; font-style: italic;">Vvardenfell</span>
+          <div style="display: flex; gap: 12px; color: #a08c6a;">
+            <span>3E 427</span>
+            <span style="color: #8b7355;">|</span>
+            <span>Last Seed</span>
+          </div>
+        </div>
+        <!-- Desktop area -->
+        <div style="height: 160px; background: linear-gradient(180deg, #1a130a 0%, #0d0a05 50%, #0f0b06 100%); display: flex; align-items: center; justify-content: center; position: relative;">
+          <div style="color: #5c4a2e; font-family: serif; font-size: 24px; font-style: italic; opacity: 0.4; letter-spacing: 4px;">N ' w a h</div>
+          <!-- Terminal window -->
+          <div style="position: absolute; right: 12px; top: 12px; width: 55%; background: #0d0a05dd; border: 1px solid #5c4a2e; border-radius: 4px; font-size: 9px;">
+            <div style="background: #1a120988; padding: 3px 8px; border-bottom: 1px solid #3d2e1a; color: #8b7355; font-size: 8px;">ghostty</div>
+            <div style="padding: 6px 8px; font-family: monospace;">
+              <div style="color: #8b7355;">stoleyy@predator <span style="color: #5c4a2e">~/projects</span></div>
+              <div style="color: #c8a96e;">&gt; nix build .#predator</div>
+              <div style="color: #6b5a3a;">building '/nix/store/...'</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body" style="border-top: 1px solid #5c4a2e;">
+      <h3 style="color: #c8a96e; font-family: serif;">A: Worn Journal</h3>
+      <p style="color: #a08c6a;">Dark parchment, warm browns, gold ink. Inspired by the journal/menu UI. Aged leather and candlelight feel.</p>
+      <div style="display: flex; gap: 6px; margin-top: 8px;">
+        <div style="width: 24px; height: 24px; background: #0d0a05; border-radius: 4px; border: 1px solid #3d2e1a;" title="bg0: #0d0a05"></div>
+        <div style="width: 24px; height: 24px; background: #1a1209; border-radius: 4px; border: 1px solid #3d2e1a;" title="bg1: #1a1209"></div>
+        <div style="width: 24px; height: 24px; background: #2a1f10; border-radius: 4px; border: 1px solid #3d2e1a;" title="bg2: #2a1f10"></div>
+        <div style="width: 24px; height: 24px; background: #c8a96e; border-radius: 4px;" title="fg0: #c8a96e"></div>
+        <div style="width: 24px; height: 24px; background: #8b7355; border-radius: 4px;" title="muted: #8b7355"></div>
+        <div style="width: 24px; height: 24px; background: #9b3c3c; border-radius: 4px;" title="red: #9b3c3c"></div>
+        <div style="width: 24px; height: 24px; background: #5c7a4e; border-radius: 4px;" title="green: #5c7a4e"></div>
+        <div style="width: 24px; height: 24px; background: #4e6a8b; border-radius: 4px;" title="blue: #4e6a8b"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option B: Ashlands -->
+  <div class="card" data-choice="ashlands" onclick="toggleSelect(this)" style="background: linear-gradient(135deg, #1a1215, #201518); border: 2px solid #7a4a4a;">
+    <div class="card-image" style="padding: 24px;">
+      <div style="background: #0f0a0c; border-radius: 8px; overflow: hidden; border: 1px solid #4a2a2a;">
+        <!-- Waybar mockup -->
+        <div style="background: linear-gradient(90deg, #1a1215ee, #201518ee); padding: 6px 16px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; border-bottom: 1px solid #4a2a2a;">
+          <div style="display: flex; gap: 16px;">
+            <span style="color: #c45a3a;">I</span>
+            <span style="color: #c45a3a;">II</span>
+            <span style="color: #7a4a4a;">III</span>
+            <span style="color: #7a4a4a;">IV</span>
+          </div>
+          <span style="color: #c45a3a; font-family: serif; font-style: italic;">Red Mountain</span>
+          <div style="display: flex; gap: 12px; color: #9a6a5a;">
+            <span>Blight</span>
+            <span style="color: #7a4a4a;">|</span>
+            <span>Active</span>
+          </div>
+        </div>
+        <!-- Desktop area -->
+        <div style="height: 160px; background: linear-gradient(180deg, #1a1215 0%, #0f0a0c 40%, #150d0f 100%); display: flex; align-items: center; justify-content: center; position: relative;">
+          <div style="color: #4a2a2a; font-family: serif; font-size: 20px; font-style: italic; opacity: 0.5; letter-spacing: 3px;">Dagoth Ur</div>
+          <!-- Terminal window -->
+          <div style="position: absolute; right: 12px; top: 12px; width: 55%; background: #0f0a0cdd; border: 1px solid #4a2a2a; border-radius: 4px; font-size: 9px;">
+            <div style="background: #1a121588; padding: 3px 8px; border-bottom: 1px solid #3a1a1a; color: #7a4a4a; font-size: 8px;">ghostty</div>
+            <div style="padding: 6px 8px; font-family: monospace;">
+              <div style="color: #7a4a4a;">stoleyy@predator <span style="color: #4a2a2a">~/projects</span></div>
+              <div style="color: #c45a3a;">&gt; nix build .#predator</div>
+              <div style="color: #6a3a2a;">building '/nix/store/...'</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body" style="border-top: 1px solid #4a2a2a;">
+      <h3 style="color: #c45a3a; font-family: serif;">B: Ashlands / Red Mountain</h3>
+      <p style="color: #9a6a5a;">Volcanic reds, ash grays, blight-storm amber. Inspired by the hostile beauty of the Ashlands. Darker, more aggressive.</p>
+      <div style="display: flex; gap: 6px; margin-top: 8px;">
+        <div style="width: 24px; height: 24px; background: #0f0a0c; border-radius: 4px; border: 1px solid #3a1a1a;" title="bg0: #0f0a0c"></div>
+        <div style="width: 24px; height: 24px; background: #1a1215; border-radius: 4px; border: 1px solid #3a1a1a;" title="bg1: #1a1215"></div>
+        <div style="width: 24px; height: 24px; background: #201518; border-radius: 4px; border: 1px solid #3a1a1a;" title="bg2: #201518"></div>
+        <div style="width: 24px; height: 24px; background: #d4a87a; border-radius: 4px;" title="fg0: #d4a87a"></div>
+        <div style="width: 24px; height: 24px; background: #7a4a4a; border-radius: 4px;" title="muted: #7a4a4a"></div>
+        <div style="width: 24px; height: 24px; background: #c45a3a; border-radius: 4px;" title="red: #c45a3a"></div>
+        <div style="width: 24px; height: 24px; background: #6a7a4a; border-radius: 4px;" title="green: #6a7a4a"></div>
+        <div style="width: 24px; height: 24px; background: #4a5a7a; border-radius: 4px;" title="blue: #4a5a7a"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option C: Telvanni -->
+  <div class="card" data-choice="telvanni" onclick="toggleSelect(this)" style="background: linear-gradient(135deg, #0a1518, #0d1a1f); border: 2px solid #3a7a6a;">
+    <div class="card-image" style="padding: 24px;">
+      <div style="background: #060f12; border-radius: 8px; overflow: hidden; border: 1px solid #2a5a4a;">
+        <!-- Waybar mockup -->
+        <div style="background: linear-gradient(90deg, #0a1518ee, #0d1a1fee); padding: 6px 16px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; border-bottom: 1px solid #2a5a4a;">
+          <div style="display: flex; gap: 16px;">
+            <span style="color: #5abfa0;">I</span>
+            <span style="color: #5abfa0;">II</span>
+            <span style="color: #3a7a6a;">III</span>
+            <span style="color: #3a7a6a;">IV</span>
+          </div>
+          <span style="color: #5abfa0; font-family: serif; font-style: italic;">Sadrith Mora</span>
+          <div style="display: flex; gap: 12px; color: #4a8a7a;">
+            <span>Magicka</span>
+            <span style="color: #3a7a6a;">|</span>
+            <span>Full</span>
+          </div>
+        </div>
+        <!-- Desktop area -->
+        <div style="height: 160px; background: linear-gradient(180deg, #0a1518 0%, #060f12 40%, #081214 100%); display: flex; align-items: center; justify-content: center; position: relative;">
+          <div style="color: #2a5a4a; font-family: serif; font-size: 20px; font-style: italic; opacity: 0.5; letter-spacing: 3px;">Tel Fyr</div>
+          <!-- Terminal window -->
+          <div style="position: absolute; right: 12px; top: 12px; width: 55%; background: #060f12dd; border: 1px solid #2a5a4a; border-radius: 4px; font-size: 9px;">
+            <div style="background: #0a151888; padding: 3px 8px; border-bottom: 1px solid #1a3a2a; color: #3a7a6a; font-size: 8px;">ghostty</div>
+            <div style="padding: 6px 8px; font-family: monospace;">
+              <div style="color: #3a7a6a;">stoleyy@predator <span style="color: #2a5a4a">~/projects</span></div>
+              <div style="color: #5abfa0;">&gt; nix build .#predator</div>
+              <div style="color: #2a6a5a;">building '/nix/store/...'</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body" style="border-top: 1px solid #2a5a4a;">
+      <h3 style="color: #5abfa0; font-family: serif;">C: Telvanni Mushroom Tower</h3>
+      <p style="color: #4a8a7a;">Deep teal, bioluminescent green, fungal mysticism. Inspired by the alien mushroom architecture of House Telvanni. Otherworldly.</p>
+      <div style="display: flex; gap: 6px; margin-top: 8px;">
+        <div style="width: 24px; height: 24px; background: #060f12; border-radius: 4px; border: 1px solid #1a3a2a;" title="bg0: #060f12"></div>
+        <div style="width: 24px; height: 24px; background: #0a1518; border-radius: 4px; border: 1px solid #1a3a2a;" title="bg1: #0a1518"></div>
+        <div style="width: 24px; height: 24px; background: #0d1a1f; border-radius: 4px; border: 1px solid #1a3a2a;" title="bg2: #0d1a1f"></div>
+        <div style="width: 24px; height: 24px; background: #c8d4c0; border-radius: 4px;" title="fg0: #c8d4c0"></div>
+        <div style="width: 24px; height: 24px; background: #3a7a6a; border-radius: 4px;" title="muted: #3a7a6a"></div>
+        <div style="width: 24px; height: 24px; background: #8a3a4a; border-radius: 4px;" title="red: #8a3a4a"></div>
+        <div style="width: 24px; height: 24px; background: #5abfa0; border-radius: 4px;" title="green: #5abfa0"></div>
+        <div style="width: 24px; height: 24px; background: #4a7a9a; border-radius: 4px;" title="blue: #4a7a9a"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option D: Dwemer -->
+  <div class="card" data-choice="dwemer" onclick="toggleSelect(this)" style="background: linear-gradient(135deg, #12130f, #1a1c14); border: 2px solid #7a7a4a;">
+    <div class="card-image" style="padding: 24px;">
+      <div style="background: #0a0b08; border-radius: 8px; overflow: hidden; border: 1px solid #5a5a2a;">
+        <!-- Waybar mockup -->
+        <div style="background: linear-gradient(90deg, #12130fee, #1a1c14ee); padding: 6px 16px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; border-bottom: 1px solid #5a5a2a;">
+          <div style="display: flex; gap: 16px;">
+            <span style="color: #c4b44a;">I</span>
+            <span style="color: #c4b44a;">II</span>
+            <span style="color: #7a7a4a;">III</span>
+            <span style="color: #7a7a4a;">IV</span>
+          </div>
+          <span style="color: #c4b44a; font-family: serif; font-style: italic;">Arkngthand</span>
+          <div style="display: flex; gap: 12px; color: #9a9a5a;">
+            <span>Gear</span>
+            <span style="color: #7a7a4a;">|</span>
+            <span>Turning</span>
+          </div>
+        </div>
+        <!-- Desktop area -->
+        <div style="height: 160px; background: linear-gradient(180deg, #12130f 0%, #0a0b08 40%, #0c0d0a 100%); display: flex; align-items: center; justify-content: center; position: relative;">
+          <div style="color: #5a5a2a; font-family: serif; font-size: 20px; font-style: italic; opacity: 0.5; letter-spacing: 3px;">Kagrenac</div>
+          <!-- Terminal window -->
+          <div style="position: absolute; right: 12px; top: 12px; width: 55%; background: #0a0b08dd; border: 1px solid #5a5a2a; border-radius: 4px; font-size: 9px;">
+            <div style="background: #12130f88; padding: 3px 8px; border-bottom: 1px solid #3a3a1a; color: #7a7a4a; font-size: 8px;">ghostty</div>
+            <div style="padding: 6px 8px; font-family: monospace;">
+              <div style="color: #7a7a4a;">stoleyy@predator <span style="color: #5a5a2a">~/projects</span></div>
+              <div style="color: #c4b44a;">&gt; nix build .#predator</div>
+              <div style="color: #6a6a3a;">building '/nix/store/...'</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body" style="border-top: 1px solid #5a5a2a;">
+      <h3 style="color: #c4b44a; font-family: serif;">D: Dwemer Ruins</h3>
+      <p style="color: #9a9a5a;">Brass and bronze, mechanical amber, steam-powered golds. Inspired by the ancient Dwemer machinery. Industrial but ancient.</p>
+      <div style="display: flex; gap: 6px; margin-top: 8px;">
+        <div style="width: 24px; height: 24px; background: #0a0b08; border-radius: 4px; border: 1px solid #3a3a1a;" title="bg0: #0a0b08"></div>
+        <div style="width: 24px; height: 24px; background: #12130f; border-radius: 4px; border: 1px solid #3a3a1a;" title="bg1: #12130f"></div>
+        <div style="width: 24px; height: 24px; background: #1a1c14; border-radius: 4px; border: 1px solid #3a3a1a;" title="bg2: #1a1c14"></div>
+        <div style="width: 24px; height: 24px; background: #d4c890; border-radius: 4px;" title="fg0: #d4c890"></div>
+        <div style="width: 24px; height: 24px; background: #7a7a4a; border-radius: 4px;" title="muted: #7a7a4a"></div>
+        <div style="width: 24px; height: 24px; background: #8a4a3a; border-radius: 4px;" title="red: #8a4a3a"></div>
+        <div style="width: 24px; height: 24px; background: #6a8a4a; border-radius: 4px;" title="green: #6a8a4a"></div>
+        <div style="width: 24px; height: 24px; background: #4a6a8a; border-radius: 4px;" title="blue: #4a6a8a"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top: 24px; padding: 16px; background: #1a1a1a; border-radius: 8px; border: 1px solid #333;">
+  <h3 style="color: #999; margin-bottom: 8px;">What each direction affects</h3>
+  <p style="color: #777; font-size: 13px;">
+    The palette swap flows through <code>lib/theme.nix</code> into: Ghostty, Waybar, Rofi, SwayNC, wlogout, Hyprland borders/shadows, GTK, Spicetify, Brave theme, bat, and shell prompt colors. One file change = entire desktop transformation.
+  </p>
+</div>

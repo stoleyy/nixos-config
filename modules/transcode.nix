@@ -39,36 +39,38 @@ let
   };
 in
 {
-  # Watch for new files in the incoming directory.
-  # PathModified fires on any modification (new file appearing via mv/cp).
-  # PathChanged would miss atomic rename-into-place (systemd.path(5) caveat).
-  systemd.paths.transcode-watch = {
-    wantedBy = [ "multi-user.target" ];
-    pathConfig = {
-      PathModified = "${host.dataDir}/transcode/incoming";
-      Unit = "transcode.service";
+  systemd = {
+    # Watch for new files in the incoming directory.
+    # PathModified fires on any modification (new file appearing via mv/cp).
+    # PathChanged would miss atomic rename-into-place (systemd.path(5) caveat).
+    paths.transcode-watch = {
+      wantedBy = [ "multi-user.target" ];
+      pathConfig = {
+        PathModified = "${host.dataDir}/transcode/incoming";
+        Unit = "transcode.service";
+      };
     };
-  };
 
-  systemd.services.transcode = {
-    description = "NVENC auto-transcode (HEVC)";
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = "${transcodeScript}/bin/auto-transcode";
-      User = host.user;
-      Group = "transcode";
-      Nice = 15;
-      IOSchedulingClass = "idle";
+    services.transcode = {
+      description = "NVENC auto-transcode (HEVC)";
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "${transcodeScript}/bin/auto-transcode";
+        User = host.user;
+        Group = "transcode";
+        Nice = 15;
+        IOSchedulingClass = "idle";
+      };
     };
-  };
 
-  # Ensure directory tree exists.
-  systemd.tmpfiles.rules = [
-    "d ${host.dataDir}/transcode           0755 ${host.user} users -"
-    "d ${host.dataDir}/transcode/incoming   0755 ${host.user} users -"
-    "d ${host.dataDir}/transcode/done       0755 ${host.user} users -"
-    "d ${host.dataDir}/transcode/processing 0755 ${host.user} users -"
-  ];
+    # Ensure directory tree exists.
+    tmpfiles.rules = [
+      "d ${host.dataDir}/transcode           0755 ${host.user} users -"
+      "d ${host.dataDir}/transcode/incoming   0755 ${host.user} users -"
+      "d ${host.dataDir}/transcode/done       0755 ${host.user} users -"
+      "d ${host.dataDir}/transcode/processing 0755 ${host.user} users -"
+    ];
+  };
 
   users.groups.transcode = { };
 }
