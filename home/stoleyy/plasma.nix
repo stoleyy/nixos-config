@@ -73,9 +73,9 @@ lib.mkIf osConfig.modules.plasma.enable {
     };
 
     hotkeys.commands = {
-      "launch-brave" = {
+      "launch-zen" = {
         key = "Meta+B";
-        command = "brave";
+        command = "zen-personal";
       };
       "launch-dolphin" = {
         key = "Meta+E";

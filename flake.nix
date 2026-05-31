@@ -42,9 +42,25 @@
     };
 
     # Zen Browser — privacy-focused Firefox fork with vertical tabs.
+    # Provides the home-manager module (programs.zen-browser) used to ship the
+    # browser, enterprise policies, and the four trust-domain profiles
+    # (home/stoleyy/browser.nix). home-manager.follows keeps its HM module on
+    # the same release as ours.
     zen-browser = {
       url = "github:0xc000022070/zen-browser-flake";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.home-manager.follows = "home-manager";
+    };
+
+    # arkenfox user.js — the canonical Firefox privacy/anti-fingerprinting
+    # hardening preset. Vendored (pinned) as the base layer for every Zen
+    # trust-domain profile; per-domain overrides are appended on top in
+    # home/stoleyy/browser.nix. flake = false: raw source tree, not a flake.
+    # git+https (not github:) to fetch via the git protocol — the GitHub API
+    # rate-limits unauthenticated ref resolution; flake.lock pins the commit.
+    arkenfox = {
+      url = "git+https://github.com/arkenfox/user.js";
+      flake = false;
     };
 
     # Multi-language formatter — `nix fmt` runs nixfmt + shfmt in one pass;

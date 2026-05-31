@@ -1,274 +1,218 @@
-# Qubes-style browser compartmentalization.
-# Each trust domain is a fully isolated Brave instance with its own data dir,
-# cookies, history, extensions, and credentials. Color-coded window frames
-# make the active domain visible at a glance — like Qubes window borders.
+# Qubes-style browser compartmentalization — Zen (Firefox fork), arkenfox-hardened.
+# Each trust domain is a fully isolated Zen instance with its own profile dir
+# (~/.zen/<domain>), cookies, history, extensions, and credentials. Color-coded
+# window borders (Hyprland) make the active domain visible at a glance — like
+# Qubes window frames.
 #
 # Domains:
-#   vault      (GREEN)  — banking, finance, sensitive accounts. LAN-blocked.
+#   vault      (GREEN)  — banking, finance, sensitive accounts. HTTPS-only.
 #   personal   (BLUE)   — daily browsing, YouTube, social media. Standard.
 #   untrusted  (RED)    — random links, sketchy sites. LAN-blocked + Tor egress.
 #   disposable (ORANGE) — one-shot session, wiped on exit. LAN-blocked + Tor.
 #
-# Two boundaries per domain:
-#   1. Filesystem — every domain runs inside a bubblewrap jail with a fresh
-#      tmpfs $HOME, binding back ONLY its own profile dir. ~/.ssh, ~/.gnupg, the
-#      OTHER Brave profiles, and the KeePassXC .kdbx are masked, so a browser RCE
-#      can't read across domains or steal keys (closes weakpoint W2 for the
-#      browser — see docs/security-hardening-stance.md). Same UID, no UX cost.
-#   2. Network — vault launches via `sg vault` (LAN dropped, no Tor); untrusted
-#      and disposable via `sg untrusted` (LAN dropped + Tor SOCKS, Tor-over-VPN).
-#      Both GIDs are dropped from the LAN in modules/compartments.nix; stoleyy
-#      must be in both groups (modules/base.nix) or `sg` refuses to switch.
+# Hardening: every profile starts from the pinned arkenfox user.js (inputs.arkenfox)
+# and layers common + per-domain overrides. Browser-wide enterprise policy
+# (programs.zen-browser.policies) force-installs uBlock Origin + the KeePassXC
+# connector, blocks all other extensions, and locks telemetry/DoH/Pocket off.
+#
+# Isolated domains (untrusted, disposable) launch via `sg untrusted`, so their
+# sockets are owned by the "untrusted" GID (LAN dropped by compartments.nix);
+# Tor egress is baked into those profiles' user.js (SOCKS 127.0.0.1:9050, remote
+# DNS) → Tor-over-VPN. stoleyy must be in the `untrusted` group (modules/base.nix)
+# or `sg` refuses to switch into it. Firefox does its networking in the parent
+# process, which inherits the untrusted egid, so the nftables skgid LAN-drop
+# catches all browser traffic; the loopback SOCKS hop is not in the dropped
+# RFC-1918/ULA ranges, so Tor egress is unaffected.
 {
   pkgs,
   lib,
   theme,
+  inputs,
   ...
 }:
 
 let
-  inherit (theme) hexToRgb colors;
+  inherit (theme) colors;
 
   # ── Trust domain definitions ──
-  # isolated = true → runs under "untrusted" GID (LAN blocked via nftables)
+  # isolated = true → runs under the "untrusted" GID (LAN blocked via nftables)
+  #                   and routes through Tor (proxy prefs in its user.js).
+  # ephemeral = true → profile dir wiped on every launch and exit.
   domains = {
     vault = {
       color = "#1B5E20"; # intentional: trust-zone green, not theme color
-      frame = "#2E7D32"; # intentional: trust-zone green, not theme color
+      frame = "#2E7D32";
       label = "Vault";
       description = "Banking, finance, sensitive accounts";
-      dataDir = "Brave-Vault";
-      lanBlocked = true; # LAN dropped via `sg vault` (no Tor — banking)
     };
     personal = {
       color = colors.bg1; # Sanctuary indigo — flows from lib/theme.nix
       frame = colors.bg2;
       label = "Personal";
       description = "Daily browsing, YouTube, social media";
-      dataDir = "Brave-Browser"; # default Brave profile
     };
     untrusted = {
       color = "#B71C1C"; # Dark red
       frame = "#C62828";
       label = "Untrusted";
       description = "Random links, unknown sites";
-      dataDir = "Brave-Untrusted";
-      isolated = true; # LAN blocked
+      isolated = true;
     };
     disposable = {
       color = "#E65100"; # Dark orange
       frame = "#F57C00";
       label = "Disposable";
       description = "One-shot session, wiped on exit";
-      dataDir = "Brave-Disposable";
+      isolated = true;
       ephemeral = true;
-      isolated = true; # LAN blocked
     };
   };
 
-  # ── bubblewrap FS-jail (closes weakpoint W2: same-UID blast radius) ──
-  # Every domain runs in a bwrap sandbox with a fresh tmpfs $HOME, binding back
-  # ONLY its own profile dir + the sockets the browser needs. This masks ~/.ssh,
-  # ~/.gnupg, ~/.config/sops, the OTHER Brave profiles, and the KeePassXC .kdbx
-  # from a browser RCE — same UID, no separate-$HOME UX cost. We use bwrap
-  # (non-setuid) rather than firejail (setuid) for the browser jail, leave
-  # Chromium's own user-namespace sandbox intact (no --unshare-user), and keep
-  # the net namespace shared so the Tor SOCKS proxy still resolves. The
-  # `sg <group>` switch stays OUTSIDE bwrap so the socket-GID match in
-  # modules/compartments.nix still fires.
-  bwrap = "${pkgs.bubblewrap}/bin/bwrap";
+  # ── arkenfox base + Sanctuary overrides ──
+  arkenfoxBase = builtins.readFile (inputs.arkenfox + "/user.js");
 
-  # graphene-hardened-malloc, LIGHT variant, scoped to the browser via LD_PRELOAD
-  # — never system-wide (would break Wine/Steam allocators + W^X).
-  ghmLight = "${pkgs.graphene-hardened-malloc}/lib/libhardened_malloc-light.so";
+  commonOverrides = ''
 
-  mkBraveLauncher =
-    name: domain:
-    let
-      # untrusted/disposable → Tor egress + deliberately NO KeePassXC path.
-      heavy = domain.isolated or false;
-    in
-    pkgs.writeShellScript "brave-${name}-jailed" ''
-      set -u
-      DATA_DIR="$HOME/.config/BraveSoftware/${domain.dataDir}"
+    /* ===== Sanctuary common overrides (all trust domains) ===== */
+    // Enable per-domain userChrome.css (trust-zone coloring)
+    user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
+    // NVIDIA VAAPI hardware video decode (nvidia-vaapi-driver + LIBVA_DRIVER_NAME=nvidia, modules/nvidia.nix)
+    user_pref("media.ffmpeg.vaapi.enabled", true);
+    user_pref("media.hardware-video-decoding.force-enabled", true);
+    user_pref("media.rdd-ffmpeg.enabled", true);
+    // WebRTC fully off — no STUN/ICE IP leak on any domain (video calls unused)
+    user_pref("media.peerconnection.enabled", false);
+    // No in-browser DoH — the OS resolver (dnscrypt-proxy, anonymized) is authoritative
+    user_pref("network.trr.mode", 5);
+  '';
 
-      # Default-deny: fresh tmpfs $HOME, then bind back only what is needed.
-      # Order matters — `--tmpfs "$HOME"` must precede the bind of DATA_DIR.
-      args=(
-        --ro-bind /nix/store /nix/store
-        --ro-bind /run/current-system /run/current-system
-        --ro-bind /etc /etc
-        --proc /proc
-        --dev /dev
-        --dev-bind /dev/dri /dev/dri
-        --tmpfs /tmp
-        --tmpfs "$HOME"
-        --bind "$DATA_DIR" "$DATA_DIR"
-        --bind-try "$HOME/Downloads" "$HOME/Downloads"
-        --bind-try "$HOME/.cache/nv-shader-cache" "$HOME/.cache/nv-shader-cache"
-        --ro-bind-try /run/dbus/system_bus_socket /run/dbus/system_bus_socket
-        --die-with-parent
-        --new-session
-        --unshare-pid
-        --unshare-ipc
-        --unshare-uts
-        --unshare-cgroup
-        --setenv LD_PRELOAD "${ghmLight}"
-      )
+  vaultOverrides = ''
 
-      # NVIDIA device nodes — bind only those that exist.
-      for n in /dev/nvidia0 /dev/nvidiactl /dev/nvidia-modeset \
-               /dev/nvidia-uvm /dev/nvidia-uvm-tools; do
-        if [ -e "$n" ]; then args+=(--dev-bind "$n" "$n"); fi
-      done
+    /* ===== vault — banking/finance ===== */
+    user_pref("dom.security.https_only_mode", true);
+    // Persist logins/cookies across sessions (don't sanitize on shutdown)
+    user_pref("privacy.sanitize.sanitizeOnShutdown", false);
+  '';
 
-      # Wayland + audio + session-bus sockets — bind only if present.
-      if [ -n "''${WAYLAND_DISPLAY:-}" ] && [ -e "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ]; then
-        args+=(--bind "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY")
-      fi
-      for s in pipewire-0 pulse bus; do
-        if [ -e "$XDG_RUNTIME_DIR/$s" ]; then
-          args+=(--bind "$XDG_RUNTIME_DIR/$s" "$XDG_RUNTIME_DIR/$s")
-        fi
-      done
-      ${lib.optionalString (!heavy) ''
-        # vault/personal only: let KeePassXC-browser reach the proxy socket
-        # (the manifest + proxy binary are already under bound paths). untrusted
-        # /disposable deliberately get NO path to the password manager.
-        if [ -e "$XDG_RUNTIME_DIR/org.keepassxc.KeePassXC.BrowserServer" ]; then
-          args+=(--bind "$XDG_RUNTIME_DIR/org.keepassxc.KeePassXC.BrowserServer" \
-                        "$XDG_RUNTIME_DIR/org.keepassxc.KeePassXC.BrowserServer")
-        fi
-      ''}
+  personalOverrides = ''
 
-      # `brave` stays bare so it resolves (via inherited PATH) to the system
-      # wrapper in /run/current-system/sw/bin, preserving the apps.nix override.
-      exec ${bwrap} "''${args[@]}" -- brave \
-        --user-data-dir="$DATA_DIR" \
-        --class="brave-${name}" \
-        ${lib.optionalString heavy "--proxy-server=socks5://127.0.0.1:9050"} "$@"
-    '';
+    /* ===== personal — daily driver ===== */
+    user_pref("privacy.sanitize.sanitizeOnShutdown", false);
+  '';
 
-  # ── Wrapper script generator ──
-  mkBraveWrapper =
-    name: domain:
-    let
-      launcher = mkBraveLauncher name domain;
-      # vault → `sg vault` (LAN-blocked, NO Tor — banking + Tor = CAPTCHA hell).
-      # untrusted/disposable → `sg untrusted` (LAN-blocked + Tor via launcher).
-      group =
-        if (domain.lanBlocked or false) then
-          "vault"
-        else if (domain.isolated or false) then
-          "untrusted"
-        else
-          null;
-    in
-    pkgs.writeShellScriptBin "brave-${name}" ''
-      DATA_DIR="''${HOME}/.config/BraveSoftware/${domain.dataDir}"
-      ${lib.optionalString (domain ? ephemeral && domain.ephemeral) ''
-        # Disposable: wipe previous session, create fresh
-        rm -rf "$DATA_DIR"
-      ''}
-      mkdir -p "$DATA_DIR"
-      ${lib.optionalString (domain ? ephemeral && domain.ephemeral) ''
-        # Trap: wipe on exit regardless of how browser closes
-        trap 'rm -rf "$DATA_DIR"' EXIT INT TERM
-      ''}
+  # untrusted + disposable share this aggressive, Tor-routed profile.
+  isolatedOverrides = ''
 
-      # Seed the theme on first run (idempotent — only writes if missing)
-      THEME_DIR="$DATA_DIR/Default/Extensions/qubes_theme_${name}"
-      if [ ! -d "$THEME_DIR" ]; then
-        mkdir -p "$THEME_DIR/1.0"
-        cp "${themePath name domain}/manifest.json" "$THEME_DIR/1.0/"
-      fi
+    /* ===== untrusted / disposable — Tor egress + max hardening ===== */
+    // Tor SOCKS (modules/tor-isolation.nix); DNS resolved over Tor (no leak)
+    user_pref("network.proxy.type", 1);
+    user_pref("network.proxy.socks", "127.0.0.1");
+    user_pref("network.proxy.socks_port", 9050);
+    user_pref("network.proxy.socks_version", 5);
+    user_pref("network.proxy.socks_remote_dns", true);
+    user_pref("network.proxy.allow_hijacking_localhost", true);
+    // First-party isolation + letterboxing (Tor-Browser-grade anti-fingerprinting)
+    user_pref("privacy.firstparty.isolate", true);
+    user_pref("privacy.resistFingerprinting.letterboxing", true);
+    // JIT off — shrink the JS-engine exploit surface (breaks some sites/WASM; toggle if needed)
+    user_pref("javascript.options.ion", false);
+    user_pref("javascript.options.baselinejit", false);
+    user_pref("javascript.options.wasm", false);
+    // Clear everything on shutdown
+    user_pref("privacy.sanitize.sanitizeOnShutdown", true);
+  '';
 
-      # Seed initial preferences — Brave reads this once on first launch
-      if [ ! -f "$DATA_DIR/initial_preferences" ]; then
-        printf '{"brave":{"sidebar":{"sidebar_show_option":2},"vertical_tabs":{"floating":true}}}\n' > "$DATA_DIR/initial_preferences"
-      fi
+  domainOverrides = {
+    vault = vaultOverrides;
+    personal = personalOverrides;
+    untrusted = isolatedOverrides;
+    disposable = isolatedOverrides;
+  };
 
-      ${
-        if group != null then
-          ''
-            # Switch to the "${group}" GID (modules/compartments.nix drops its
-            # LAN egress), then launch the bubblewrap-jailed browser. printf %q
-            # keeps any URL args intact across the `sg -c` shell re-parse.
-            if [ "$#" -gt 0 ]; then argsq=$(printf '%q ' "$@"); else argsq=""; fi
-            exec sg ${group} -c "exec ${launcher} $argsq"''
-        else
-          ''exec ${launcher} "$@"''
+  # arkenfox base → common overrides → per-domain overrides (later wins).
+  mkUserJs =
+    name:
+    pkgs.writeText "zen-${name}-user.js" (
+      arkenfoxBase + "\n" + commonOverrides + "\n" + (domainOverrides.${name} or "")
+    );
+
+  # Per-domain chrome tint. Primary trust signal stays the Hyprland window
+  # border; this is a best-effort secondary cue (Zen chrome selectors may shift
+  # between releases — verify and adjust if a release moves the toolbox id).
+  mkUserChrome =
+    _name: domain:
+    pkgs.writeText "userChrome.css" ''
+      /* Sanctuary trust-domain tint — ${domain.label} */
+      :root {
+        --sanctuary-trust: ${domain.color};
+        --sanctuary-accent: ${domain.frame};
+      }
+      #navigator-toolbox,
+      #nav-bar,
+      .browser-toolbar,
+      #zen-appcontent-navbar-container {
+        background-color: ${domain.color} !important;
+      }
+      #nav-bar {
+        box-shadow: inset 0 -2px 0 0 ${domain.frame} !important;
       }
     '';
 
-  # ── Theme manifest generator (Chromium extension theme) ──
-  mkThemeManifest =
-    _: domain:
-    builtins.toJSON {
-      manifest_version = 3;
-      version = "1.0";
-      name = "Qubes ${domain.label}";
-      description = "${domain.label} domain — ${domain.description}";
-      theme = {
-        colors = {
-          frame = hexToRgb domain.frame;
-          frame_inactive = hexToRgb domain.color;
-          frame_incognito = hexToRgb domain.frame;
-          frame_incognito_inactive = hexToRgb domain.color;
-          toolbar = hexToRgb domain.color;
-          toolbar_text = [
-            255
-            255
-            255
-          ];
-          tab_text = [
-            255
-            255
-            255
-          ];
-          tab_background_text = [
-            200
-            200
-            200
-          ];
-          bookmark_text = [
-            255
-            255
-            255
-          ];
-          ntp_background = hexToRgb domain.color;
-          ntp_text = [
-            255
-            255
-            255
-          ];
-          omnibox_background = hexToRgb domain.color;
-          omnibox_text = [
-            255
-            255
-            255
-          ];
-        };
-      };
-    };
+  # ── Wrapper script generator ──
+  mkZenWrapper =
+    name: domain:
+    let
+      ephemeral = domain.ephemeral or false;
+      isolated = domain.isolated or false;
+    in
+    pkgs.writeShellScriptBin "zen-${name}" ''
+      DATA_DIR="''${HOME}/.zen/${name}"
+      ${lib.optionalString ephemeral ''
+        # Disposable: wipe previous session, recreate fresh; wipe again on exit.
+        rm -rf "$DATA_DIR"
+        trap 'rm -rf "$DATA_DIR"' EXIT INT TERM
+      ''}
+      mkdir -p "$DATA_DIR/chrome"
 
-  # Write theme manifest to nix store
-  themePath = name: domain: pkgs.writeTextDir "manifest.json" (mkThemeManifest name domain);
+      # Seed arkenfox user.js + trust-zone userChrome (authoritative every launch).
+      install -m644 ${mkUserJs name} "$DATA_DIR/user.js"
+      install -m644 ${mkUserChrome name domain} "$DATA_DIR/chrome/userChrome.css"
+
+      # Wayland app_id (per-domain window border) + NVIDIA VAAPI in the RDD process.
+      export MOZ_ENABLE_WAYLAND=1
+      export MOZ_DISABLE_RDD_SANDBOX=1
+
+      ${
+        let
+          launch =
+            if isolated then
+              # Switch to the "untrusted" GID (LAN dropped by modules/compartments.nix).
+              # Tor egress is in this profile's user.js. $* mirrors the prior Brave
+              # wrapper — sufficient for URL args from xdg-open / the launcher.
+              ''sg untrusted -c "zen --profile \"$DATA_DIR\" --name zen-${name} --class zen-${name} $*"''
+            else
+              ''zen --profile "$DATA_DIR" --name zen-${name} --class zen-${name} "$@"'';
+        in
+        # Ephemeral domains must NOT exec — the wrapper shell has to outlive the
+        # browser so its EXIT/INT/TERM trap wipes the profile on close. Others exec.
+        if ephemeral then launch else "exec ${launch}"
+      }
+    '';
 
   # ── Desktop entry generator ──
   mkDesktopEntry = name: domain: {
-    name = "Brave (${domain.label})";
+    name = "Zen (${domain.label})";
     genericName = "Web Browser — ${domain.label} Domain";
     comment = domain.description;
-    exec = "brave-${name} %U";
+    exec = "zen-${name} %U";
     terminal = false;
     type = "Application";
-    icon = "brave-browser";
+    icon = "zen-browser";
     categories = [
       "Network"
       "WebBrowser"
     ];
-    settings.StartupWMClass = "brave-${name}";
+    settings.StartupWMClass = "zen-${name}";
     mimeType = lib.optionals (name == "personal") [
       "text/html"
       "x-scheme-handler/http"
@@ -278,23 +222,102 @@ let
 
 in
 {
-  home.packages = lib.mapAttrsToList mkBraveWrapper domains;
+  # Browser-wide enterprise policy (wrapped into Zen's distribution/policies.json
+  # by the module). Applies to all four profiles. The Gecko equivalent of the old
+  # Brave debloat policy, hardened: extension allowlist, telemetry/DoH/Pocket off.
+  programs.zen-browser = {
+    enable = true;
+    # KeePassXC-Browser native messaging bridge (KeePassXC itself is firejailed
+    # --net=none in modules/compartments.nix; the proxy talks over a unix socket).
+    nativeMessagingHosts = [ pkgs.keepassxc ];
+    policies = {
+      DisableTelemetry = true;
+      DisableFirefoxStudies = true;
+      DisableFirefoxAccounts = true; # no Mozilla account / Sync (cross-device beacon)
+      DisablePocket = true;
+      DisableFormHistory = true;
+      NoDefaultBookmarks = true;
+      OfferToSaveLogins = false; # KeePassXC is authoritative
+      PasswordManagerEnabled = false;
+      SearchSuggestEnabled = false;
+      NetworkPrediction = false;
+      EnableTrackingProtection = {
+        Value = true;
+        Locked = true;
+        Cryptomining = true;
+        Fingerprinting = true;
+      };
+      # Don't self-DoH: keep DNS on the OS stub (systemd-resolved → dnscrypt-proxy,
+      # already encrypted + anonymized). Matches the old Brave DnsOverHttpsMode=off.
+      DNSOverHTTPS = {
+        Enabled = false;
+        Locked = true;
+      };
+      FirefoxHome = {
+        Search = true;
+        TopSites = false;
+        SponsoredTopSites = false;
+        Highlights = false;
+        Pocket = false;
+        SponsoredPocket = false;
+        Snippets = false;
+      };
+      UserMessaging = {
+        ExtensionRecommendations = false;
+        FeatureRecommendations = false;
+        UrlbarInterventions = false;
+        SkipOnboarding = true;
+        MoreFromMozilla = false;
+      };
+      # Aggressive: block every extension except the allowlisted force-installs.
+      ExtensionSettings = {
+        "*" = {
+          installation_mode = "blocked";
+          blocked_install_message = "Extensions are locked by NixOS policy (home/stoleyy/browser.nix).";
+        };
+        "uBlock0@raymondhill.net" = {
+          installation_mode = "force_installed";
+          install_url = "https://addons.mozilla.org/firefox/downloads/latest/ublock-origin/latest.xpi";
+        };
+        "keepassxc-browser@keepassxc.org" = {
+          installation_mode = "force_installed";
+          install_url = "https://addons.mozilla.org/firefox/downloads/latest/keepassxc-browser/latest.xpi";
+        };
+      };
+    };
+  };
 
-  xdg.desktopEntries = (lib.mapAttrs mkDesktopEntry domains) // {
-    # Discord — untrusted domain (LAN blocked, VPN internet works)
-    discord = {
-      name = "Discord";
-      genericName = "Chat — Untrusted Domain";
-      comment = "Discord (LAN isolated)";
-      exec = "discord %U";
-      terminal = false;
-      type = "Application";
-      icon = "discord";
-      categories = [
-        "Network"
-        "InstantMessaging"
-      ];
-      settings.StartupWMClass = "discord";
+  # zen-vault / zen-personal / zen-untrusted / zen-disposable launchers.
+  home.packages = lib.mapAttrsToList mkZenWrapper domains;
+
+  xdg.desktopEntries =
+    (lib.mapAttrs' (name: domain: lib.nameValuePair "zen-${name}" (mkDesktopEntry name domain)) domains)
+    // {
+      # Discord — untrusted domain (LAN blocked, VPN internet works)
+      discord = {
+        name = "Discord";
+        genericName = "Chat — Untrusted Domain";
+        comment = "Discord (LAN isolated)";
+        exec = "discord %U";
+        terminal = false;
+        type = "Application";
+        icon = "discord";
+        categories = [
+          "Network"
+          "InstantMessaging"
+        ];
+        settings.StartupWMClass = "discord";
+      };
+    };
+
+  # Deterministic default browser → the personal domain (not Zen's bare profile).
+  xdg.mimeApps = {
+    enable = true;
+    defaultApplications = {
+      "text/html" = "zen-personal.desktop";
+      "x-scheme-handler/http" = "zen-personal.desktop";
+      "x-scheme-handler/https" = "zen-personal.desktop";
+      "application/xhtml+xml" = "zen-personal.desktop";
     };
   };
 }
