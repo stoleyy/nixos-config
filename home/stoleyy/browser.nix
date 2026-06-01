@@ -134,6 +134,12 @@ let
     user_pref("browser.tabs.warnOnClose", false);
     user_pref("browser.tabs.warnOnCloseOtherTabs", false);
     user_pref("browser.warnOnQuitShortcut", false);
+    // Hover-preview cards for tabs (incl. thumbnails) — glance without switching.
+    user_pref("browser.tabs.cardPreview.enabled", true);
+    user_pref("browser.tabs.cardPreview.showThumbnails", true);
+    // URL bar as a local scratch tool: calculator + unit conversions (no network).
+    user_pref("browser.urlbar.suggest.calculator", true);
+    user_pref("browser.urlbar.unitConversion.enabled", true);
     // Free RAM from idle tabs (Firefox-native; complements the OS zram swap).
     user_pref("browser.tabs.unloadOnLowMemory", true);
 
@@ -167,6 +173,10 @@ let
     user_pref("zen.theme.gradient", true);
     user_pref("zen.theme.gradient.show-custom-colors", true);
     user_pref("zen.mediacontrols.enabled", true);
+    // Favicon-tinted Essentials + a visible tracking-protection icon in the URL
+    // bar (surfaces ETP status at a glance — fits the security posture).
+    user_pref("zen.theme.essentials-favicon-bg", true);
+    user_pref("zen.urlbar.show-protections-icon", true);
   '';
 
   vaultOverrides = ''
