@@ -14,7 +14,22 @@ final: prev: {
   prismlauncher = prev.symlinkJoin {
     name = "prismlauncher-${prev.prismlauncher.version}";
     paths = [ prev.prismlauncher ];
+    nativeBuildInputs = [ prev.makeWrapper ];
     postBuild = ''
+      # Bake __GL_THREADED_OPTIMIZATIONS=0 into the launcher so the Minecraft JVM
+      # it spawns inherits it on every launch path (the `minecraft`/`prismlauncher`
+      # command, the .desktop entry, the Steam shortcut). With native-Wayland GLFW
+      # (prism-gaming-setup's UseNativeGLFW) + NVIDIA's EGL, Minecraft's
+      # multi-threaded GL context handoff crashes window creation ("GLFW error
+      # 65544: EGL: Failed to clear current context"); disabling the driver's
+      # threaded optimisations makes the handoff synchronous. REQUIRED in addition
+      # to earlyWindowControl=false (packages/prism-gaming-setup.nix): that clears
+      # the early-display crash, this clears the NoVizFallback handoff crash that
+      # earlyWindowControl=false then exposes. --set-default so a per-launch
+      # override still wins.
+      rm $out/bin/prismlauncher
+      makeWrapper ${prev.prismlauncher}/bin/prismlauncher $out/bin/prismlauncher \
+        --set-default __GL_THREADED_OPTIMIZATIONS 0
       ln -s $out/bin/prismlauncher $out/bin/minecraft
     '';
     # symlinkJoin doesn't carry meta; keep it so `mainProgram`, the desktop
