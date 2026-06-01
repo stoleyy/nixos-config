@@ -261,9 +261,9 @@ let
               # Switch to the "untrusted" GID (LAN dropped by modules/compartments.nix).
               # Tor egress is in this profile's user.js. $* mirrors the prior Brave
               # wrapper — sufficient for URL args from xdg-open / the launcher.
-              ''sg untrusted -c "zen --profile \"$DATA_DIR\" --name zen-${name} --class zen-${name} $*"''
+              ''sg untrusted -c "zen-beta --profile \"$DATA_DIR\" --name zen-${name} --class zen-${name} $*"''
             else
-              ''zen --profile "$DATA_DIR" --name zen-${name} --class zen-${name} "$@"'';
+              ''zen-beta --profile "$DATA_DIR" --name zen-${name} --class zen-${name} "$@"'';
         in
         # Ephemeral domains must NOT exec — the wrapper shell has to outlive the
         # browser so its EXIT/INT/TERM trap wipes the profile on close. Others exec.
