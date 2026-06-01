@@ -152,29 +152,76 @@ let
     disposable = isolatedOverrides;
   };
 
-  # arkenfox base → common overrides → per-domain overrides (later wins).
+  # Quality-of-life prefs for every domain. arkenfox-safe — no privacy/telemetry
+  # impact, and none of these keys are set by arkenfox or the overrides above.
+  utilityOverrides = ''
+
+    /* ===== Quality-of-life (arkenfox-safe) ===== */
+    // Ctrl+Tab cycles most-recently-used tabs, not left-to-right
+    user_pref("browser.ctrlTab.sortByRecentlyUsed", true);
+    // Find: highlight every match + show scrollbar position markers
+    user_pref("findbar.highlightAll", true);
+    // Don't destroy the window when the last tab is closed
+    user_pref("browser.tabs.closeWindowWithLastTab", false);
+  '';
+
+  # arkenfox base → common → per-domain → utility (later wins).
   mkUserJs =
     name:
     pkgs.writeText "zen-${name}-user.js" (
-      arkenfoxBase + "\n" + commonOverrides + "\n" + (domainOverrides.${name} or "")
+      arkenfoxBase
+      + "\n"
+      + commonOverrides
+      + "\n"
+      + (domainOverrides.${name} or "")
+      + "\n"
+      + utilityOverrides
     );
 
-  # Per-domain chrome tint. Primary trust signal stays the Hyprland window
-  # border; this is a best-effort secondary cue (Zen chrome selectors may shift
-  # between releases — verify and adjust if a release moves the toolbox id).
+  # Per-domain chrome styling. Trusted zones (vault/personal) get a frosted
+  # "Sanctuary glass" toolbar/sidebar; hostile zones stay solid + plain (RFP
+  # letterboxing standardizes their geometry, so glass is pointless there).
+  #
+  # CHROME-ONLY frost: no window/content transparency prefs are set and the
+  # Hyprland rule keeps the window opaque, so web content — video included
+  # (e.g. YouTube) — is always fully opaque. The blur is of the page behind the
+  # toolbar, never the desktop. Primary trust signal stays the Hyprland border;
+  # Zen chrome selectors may shift between releases — verify/adjust on-box.
   mkUserChrome =
     _name: domain:
+    let
+      glass = !(domain.isolated or false);
+    in
     pkgs.writeText "userChrome.css" ''
-      /* Sanctuary trust-domain tint — ${domain.label} */
+      /* ===== Sanctuary chrome — ${domain.label} ===== */
       :root {
         --sanctuary-trust: ${domain.color};
         --sanctuary-accent: ${domain.frame};
       }
-      #navigator-toolbox,
-      #nav-bar,
-      .browser-toolbar,
-      #zen-appcontent-navbar-container {
-        background-color: ${domain.color} !important;
+      ${
+        if glass then
+          ''
+            /* Frosted Sanctuary glass — chrome only, content stays opaque.
+               ${domain.color}cc is ~80% tint over the page; lower the alpha
+               on-box for more show-through. */
+            #navigator-toolbox,
+            #nav-bar,
+            #zen-appcontent-navbar-container,
+            #zen-sidebar-web-panel-wrapper,
+            #sidebar-box {
+              background-color: ${domain.color}cc !important;
+              backdrop-filter: blur(14px) saturate(1.25) !important;
+            }
+          ''
+        else
+          ''
+            /* Hostile zones: solid + plain (no glass under RFP letterboxing). */
+            #navigator-toolbox,
+            #nav-bar,
+            #zen-appcontent-navbar-container {
+              background-color: ${domain.color} !important;
+            }
+          ''
       }
       #nav-bar {
         box-shadow: inset 0 -2px 0 0 ${domain.frame} !important;
