@@ -282,6 +282,22 @@ These rules are non-negotiable and override all other instructions:
   `overrideAttrs` would add, so the old `overrideAttrs { postInstall = ln -s … }`
   was a silent no-op (alias never existed). Fixed via a real nested symlinkJoin
   in overlays/prismlauncher.nix.
+- **NeoForge crashes on launch with native Wayland GLFW** — once
+  `UseNativeGLFW=true` (the 8 fps fix above) makes Minecraft present via native
+  Wayland, NeoForge's `fml_earlydisplay` loading screen can no longer hand its
+  GL context off to the real Minecraft window on Wayland/NVIDIA. It dies at the
+  handoff in `DisplayWindow.setupMinecraftWindow` with `java.lang.
+  IllegalStateException: There is no OpenGL context current in the current
+  thread` (the mod-loading screen renders fine, then the game crashes the
+  instant it takes the window over). This is NOT a modpack/mod fault — vanilla
+  NeoForge reproduces it. Fix: `earlyWindowControl = false` in the instance's
+  `minecraft/config/fml.toml` ([documented by
+  NeoForge](https://neoforged.net/meta/displayerrors/)) — Minecraft then makes
+  its own window directly, dropping the fancy early loading screen but keeping
+  the native-Wayland hardware path. `prism-gaming-setup` (packages/) applies
+  this to every NeoForge/Forge instance automatically (alongside the GLFW seed).
+  Same convergence caveat as the GLFW seed: NeoForge rewrites `fml.toml` from
+  memory on clean exit, so the patch only sticks while the game is closed.
 - **Plasma-manager widget keys are camelCase** (`iconTasks`, `systemTray`,
   `digitalClock`), not lowercase. Plain string widgets like
   `"org.kde.plasma.marginsseparator"` work as bare list entries.
