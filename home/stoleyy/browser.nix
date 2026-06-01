@@ -113,6 +113,14 @@ let
 
     /* ===== personal — daily driver ===== */
     user_pref("privacy.sanitize.sanitizeOnShutdown", false);
+    // Re-enable the new-tab page — arkenfox 0104 blanks it (newtabpage.enabled=
+    // false), which is why the new tab had no search box at all. The enterprise
+    // policy already strips the junk (FirefoxHome.{TopSites,Pocket,Highlights,
+    // Snippets,Sponsored*}=false) and keeps FirefoxHome.Search=true, so this
+    // restores a clean new tab with just the search box, using the profile's
+    // existing default engine. Deliberately NOT set on the hostile
+    // (untrusted/disposable) zones — a blank new tab is the smaller RFP surface.
+    user_pref("browser.newtabpage.enabled", true);
   '';
 
   # untrusted + disposable share this aggressive, Tor-routed profile.
