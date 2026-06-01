@@ -76,21 +76,36 @@ let
     /* ===== Sanctuary common overrides (all trust domains) ===== */
     // Enable per-domain userChrome.css (trust-zone coloring)
     user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
-    // NVIDIA VAAPI hardware video decode (nvidia-vaapi-driver + LIBVA_DRIVER_NAME=nvidia, modules/nvidia.nix)
-    user_pref("media.ffmpeg.vaapi.enabled", true);
-    user_pref("media.hardware-video-decoding.force-enabled", true);
-    user_pref("media.rdd-ffmpeg.enabled", true);
+    // 3rd-party cookie isolation for every zone via dFPI / Total Cookie
+    // Protection — the modern replacement for the obsolete FPI that arkenfox
+    // itself disables. Firefox default is already 5; set explicitly so cookie
+    // isolation never silently depends on the ETP category.
+    user_pref("network.cookie.cookieBehavior", 5);
     // WebRTC fully off — no STUN/ICE IP leak on any domain (video calls unused)
     user_pref("media.peerconnection.enabled", false);
     // No in-browser DoH — the OS resolver (dnscrypt-proxy, anonymized) is authoritative
     user_pref("network.trr.mode", 5);
+    // NVIDIA VAAPI HW video decode — ATTEMPT only. Firefox blocklists hardware
+    // decode on NVIDIA + Wayland (FEATURE_HARDWARE_VIDEO_DECODING_NO_LINUX_NVIDIA),
+    // so this is likely a no-op on the Hyprland / Plasma-Wayland sessions; verify
+    // at about:support ("Media" → HW decoding). The RDD sandbox is left ON (the
+    // wrapper no longer exports MOZ_DISABLE_RDD_SANDBOX) — modern Firefox runs
+    // VAAPI inside it. If decode never engages, drop these; mpv/Jellyfin do NVDEC.
+    user_pref("media.ffmpeg.vaapi.enabled", true);
+    user_pref("media.hardware-video-decoding.force-enabled", true);
+
+    /* Performance — safe on this hardware (64 GB RAM); not touched by arkenfox. */
+    user_pref("browser.cache.memory.capacity", 131072);
+    user_pref("network.http.max-connections", 1800);
+    user_pref("network.http.max-persistent-connections-per-server", 10);
   '';
 
   vaultOverrides = ''
 
     /* ===== vault — banking/finance ===== */
-    user_pref("dom.security.https_only_mode", true);
-    // Persist logins/cookies across sessions (don't sanitize on shutdown)
+    // Persist logins/cookies across sessions (relax arkenfox's clear-on-shutdown
+    // so "remember this device" / 2FA survives). HTTPS-Only is already on
+    // globally via arkenfox (dom.security.https_only_mode), so it is not repeated.
     user_pref("privacy.sanitize.sanitizeOnShutdown", false);
   '';
 
@@ -111,9 +126,17 @@ let
     user_pref("network.proxy.socks_version", 5);
     user_pref("network.proxy.socks_remote_dns", true);
     user_pref("network.proxy.allow_hijacking_localhost", true);
-    // First-party isolation + letterboxing (Tor-Browser-grade anti-fingerprinting)
-    user_pref("privacy.firstparty.isolate", true);
+    // Tor-Browser-grade anti-fingerprinting. arkenfox leaves RFP OFF (favouring
+    // the lighter FPP for daily use); turn it ON here — RFP is what actually
+    // activates letterboxing and spoofs UA/timezone/screen for uniformity.
+    // FPI is deliberately NOT used (obsolete; arkenfox disables it) — cookie
+    // isolation comes from dFPI (commonOverrides: cookieBehavior=5).
+    user_pref("privacy.resistFingerprinting", true);
     user_pref("privacy.resistFingerprinting.letterboxing", true);
+    user_pref("privacy.spoof_english", 2);
+    // Kill WebGL on the hostile zones — a large fingerprint + exploit surface
+    // that random-link / throwaway browsing does not need.
+    user_pref("webgl.disabled", true);
     // JIT off — shrink the JS-engine exploit surface (breaks some sites/WASM; toggle if needed)
     user_pref("javascript.options.ion", false);
     user_pref("javascript.options.baselinejit", false);
@@ -178,9 +201,11 @@ let
       install -m644 ${mkUserJs name} "$DATA_DIR/user.js"
       install -m644 ${mkUserChrome name domain} "$DATA_DIR/chrome/userChrome.css"
 
-      # Wayland app_id (per-domain window border) + NVIDIA VAAPI in the RDD process.
+      # Wayland app_id (per-domain window border). We intentionally do NOT set
+      # MOZ_DISABLE_RDD_SANDBOX — VAAPI runs inside the RDD sandbox on modern
+      # Firefox, and disabling it traded a sandbox away for HW decode that
+      # NVIDIA + Wayland blocklists anyway.
       export MOZ_ENABLE_WAYLAND=1
-      export MOZ_DISABLE_RDD_SANDBOX=1
 
       ${
         let
