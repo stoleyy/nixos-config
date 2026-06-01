@@ -130,11 +130,14 @@ in
       gameInstall
       mangohud
       # lutris: run on-demand via `nix run nixpkgs#lutris` (4.6 GiB savings)
-      (prismlauncher.overrideAttrs (old: {
-        postInstall = (old.postInstall or "") + ''
-          ln -s $out/bin/prismlauncher $out/bin/minecraft
-        '';
-      }))
+      # prismlauncher carries the `minecraft` alias via overlays/prismlauncher.nix
+      # (the old overrideAttrs+postInstall here was a silent no-op on symlinkJoin).
+      prismlauncher
+      # Enables PrismLauncher's native Wayland GLFW (fixes Minecraft's ~8 fps
+      # software-render through the -glamor-off XWayland) and registers the
+      # Steam Non-Steam shortcut. Run automatically for stoleyy (home activation)
+      # and gamer (gamescope-session); exposed here for manual re-runs too.
+      prism-gaming-setup
       adwsteamgtk
       (callPackage ../packages/greenlight.nix { })
     ];

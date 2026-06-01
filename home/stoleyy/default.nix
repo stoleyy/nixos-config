@@ -18,6 +18,7 @@
     ./gpg.nix
     ./audio.nix
     ./hyprland.nix
+    ./gaming.nix
     ./waybar.nix
     ./rofi.nix
     ./swaync.nix

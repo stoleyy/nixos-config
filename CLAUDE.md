@@ -260,6 +260,28 @@ These rules are non-negotiable and override all other instructions:
   only, driver 595+). Leave disabled until NVIDIA ships it.
 - **GameMode defaults to card0 (simpledrm)** — set `gpu.device = 1` in
   gamemode settings to target card1 (NVIDIA RTX 4070).
+- **PrismLauncher/Minecraft renders at ~8 fps on llvmpipe** unless native
+  Wayland GLFW is enabled. Minecraft (Java/LWJGL) is a native OpenGL X11 app;
+  through the `-glamor off` XWayland (modules/hyprland.nix) it gets no DRI3 and
+  falls back to software rendering. This is the OpenGL analogue of the
+  Skyrim/Proton case, but `PROTON_ENABLE_WAYLAND` does nothing for a JVM, and
+  gamescope can't rescue it either (its nested Xwayland also runs
+  `XWAYLAND_NO_GLAMOR=1` here). Fix: PrismLauncher's `UseNativeGLFW=true` — nixpkgs
+  already puts the Wayland-patched `glfw3-minecraft` on the launcher's
+  `LD_LIBRARY_PATH`, so LWJGL loads it and GLFW picks the Wayland backend,
+  bypassing XWayland (and talking Wayland straight to gamescope in Gaming Mode).
+  Set automatically by `prism-gaming-setup` (packages/) for both stoleyy
+  (home/stoleyy/gaming.nix) and gamer (packages/gamescope-session.nix); the same
+  tool registers the Steam Non-Steam shortcut. Per-instance opt-out via the
+  launcher's "Use system installation of GLFW" override if a modpack misbehaves
+  on Wayland. Caveat: PrismLauncher rewrites `prismlauncher.cfg` on clean exit
+  (qBittorrent-class) — the seed lands on the next launch.
+- **PrismLauncher's `minecraft` alias needs `postBuild`, not `postInstall`** —
+  nixpkgs `prismlauncher` is a `symlinkJoin`; its builder runs `buildCommand`
+  (honouring `postBuild`) and never the `postInstall`/`postBuild` hooks that
+  `overrideAttrs` would add, so the old `overrideAttrs { postInstall = ln -s … }`
+  was a silent no-op (alias never existed). Fixed via a real nested symlinkJoin
+  in overlays/prismlauncher.nix.
 - **Plasma-manager widget keys are camelCase** (`iconTasks`, `systemTray`,
   `digitalClock`), not lowercase. Plain string widgets like
   `"org.kde.plasma.marginsseparator"` work as bare list entries.
