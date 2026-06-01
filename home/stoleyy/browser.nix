@@ -480,6 +480,18 @@ in
           installation_mode = "force_installed";
           install_url = "https://addons.mozilla.org/firefox/downloads/latest/keepassxc-browser/latest.xpi";
         };
+        # Proton Pass — ALLOWED (installable), deliberately NOT force_installed.
+        # This policy is browser-wide (all four zones share one policies.json), so
+        # a force-install would also land on the Tor-routed untrusted/disposable
+        # zones — and signing into your Proton account there would tie your real
+        # identity to anonymous browsing, defeating those zones. "allowed" just
+        # unblocks it (overriding the "*" block) so you add it ONLY to the trusted
+        # zones (vault, personal); the hostile zones never get it unless you
+        # deliberately install it there (don't). KeePassXC stays authoritative —
+        # local, firejailed --net=none — so this is Proton Pass *alongside* it.
+        "78272b6fa58f4a1abaac99321d503a20@proton.me" = {
+          installation_mode = "allowed";
+        };
       };
     };
   };
