@@ -304,11 +304,21 @@ These rules are non-negotiable and override all other instructions:
   window directly and NVIDIA's Wayland EGL still chokes on Minecraft's
   multi-threaded GL-context handoff (`GLFW error 65544` at
   `glfwCreateWindow`/`windowHandoff`). Fix: **`__GL_THREADED_OPTIMIZATIONS=0`**,
-  which makes the handoff synchronous. Baked into the launcher itself
-  (`overlays/prismlauncher.nix` wraps `prismlauncher` with
-  `makeWrapper --set-default`), so every launch path — the `minecraft` command,
-  the `.desktop` entry, the Steam shortcut — inherits it; no per-instance config.
-  Both fixes are required together (verified in-game with ATM10, 300+ mods).
+  which makes the handoff synchronous. Set in the **session environment**, not a
+  launcher wrapper: `modules/nvidia.nix` `environment.sessionVariables` (covers
+  the Hyprland session, alongside the sibling `__GL_*` vars) plus an explicit
+  `export` in `packages/gamescope-session.nix` (the gamer Gaming-Mode session,
+  which doesn't reliably inherit `environment.sessionVariables` — same reason it
+  re-exports `LD_LIBRARY_PATH`). It is **deliberately not** baked into the
+  `overlays/prismlauncher.nix` wrapper: PrismLauncher is single-instance
+  (QLocalSocket), so a stale launcher daemon spawns the Minecraft JVM with a
+  wrapper-only env stripped — exactly the launches that then crash. Session scope
+  means every descendant (the `minecraft` command, the `.desktop` entry, the
+  Steam shortcut) inherits it. Only native OpenGL is affected; Proton/DXVK/VKD3D
+  are Vulkan. **Requires a `switch` + fresh login** (Hyprland reads session env
+  at compositor start) — after a rebuild, log out/in (or reboot) or the var
+  won't be present yet. Both fixes are required together (verified in-game with
+  ATM10, 300+ mods).
   Unrelated red herring in the log: `libdecor-gtk.so failed to init` (Wayland
   client-side decorations — harmless under a tiling WM).
 - **Plasma-manager widget keys are camelCase** (`iconTasks`, `systemTray`,

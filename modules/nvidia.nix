@@ -75,6 +75,19 @@
     # Prevent the driver from busy-waiting on vsync; uses usleep() instead,
     # freeing CPU cycles on the i7-13700K for game threads.
     __GL_YIELD = "USLEEP";
+    # Force a synchronous GL-context handoff. With PrismLauncher's native-Wayland
+    # GLFW (the ~8 fps fix — home/stoleyy/gaming.nix + packages/prism-gaming-setup.nix)
+    # and earlyWindowControl=false, Minecraft/NeoForge creates its window via
+    # NoVizFallback's multi-threaded GL-context handoff, which NVIDIA's Wayland EGL
+    # aborts — "GLFW error 65544: EGL: Failed to clear current context" — crashing
+    # window init in Minecraft.<init> before the game opens. Disabling threaded
+    # optimisations makes the handoff synchronous and fixes it (verified in-game,
+    # ATM10 300+ mods). Session-scoped here — NOT baked into a launcher wrapper —
+    # so it reaches the Minecraft JVM no matter how PrismLauncher is started: the
+    # launcher is single-instance (QLocalSocket), so a stale daemon would otherwise
+    # spawn the JVM with the wrapper's env stripped. Only affects native OpenGL;
+    # Proton/DXVK/VKD3D titles are Vulkan and unaffected.
+    __GL_THREADED_OPTIMIZATIONS = "0";
     # Proton/DXVK/VKD3D pick a Vulkan device themselves; with the Intel iGPU
     # present they can land on it (low NVIDIA util, low FPS). Pin both to the
     # discrete card. Belt-and-suspenders with boot.blacklistedKernelModules
