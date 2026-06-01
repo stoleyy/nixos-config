@@ -3,6 +3,7 @@
 {
   writeShellScript,
   libglvnd,
+  prism-gaming-setup,
 }:
 writeShellScript "gamescope-session" ''
   # Never let systemd's pager (loginctl/systemctl) attach to a TTY and block.
@@ -56,6 +57,14 @@ writeShellScript "gamescope-session" ''
   # libglvnd + the OpenGL driver dir so the GLVND EGL dispatcher
   # and NVIDIA vendor ICD are discoverable.
   export LD_LIBRARY_PATH="${libglvnd}/lib:/run/opengl-driver/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
+  # Ensure PrismLauncher is wired for gaming AS the gamer user, before Steam
+  # reads shortcuts.vdf: enable native Wayland GLFW (so Minecraft renders on
+  # gamescope's Wayland instead of its -glamor-off Xwayland → fixes ~8 fps) and
+  # register the Non-Steam shortcut. No-op until gamer has logged into Steam
+  # once (then it lands on the next gaming-mode boot). Never fatal to the session.
+  echo "--- PrismLauncher gaming setup (gamer) ---"
+  ${prism-gaming-setup}/bin/prism-gaming-setup || echo "prism-gaming-setup: non-fatal failure"
 
   echo "============================================"
   echo "Launching steam-gamescope..."
