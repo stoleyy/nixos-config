@@ -58,6 +58,15 @@ writeShellScript "gamescope-session" ''
   # and NVIDIA vendor ICD are discoverable.
   export LD_LIBRARY_PATH="${libglvnd}/lib:/run/opengl-driver/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
+  # Synchronous GL-context handoff — see modules/nvidia.nix for the full rationale.
+  # environment.sessionVariables (where this var is set for the Hyprland session)
+  # is NOT reliably inherited by this greetd-launched script — same reason
+  # LD_LIBRARY_PATH is re-exported above — so set it explicitly here. Without it,
+  # the Minecraft JVM that Steam → PrismLauncher spawns in Gaming Mode crashes
+  # window creation on NVIDIA Wayland EGL ("GLFW error 65544: EGL: Failed to
+  # clear current context").
+  export __GL_THREADED_OPTIMIZATIONS=0
+
   # Ensure PrismLauncher is wired for gaming AS the gamer user, before Steam
   # reads shortcuts.vdf: enable native Wayland GLFW (so Minecraft renders on
   # gamescope's Wayland instead of its -glamor-off Xwayland → fixes ~8 fps) and
