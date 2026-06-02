@@ -124,4 +124,40 @@ in
     pkgs.nbfc-linux # ec_probe for EC register discovery
     pkgs.stress-ng # CPU stress testing for fan register diffing
   ];
+
+  # libsensors display cleanup for the IT8637E (force-loaded as IT8628E above).
+  # The force_id mismatch leaves the chip's voltage scaling and most temp pins
+  # mismapped, so `sensors` reports garbage — the +3.3V rail as 4.46 V, temp6 as
+  # -41 °C, and nonsensical min/max thresholds (high < low) firing false ALARMs.
+  # The chip is kept ONLY for fan PWM; CoolerControl reads raw hwmon sysfs and is
+  # NOT affected by this file. Hide the bogus sense channels so `sensors` (and
+  # anything using libsensors) stops crying wolf — coretemp / nvidia-smi / nvme
+  # are the authoritative temps. Real fan tachometers (fan1-3) are kept; fan4/5
+  # are empty headers. Wildcard the ISA address in case it re-bases.
+  environment.etc."sensors.d/predator.conf".text = ''
+    chip "it8628-isa-*"
+        # Misscaled voltage rails (all read implausibly; min>max thresholds).
+        ignore in0
+        ignore in1
+        ignore in2
+        ignore in3
+        ignore in4
+        ignore in5
+        ignore in6
+        ignore in7
+        ignore in8
+        # Mismapped temp pins (incl. temp6 = -41 °C) — unreliable under force_id.
+        # If a stress-test later proves a specific tempN tracks a real board/VRM
+        # sensor, drop its `ignore` line to bring just that one back.
+        ignore temp1
+        ignore temp2
+        ignore temp3
+        ignore temp4
+        ignore temp5
+        ignore temp6
+        # Empty fan headers + floating chassis-intrusion pin.
+        ignore fan4
+        ignore fan5
+        ignore intrusion0
+  '';
 }
