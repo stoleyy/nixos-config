@@ -177,6 +177,13 @@ let
     // bar (surfaces ETP status at a glance — fits the security posture).
     user_pref("zen.theme.essentials-favicon-bg", true);
     user_pref("zen.urlbar.show-protections-icon", true);
+    // Floating, centered URL bar (Arc/Zen-signature) + hide the tab bar in
+    // compact mode; skip onboarding declaratively (complements the SkipOnboarding
+    // policy). Chrome-only, privacy-neutral. (zen-browser-flake examples — same
+    // verify-on-box caveat as the other zen.* flags.)
+    user_pref("zen.urlbar.behavior", "float");
+    user_pref("zen.view.compact.hide-tabbar", true);
+    user_pref("zen.welcome-screen.seen", true);
   '';
 
   vaultOverrides = ''
