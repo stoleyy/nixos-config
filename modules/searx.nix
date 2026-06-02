@@ -13,7 +13,7 @@
 # `http://127.0.0.1:8888/search?q=%s`, set default) on vault/personal — the engine
 # list lives in the binary `search.json.mozlz4`, which is not declaratively
 # managed (see home/stoleyy/browser.nix). Localhost-only: no firewall port opened.
-{ config, pkgs, ... }:
+{ pkgs, ... }:
 let
   port = 8888;
 in
