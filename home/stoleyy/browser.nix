@@ -85,19 +85,115 @@ let
     user_pref("media.peerconnection.enabled", false);
     // No in-browser DoH — the OS resolver (dnscrypt-proxy, anonymized) is authoritative
     user_pref("network.trr.mode", 5);
-    // NVIDIA VAAPI HW video decode — ATTEMPT only. Firefox blocklists hardware
-    // decode on NVIDIA + Wayland (FEATURE_HARDWARE_VIDEO_DECODING_NO_LINUX_NVIDIA),
-    // so this is likely a no-op on the Hyprland / Plasma-Wayland sessions; verify
-    // at about:support ("Media" → HW decoding). The RDD sandbox is left ON (the
-    // wrapper no longer exports MOZ_DISABLE_RDD_SANDBOX) — modern Firefox runs
-    // VAAPI inside it. If decode never engages, drop these; mpv/Jellyfin do NVDEC.
+
+    /* ===== Hardware video decode — NVDEC via nvidia-vaapi-driver ===== */
+    // Firefox blocklists HW decode on NVIDIA + Wayland
+    // (FEATURE_HARDWARE_VIDEO_DECODING_NO_LINUX_NVIDIA); force-enabled overrides
+    // it, and rdd-ffmpeg routes decode through the RDD process where modern
+    // Firefox runs VAAPI INSIDE its sandbox (so the wrapper need not export
+    // MOZ_DISABLE_RDD_SANDBOX). AV1 stays on — the RTX 4070 has AV1 NVDEC.
+    // Pure offload: less CPU + wattage per video, zero privacy cost. The session
+    // already exports NVD_BACKEND=direct + LIBVA_DRIVER_NAME=nvidia (nvidia.nix).
+    //   Verify on-box with a video PLAYING:
+    //     nvidia-smi --query-gpu=utilization.decoder --format=csv   # >0% = live
+    //   If it stays 0%, it's the NVIDIA-Wayland VAAPI gap, not a config miss —
+    //   the i7-13700K decodes in software fine and mpv/Jellyfin do NVDEC.
     user_pref("media.ffmpeg.vaapi.enabled", true);
     user_pref("media.hardware-video-decoding.force-enabled", true);
+    user_pref("media.rdd-ffmpeg.enabled", true);
+    user_pref("media.av1.enabled", true);
 
-    /* Performance — safe on this hardware (64 GB RAM); not touched by arkenfox. */
-    user_pref("browser.cache.memory.capacity", 131072);
+    /* ===== GPU compositing (privacy-neutral) ===== */
+    // Force full WebRender + zero-copy DMABUF on Wayland so NVIDIA's path can't
+    // silently fall back to a basic/software compositor. Compositor-level only —
+    // invisible to web content, no fingerprint delta.
+    user_pref("gfx.webrender.all", true);
+    user_pref("widget.dmabuf.force-enabled", true);
+
+    /* ===== Caches — 64 GB RAM, NVMe (privacy-neutral, local) ===== */
+    // 512 MB in-RAM page cache (was 128 MB) + 1 GB media buffer: more served
+    // from memory, fewer disk hits / re-buffers. arkenfox doesn't touch these.
+    user_pref("browser.cache.memory.capacity", 524288);
+    user_pref("media.memory_cache_max_size", 1048576);
+    user_pref("media.cache_size", 1048576);
     user_pref("network.http.max-connections", 1800);
     user_pref("network.http.max-persistent-connections-per-server", 10);
+
+    /* ===== Smooth, modern feel (privacy-neutral, all zones) ===== */
+    // MSD-physics smooth scrolling — the "weighted" expensive-scroll feel.
+    user_pref("general.smoothScroll", true);
+    user_pref("general.smoothScroll.msdPhysics.enabled", true);
+    // Force dark website theme where it's safe (trusted zones); the RFP zones
+    // (untrusted/disposable) spoof prefers-color-scheme to light for uniformity,
+    // and RFP wins there — so this is dark-everywhere-it-doesn't-cost-privacy.
+    user_pref("layout.css.prefers-color-scheme.content-override", 0);
+    user_pref("ui.systemUsesDarkTheme", 1);
+    // Show the full URL (don't hide the scheme) — see the real host at a glance.
+    user_pref("browser.urlbar.trimURLs", false);
+    // Lived-in trust: no nag dialogs on multi-tab close / quit shortcut.
+    user_pref("browser.tabs.warnOnClose", false);
+    user_pref("browser.tabs.warnOnCloseOtherTabs", false);
+    user_pref("browser.warnOnQuitShortcut", false);
+    // Hover-preview cards for tabs (incl. thumbnails) — glance without switching.
+    user_pref("browser.tabs.cardPreview.enabled", true);
+    user_pref("browser.tabs.cardPreview.showThumbnails", true);
+    // URL bar as a local scratch tool: calculator + unit conversions (no network).
+    user_pref("browser.urlbar.suggest.calculator", true);
+    user_pref("browser.urlbar.unitConversion.enabled", true);
+    // URL-bar hygiene — kill the network-y / cluttery built-in suggest features
+    // (weather, trending, quick actions, MDN, recent searches). Privacy-positive
+    // declutter; not all are covered by arkenfox. The local calc/units above stay.
+    user_pref("browser.urlbar.suggest.weather", false);
+    user_pref("browser.urlbar.suggest.trending", false);
+    user_pref("browser.urlbar.suggest.quickactions", false);
+    user_pref("browser.urlbar.suggest.mdn", false);
+    user_pref("browser.urlbar.suggest.recentsearches", false);
+    // Modal find — dim the page + spotlight matches.
+    user_pref("findbar.modalHighlight", true);
+    // Free RAM from idle tabs (Firefox-native; complements the OS zram swap).
+    user_pref("browser.tabs.unloadOnLowMemory", true);
+
+    /* ===== Zen-native feel (cosmetic shell) =====
+       Flags taken from Zen's about-config docs. Like the userChrome IDs, Zen
+       renames these across releases — if one stops doing anything after a Zen
+       bump, check docs.zen-browser.app/guides/about-config-flags. None of these
+       touch web content or networking; they're pure chrome UX. */
+    // No startup splash/watermark — straight into the browser.
+    user_pref("zen.watermark.enabled", false);
+    // Compact-mode behaviour (toggle compact itself with Ctrl+Alt+C): theme-color
+    // the bars, reveal on hover, brief flash so a background tab isn't lost.
+    user_pref("zen.view.compact.color-sidebar", true);
+    user_pref("zen.view.compact.color-toolbar", true);
+    user_pref("zen.view.compact.show-sidebar-and-toolbar-on-hover", true);
+    user_pref("zen.view.compact.toolbar-flash-popup", true);
+    // Fade chrome to grey when unfocused — reinforces the active trust window
+    // (pairs with the per-zone Hyprland border + the per-zone accent below).
+    user_pref("zen.view.grey-out-inactive-windows", true);
+    // Tab strip: dim unloaded tabs, smooth scroll, Ctrl+Tab can wake unloaded.
+    user_pref("zen.tabs.dim-pending", true);
+    user_pref("zen.startup.smooth-scroll-in-tabs", true);
+    user_pref("zen.ctrlTab.show-pending-tabs", true);
+    // Workspaces: wrap at the ends + swipe to switch.
+    user_pref("zen.workspaces.wrap-around-navigation", true);
+    user_pref("zen.workspaces.swipe-actions", true);
+    // Glance (overlay link peek) for context-menu searches + external links.
+    user_pref("zen.glance.enable-contextmenu-search", true);
+    user_pref("zen.glance.open-essential-external-links", true);
+    // Themed sidebar gradient; the per-zone accent is set in mkUserJs.
+    user_pref("zen.theme.gradient", true);
+    user_pref("zen.theme.gradient.show-custom-colors", true);
+    user_pref("zen.mediacontrols.enabled", true);
+    // Favicon-tinted Essentials + a visible tracking-protection icon in the URL
+    // bar (surfaces ETP status at a glance — fits the security posture).
+    user_pref("zen.theme.essentials-favicon-bg", true);
+    user_pref("zen.urlbar.show-protections-icon", true);
+    // Floating, centered URL bar (Arc/Zen-signature) + hide the tab bar in
+    // compact mode; skip onboarding declaratively (complements the SkipOnboarding
+    // policy). Chrome-only, privacy-neutral. (zen-browser-flake examples — same
+    // verify-on-box caveat as the other zen.* flags.)
+    user_pref("zen.urlbar.behavior", "float");
+    user_pref("zen.view.compact.hide-tabbar", true);
+    user_pref("zen.welcome-screen.seen", true);
   '';
 
   vaultOverrides = ''
@@ -111,7 +207,7 @@ let
 
   personalOverrides = ''
 
-    /* ===== personal — daily driver ===== */
+    /* ===== personal — daily driver (comfort, NO network leaks) ===== */
     user_pref("privacy.sanitize.sanitizeOnShutdown", false);
     // Re-enable the new-tab page — arkenfox 0104 blanks it (newtabpage.enabled=
     // false), which is why the new tab had no search box at all. The enterprise
@@ -121,6 +217,35 @@ let
     // existing default engine. Deliberately NOT set on the hostile
     // (untrusted/disposable) zones — a blank new tab is the smaller RFP surface.
     user_pref("browser.newtabpage.enabled", true);
+
+    /* --- Local conveniences: persist to disk, but nothing leaves the machine --- */
+    // Restore the previous session's windows + tabs on launch — the #1 daily-driver
+    // expectation. arkenfox pins startup.page to a non-restoring value for privacy;
+    // we override to 3 here (personal only). sanitizeOnShutdown is already off
+    // above, so the session + history actually survive a restart.
+    user_pref("browser.startup.page", 3);
+    user_pref("browser.sessionstore.resume_from_crash", true);
+    user_pref("places.history.enabled", true);
+    // URL-bar autocomplete from LOCAL data only — history, bookmarks, open tabs.
+    user_pref("browser.urlbar.suggest.history", true);
+    user_pref("browser.urlbar.suggest.bookmark", true);
+    user_pref("browser.urlbar.suggest.openpage", true);
+
+    /* --- The "no net leaks" half: every network-speculation path stays OFF --- */
+    // These are arkenfox defaults; PINNED here so a future edit (or a comfort
+    // tweak) can't silently flip them on and start telegraphing browsing intent
+    // to DNS/servers/the search engine before you actually click. Remote search
+    // suggestions are also enforced off by the enterprise policy
+    // (SearchSuggestEnabled = false) — belt-and-suspenders.
+    user_pref("browser.search.suggest.enabled", false);
+    user_pref("browser.urlbar.suggest.searches", false);
+    user_pref("browser.urlbar.suggest.engines", false);
+    user_pref("browser.urlbar.suggest.topsites", false);
+    user_pref("network.prefetch-next", false);
+    user_pref("network.dns.disablePrefetch", true);
+    user_pref("network.predictor.enabled", false);
+    user_pref("network.http.speculative-parallel-limit", 0);
+    user_pref("browser.urlbar.speculativeConnect.enabled", false);
   '';
 
   # untrusted + disposable share this aggressive, Tor-routed profile.
@@ -171,11 +296,28 @@ let
     user_pref("findbar.highlightAll", true);
     // Don't destroy the window when the last tab is closed
     user_pref("browser.tabs.closeWindowWithLastTab", false);
+    // Find-as-you-type — start searching the page on any keystroke.
+    user_pref("accessibility.typeaheadfind", true);
+    // Copy the decoded (human-readable) URL, not percent-encoded.
+    user_pref("browser.urlbar.decodeURLsOnCopy", true);
+    // Allow pasting into single-line / password fields (banks that block it).
+    user_pref("editor.singleLine.pasteNewlines", 2);
   '';
 
-  # arkenfox base → common → per-domain → utility (later wins).
+  # Per-zone Zen accent — ties the browser's INTERNAL accent (sidebar gradient,
+  # active-tab highlight, themed bars) to the trust color, so the Qubes-style
+  # zone identity lives inside the chrome too, not only in the Hyprland window
+  # border. vault = green, personal = Sanctuary indigo, untrusted = red,
+  # disposable = orange — the same colors as the userChrome frame.
+  mkThemeOverride = domain: ''
+
+    /* ===== Per-zone accent (trust color) ===== */
+    user_pref("zen.theme.accent-color", "${domain.frame}");
+  '';
+
+  # arkenfox base → common → per-domain → utility → per-zone accent (later wins).
   mkUserJs =
-    name:
+    name: domain:
     pkgs.writeText "zen-${name}-user.js" (
       arkenfoxBase
       + "\n"
@@ -184,6 +326,8 @@ let
       + (domainOverrides.${name} or "")
       + "\n"
       + utilityOverrides
+      + "\n"
+      + mkThemeOverride domain
     );
 
   # Per-domain chrome styling. Trusted zones (vault/personal) get a frosted
@@ -253,7 +397,7 @@ let
       mkdir -p "$DATA_DIR/chrome"
 
       # Seed arkenfox user.js + trust-zone userChrome (authoritative every launch).
-      install -m644 ${mkUserJs name} "$DATA_DIR/user.js"
+      install -m644 ${mkUserJs name domain} "$DATA_DIR/user.js"
       install -m644 ${mkUserChrome name domain} "$DATA_DIR/chrome/userChrome.css"
 
       # Wayland app_id (per-domain window border). We intentionally do NOT set
@@ -362,6 +506,36 @@ in
         "keepassxc-browser@keepassxc.org" = {
           installation_mode = "force_installed";
           install_url = "https://addons.mozilla.org/firefox/downloads/latest/keepassxc-browser/latest.xpi";
+        };
+        # Proton Pass — ALLOWED (installable), deliberately NOT force_installed.
+        # This policy is browser-wide (all four zones share one policies.json), so
+        # a force-install would also land on the Tor-routed untrusted/disposable
+        # zones — and signing into your Proton account there would tie your real
+        # identity to anonymous browsing, defeating those zones. "allowed" just
+        # unblocks it (overriding the "*" block) so you add it ONLY to the trusted
+        # zones (vault, personal); the hostile zones never get it unless you
+        # deliberately install it there (don't). KeePassXC stays authoritative —
+        # local, firejailed --net=none — so this is Proton Pass *alongside* it.
+        "78272b6fa58f4a1abaac99321d503a20@proton.me" = {
+          installation_mode = "allowed";
+        };
+        # ── Aligned extensions: ALLOWED (installable in vault/personal), NOT
+        # force-installed — same rationale as Proton Pass (keeps them off the Tor
+        # zones). Vetted in the deep-research pass as fitting this setup. ──
+        # Tridactyl — Vim keybinds for the browser (mirrors the Hyprland/yazi/vim
+        # workflow). NOTE: do NOT install its optional native messenger — it
+        # executes shell commands and would punch straight through the sandbox.
+        "tridactyl.vim@cmcaine.co.uk" = {
+          installation_mode = "allowed";
+        };
+        # SponsorBlock — skip YouTube sponsor segments (open-source, self-hostable).
+        # NOTE: queries its API with hashed video-id prefixes; trusted zones only.
+        "sponsorBlocker@ajay.app" = {
+          installation_mode = "allowed";
+        };
+        # Stylus — local userstyles; extends the Sanctuary rice to web content.
+        "{7a7a4a92-a2a0-41d1-9fd7-1e92480d612d}" = {
+          installation_mode = "allowed";
         };
       };
     };
