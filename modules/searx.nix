@@ -50,10 +50,11 @@ in
   services.searx = {
     enable = true;
     package = pkgs.searxng;
-    # Standalone runner, NOT uWSGI: environmentFile reliably reaches this process
-    # (the uWSGI vassal doesn't inherit it — nixpkgs#292652), and it's ample for a
-    # localhost single-user instance.
-    runInUwsgi = false;
+    # Standalone runner, NOT uWSGI (this option was named runInUwsgi before the
+    # 25.11 rename): environmentFile reliably reaches this process (the uWSGI
+    # vassal doesn't inherit it — nixpkgs#292652), and it's ample for a localhost
+    # single-user instance.
+    configureUwsgi = false;
     environmentFile = "/var/lib/searx-secret/secret.env";
     settings = {
       use_default_settings = true; # merge over SearXNG's defaults (keep all engines)

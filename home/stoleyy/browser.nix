@@ -217,6 +217,12 @@ let
     // existing default engine. Deliberately NOT set on the hostile
     // (untrusted/disposable) zones — a blank new tab is the smaller RFP surface.
     user_pref("browser.newtabpage.enabled", true);
+    // …but Zen's `zen.urlbar.replace-newtab` (ON by default) intercepts the new
+    // tab and shows a BLANK page with the URL bar focused instead of Firefox
+    // Home — so the search box never renders. Turn it off so a new tab actually
+    // loads the Home page (just the search box, per the FirefoxHome.Search
+    // policy). personal only — the hostile zones stay blank by design.
+    user_pref("zen.urlbar.replace-newtab", false);
 
     /* --- Local conveniences: persist to disk, but nothing leaves the machine --- */
     // Restore the previous session's windows + tabs on launch — the #1 daily-driver
