@@ -140,6 +140,16 @@ let
     // URL bar as a local scratch tool: calculator + unit conversions (no network).
     user_pref("browser.urlbar.suggest.calculator", true);
     user_pref("browser.urlbar.unitConversion.enabled", true);
+    // URL-bar hygiene — kill the network-y / cluttery built-in suggest features
+    // (weather, trending, quick actions, MDN, recent searches). Privacy-positive
+    // declutter; not all are covered by arkenfox. The local calc/units above stay.
+    user_pref("browser.urlbar.suggest.weather", false);
+    user_pref("browser.urlbar.suggest.trending", false);
+    user_pref("browser.urlbar.suggest.quickactions", false);
+    user_pref("browser.urlbar.suggest.mdn", false);
+    user_pref("browser.urlbar.suggest.recentsearches", false);
+    // Modal find — dim the page + spotlight matches.
+    user_pref("findbar.modalHighlight", true);
     // Free RAM from idle tabs (Firefox-native; complements the OS zram swap).
     user_pref("browser.tabs.unloadOnLowMemory", true);
 
@@ -507,6 +517,24 @@ in
         # deliberately install it there (don't). KeePassXC stays authoritative —
         # local, firejailed --net=none — so this is Proton Pass *alongside* it.
         "78272b6fa58f4a1abaac99321d503a20@proton.me" = {
+          installation_mode = "allowed";
+        };
+        # ── Aligned extensions: ALLOWED (installable in vault/personal), NOT
+        # force-installed — same rationale as Proton Pass (keeps them off the Tor
+        # zones). Vetted in the deep-research pass as fitting this setup. ──
+        # Tridactyl — Vim keybinds for the browser (mirrors the Hyprland/yazi/vim
+        # workflow). NOTE: do NOT install its optional native messenger — it
+        # executes shell commands and would punch straight through the sandbox.
+        "tridactyl.vim@cmcaine.co.uk" = {
+          installation_mode = "allowed";
+        };
+        # SponsorBlock — skip YouTube sponsor segments (open-source, self-hostable).
+        # NOTE: queries its API with hashed video-id prefixes; trusted zones only.
+        "sponsorBlocker@ajay.app" = {
+          installation_mode = "allowed";
+        };
+        # Stylus — local userstyles; extends the Sanctuary rice to web content.
+        "{7a7a4a92-a2a0-41d1-9fd7-1e92480d612d}" = {
           installation_mode = "allowed";
         };
       };
