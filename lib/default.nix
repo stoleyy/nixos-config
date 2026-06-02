@@ -65,6 +65,7 @@
         ../modules/protonvpn-portforward.nix # NAT-PMP port forwarding for qBittorrent
         ../modules/media-server.nix # Jellyfin, *arr stack, qBittorrent (gated: modules.mediaServer.enable)
         ../modules/monitoring.nix # ntfy, beszel, gatus, vector
+        ../modules/searx.nix # self-hosted SearXNG metasearch (localhost; Zen search backend)
         ../modules/transcode.nix # systemd.paths NVENC watch folder
         ../modules/update-routines.nix # weekly rebuild, flake bump, vulnix
 
